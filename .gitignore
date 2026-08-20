@@ -1,0 +1,7 @@
+# IDE / tool directories
+.tmp/
+.trae/
+
+# OS files
+.DS_Store
+Thumbs.db

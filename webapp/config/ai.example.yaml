@@ -1,0 +1,11 @@
+# 复制为 ai.yaml 后填写；不要提交包含真实 API Key 的文件。
+bailian:
+  api_key: "sk-your-dashscope-api-key"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  model: "qwen3.7-plus"
+  temperature: 0.1
+  timeout_ms: 45000
+  # Excel 分析启用思考模式且输入更大，应使用独立的较长超时。
+  analysis_timeout_ms: 180000
+  # 限制思考 Token，兼顾分析质量、响应时间和费用。
+  analysis_thinking_budget: 4096
