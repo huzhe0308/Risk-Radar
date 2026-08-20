@@ -117,7 +117,8 @@ async function handleImport(token: string, sourceUrl: string, dispatcher: unknow
     const range = `${encodeURIComponent(s.sheet_id)}!A1:${columnName(columns)}${rows}`;
     const valuesPath = `/sheets/v2/spreadsheets/${encodeURIComponent(spreadsheetToken)}/values/${range}?valueRenderOption=ToString&dateTimeRenderOption=FormattedString`;
     const valuesPayload = await feishuApiGet(valuesPath, token, dispatcher);
-    const valueRange = objectVal(valuesPayload.data);
+    const dataObj = objectVal(valuesPayload.data);
+    const valueRange = objectVal(dataObj?.valueRange) || dataObj;
     return {
       id: s.sheet_id,
       title: s.title,
