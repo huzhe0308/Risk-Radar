@@ -17,9 +17,9 @@ import { AiChatPanel } from "./AiChatPanel";
 import { ManagementDashboard } from "./ManagementDashboard";
 import { CHANGE_PREVIEW_KEY, loadPlanChangePreview, type PlanChangePreview } from "./change-preview";
 import { ExcelAnalysisEmbedded } from "./ExcelAnalysisEmbedded";
+import { CeaVersionView } from "./CeaVersionView";
 
 const STORAGE_KEY = "time-plan-viewer-v4";
-const DEFAULT_FEISHU_URL = "https://qcnuzq54s36v.feishu.cn/wiki/P5Ugw4MOpi8Ew7kiY7Rcjh1xnsf?from=from_copylink&sheet=ae0dff";
 
 type MilestoneSelection = {
   projectId: string;
@@ -72,17 +72,11 @@ export default function Home() {
   const [selectedMilestone, setSelectedMilestone] = useState<MilestoneSelection | null>(null);
   const [importing, setImporting] = useState(false);
   const [showFeishuImport, setShowFeishuImport] = useState(false);
-  const [feishuUrl, setFeishuUrl] = useState(DEFAULT_FEISHU_URL);
-  const [feishuImporting, setFeishuImporting] = useState(false);
   const [feishuStatus, setFeishuStatus] = useState("");
   const [feishuStatusTone, setFeishuStatusTone] = useState<"loading" | "success" | "error">("error");
-  const [feishuAccount, setFeishuAccount] = useState({ connected: false, name: "", redirectUri: "", configured: true, loaded: false });
-  const [feishuTab, setFeishuTab] = useState<"browse" | "link">("browse");
-  const [feishuFiles, setFeishuFiles] = useState<Array<{ token: string; name: string; type: string; url: string; modified_time: number; owner: string }>>([]);
-  const [feishuFilesLoading, setFeishuFilesLoading] = useState(false);
-  const [feishuFilesError, setFeishuFilesError] = useState("");
-  const [feishuFilesPage, setFeishuFilesPage] = useState("");
-  const [feishuFileFilter, setFeishuFileFilter] = useState<"all" | "sheet" | "bitable">("all");
+  const [feishuSyncStatus, setFeishuSyncStatus] = useState<{ projects: number; milestones: number; syncedProjects: number; recentSyncs: Array<{ recordId: string; action: string; processed: boolean; error: string | null; receivedAt: string }> } | null>(null);
+  const [feishuStatusLoading, setFeishuStatusLoading] = useState(false);
+  const [feishuSyncLoading, setFeishuSyncLoading] = useState(false);
   const [showAddMilestonePicker, setShowAddMilestonePicker] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [newViewName, setNewViewName] = useState("");
@@ -92,7 +86,7 @@ export default function Home() {
   const [arrowDashed, setArrowDashed] = useState(false);
   const [arrowColor, setArrowColor] = useState("#d8ff3e");
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
-  const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline">("overview");
+  const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline" | "cea">("overview");
   const inputRef = useRef<HTMLInputElement>(null);
   const changePreviewRef = useRef(false);
 
@@ -146,49 +140,46 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("from") !== "feishu-script") return;
     let alive = true;
-    const query = new URLSearchParams(window.location.search);
-    const oauthConnected = query.get("feishu") === "connected";
-    const oauthError = query.get("feishuError") || "";
-    if (oauthConnected || oauthError) {
-      query.delete("feishu");
-      query.delete("feishuError");
-      const nextQuery = query.toString();
-      window.history.replaceState(null, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`);
-      setShowFeishuImport(true);
-      setFeishuStatus(oauthConnected ? "飞书登录成功，现在可以读取分享给你的表格。" : oauthError);
-      setFeishuStatusTone(oauthConnected ? "success" : "error");
-    }
-
-    const loadAccount = async () => {
+    const tryImport = async (attempt: number) => {
+      if (!window.XLSX) {
+        if (attempt < 30 && alive) {
+          setTimeout(() => void tryImport(attempt + 1), 200);
+          return;
+        }
+        window.alert("Excel 引擎未加载，请刷新页面重试。");
+        return;
+      }
       try {
-        const response = await fetch("/api/feishu/oauth/status", { cache: "no-store" });
-        const payload = await response.json() as { connected?: boolean; name?: string; redirectUri?: string; configured?: boolean };
+        const response = await fetch("http://127.0.0.1:3999/import-raw");
+        if (!response.ok) throw new Error("未找到待导入的数据，请重新从飞书发送。");
+        const buffer = await response.arrayBuffer();
         if (!alive) return;
-        setFeishuAccount({
-          connected: Boolean(payload.connected),
-          name: payload.name || "",
-          redirectUri: payload.redirectUri || "",
-          configured: payload.configured !== false,
-          loaded: true,
-        });
-      } catch {
-        if (alive) setFeishuAccount((current) => ({ ...current, connected: false, loaded: true }));
+        const workbook = window.XLSX.read(buffer, { type: "array", cellDates: true });
+        setData(migrateAppData(parseWorkbook(workbook)));
+        setSelectedProjectId("");
+        setSelectedMilestone(null);
+        setSelectedPlanItemId(null);
+        setSelectedConnectionId(null);
+        setWorkspaceMode("timeline");
+        window.history.replaceState(null, "", window.location.pathname);
+        window.localStorage.setItem("time-plan-viewer-feishu-source", "feishu-script");
+        window.alert("已从飞书导入表格数据。");
+      } catch (err) {
+        if (!alive) return;
+        window.alert(`导入失败：${err instanceof Error ? err.message : "未知错误"}`);
+        window.history.replaceState(null, "", window.location.pathname);
       }
     };
-    void loadAccount();
+    void tryImport(0);
     return () => { alive = false; };
   }, []);
 
   useEffect(() => {
     if (data && !changePreviewRef.current) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
-
-  useEffect(() => {
-    if (showFeishuImport && feishuAccount.connected && feishuTab === "browse" && !feishuFiles.length && !feishuFilesLoading) {
-      void loadFeishuFiles();
-    }
-  }, [showFeishuImport, feishuAccount.connected, feishuTab]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -467,137 +458,85 @@ export default function Home() {
     });
   };
 
-  const handleFeishuImport = async () => {
-    setFeishuImporting(true);
-    setFeishuStatus("正在连接飞书并读取工作表…");
+  const loadFeishuSyncStatus = async () => {
+    setFeishuStatusLoading(true);
+    setFeishuStatus("");
+    try {
+      const webhookToken = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "";
+      const params = new URLSearchParams();
+      if (webhookToken) params.set("token", webhookToken);
+      const response = await fetch(`/api/feishu/sync-status${params.toString() ? `?${params}` : ""}`, { cache: "no-store" });
+      const payload = await response.json() as { error?: string; projects?: number; milestones?: number; syncedProjects?: number; recentSyncs?: Array<{ recordId: string; action: string; processed: boolean; error: string | null; receivedAt: string }> };
+      if (!response.ok) throw new Error(payload.error || "查询同步状态失败。");
+      setFeishuSyncStatus({
+        projects: payload.projects ?? 0,
+        milestones: payload.milestones ?? 0,
+        syncedProjects: payload.syncedProjects ?? 0,
+        recentSyncs: payload.recentSyncs ?? [],
+      });
+      setFeishuStatus("同步状态已刷新。");
+      setFeishuStatusTone("success");
+    } catch (error) {
+      setFeishuStatus(error instanceof Error ? error.message : "查询同步状态失败。");
+      setFeishuStatusTone("error");
+    } finally {
+      setFeishuStatusLoading(false);
+    }
+  };
+
+  const loadFeishuSyncData = async () => {
+    setFeishuSyncLoading(true);
+    setFeishuStatus("正在从数据库加载飞书同步数据…");
     setFeishuStatusTone("loading");
     try {
-      if (!window.XLSX) throw new Error("Excel 引擎尚未加载，请稍后重试。");
-      const response = await fetch("/api/feishu/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: feishuUrl.trim() }),
-      });
+      const webhookToken = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "";
+      const params = new URLSearchParams();
+      if (webhookToken) params.set("token", webhookToken);
+      const response = await fetch(`/api/feishu/sync-data${params.toString() ? `?${params}` : ""}`, { cache: "no-store" });
       const payload = await response.json() as {
         error?: string;
-        title?: string;
-        sheets?: Array<{ id: string; title: string; values: unknown[][] }>;
+        projects?: Project[];
+        count?: number;
+        milestoneCount?: number;
+        startDate?: string;
+        endDate?: string;
       };
-      if (response.status === 401) {
-        setFeishuAccount((current) => ({ ...current, connected: false }));
-        throw new Error("登录已失效，请重新登录飞书。");
-      }
-      if (!response.ok) throw new Error(payload.error || "读取飞书表格失败。");
-      if (!Array.isArray(payload.sheets) || !payload.sheets.length) throw new Error("飞书表格没有可用工作表。");
-      const sheetNames = new Set(payload.sheets.map((sheet) => sheet.title.toLowerCase()));
-      if (!sheetNames.has("config") || !sheetNames.has("data")) {
-        setRawFeishuSheets(payload.sheets);
-        setRawSheetIndex(0);
-        setShowFeishuImport(false);
-        setFeishuStatus("");
-        window.alert(`已从飞书读取"${payload.title || "电子表格"}"（原始数据，未匹配 Config/Data 格式）。`);
+      if (!response.ok) throw new Error(payload.error || "加载同步数据失败。");
+      const syncedProjects = payload.projects || [];
+      if (!syncedProjects.length) {
+        setFeishuStatus("数据库中暂无同步数据。请先在飞书多维表格中配置自动化推送。");
+        setFeishuStatusTone("error");
         return;
       }
-      setRawFeishuSheets(null);
-      setData(migrateAppData(parseSheets(payload.sheets)));
-      window.localStorage.setItem("time-plan-viewer-feishu-source", feishuUrl.trim());
-      setSelectedProjectId("");
-      setSelectedMilestone(null);
-      setSelectedPlanItemId(null);
-      setSelectedConnectionId(null);
+
+      const existingNames = new Set(activeView.projects.map((p) => p.name));
+      const newProjects = syncedProjects.filter((p) => !existingNames.has(p.name));
+      const updatedProjects = syncedProjects.filter((p) => existingNames.has(p.name));
+
+      const viewStartDate = payload.startDate && payload.startDate < activeView.startDate ? payload.startDate : activeView.startDate;
+      const viewEndDate = payload.endDate && payload.endDate > activeView.endDate ? payload.endDate : activeView.endDate;
+
+      setData(updateActiveView(data, (view) => ({
+        ...view,
+        startDate: viewStartDate,
+        endDate: viewEndDate,
+        projects: [
+          ...view.projects.map((p) => {
+            const synced = updatedProjects.find((s) => s.name === p.name);
+            return synced ? { ...p, milestones: synced.milestones, tag: synced.tag || p.tag, detailRemark: synced.detailRemark || p.detailRemark } : p;
+          }),
+          ...newProjects,
+        ],
+      })));
+
       setWorkspaceMode("timeline");
       setShowFeishuImport(false);
-      setFeishuStatus("");
-      window.alert(`已从飞书读取“${payload.title || "电子表格"}”。`);
+      window.alert(`已加载 ${syncedProjects.length} 个项目（${payload.milestoneCount || 0} 条里程碑）到时间线。新增 ${newProjects.length} 个，更新 ${updatedProjects.length} 个。`);
     } catch (error) {
-      setFeishuStatus(error instanceof Error ? error.message : "读取飞书表格失败。");
+      setFeishuStatus(error instanceof Error ? error.message : "加载同步数据失败。");
       setFeishuStatusTone("error");
     } finally {
-      setFeishuImporting(false);
-    }
-  };
-
-  const startFeishuLogin = () => {
-    window.location.assign("/api/feishu/oauth/start");
-  };
-
-  const logoutFeishu = async () => {
-    await fetch("/api/feishu/oauth/logout", { method: "POST" }).catch(() => null);
-    setFeishuAccount((current) => ({ ...current, connected: false, name: "" }));
-    setFeishuStatus("已退出飞书登录。");
-    setFeishuStatusTone("success");
-    setFeishuFiles([]);
-  };
-
-  const loadFeishuFiles = async (pageToken?: string) => {
-    setFeishuFilesLoading(true);
-    setFeishuFilesError("");
-    try {
-      const params = new URLSearchParams({ page_size: "50" });
-      if (pageToken) params.set("page_token", pageToken);
-      const response = await fetch(`/api/feishu/files?${params}`);
-      const payload = await response.json() as { error?: string; files?: Array<{ token: string; name: string; type: string; url: string; modified_time: number; owner: string }>; has_more?: boolean; next_page_token?: string };
-      if (!response.ok) throw new Error(payload.error || "获取文件列表失败。");
-      const files = payload.files || [];
-      setFeishuFiles(pageToken ? [...feishuFiles, ...files] : files);
-      setFeishuFilesPage(payload.has_more ? (payload.next_page_token || "") : "");
-    } catch (error) {
-      setFeishuFilesError(error instanceof Error ? error.message : "获取文件列表失败。");
-    } finally {
-      setFeishuFilesLoading(false);
-    }
-  };
-
-  const handleFeishuFileSelect = async (fileToken: string, fileName: string, fileType: string) => {
-    setFeishuImporting(true);
-    setFeishuStatus(`正在读取"${fileName}"…`);
-    setFeishuStatusTone("loading");
-    try {
-      if (!window.XLSX) throw new Error("Excel 引擎尚未加载，请稍后重试。");
-
-      let payload: { error?: string; title?: string; sheets?: Array<{ id: string; title: string; values: unknown[][] }> };
-      let sourceUrl: string;
-
-      if (fileType === "bitable") {
-        const response = await fetch(`/api/feishu/bitable?app_token=${encodeURIComponent(fileToken)}`);
-        payload = await response.json() as typeof payload;
-        sourceUrl = `https://feishu.cn/base/${fileToken}`;
-      } else {
-        sourceUrl = `https://feishu.cn/sheets/${fileToken}`;
-        const response = await fetch("/api/feishu/import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: sourceUrl }),
-        });
-        payload = await response.json() as typeof payload;
-      }
-
-      if (!Array.isArray(payload.sheets) || !payload.sheets.length) throw new Error("飞书表格没有可用工作表。");
-      const sheetNames = new Set(payload.sheets.map((sheet) => sheet.title.toLowerCase()));
-      if (!sheetNames.has("config") || !sheetNames.has("data")) {
-        setRawFeishuSheets(payload.sheets);
-        setRawSheetIndex(0);
-        setShowFeishuImport(false);
-        setFeishuStatus("");
-        window.alert(`已从飞书读取"${payload.title || "电子表格"}"（原始数据，未匹配 Config/Data 格式）。`);
-        return;
-      }
-      setRawFeishuSheets(null);
-      setData(migrateAppData(parseSheets(payload.sheets)));
-      window.localStorage.setItem("time-plan-viewer-feishu-source", sourceUrl);
-      setSelectedProjectId("");
-      setSelectedMilestone(null);
-      setSelectedPlanItemId(null);
-      setSelectedConnectionId(null);
-      setWorkspaceMode("timeline");
-      setShowFeishuImport(false);
-      setFeishuStatus("");
-      window.alert(`已从飞书读取"${payload.title || "电子表格"}"。`);
-    } catch (error) {
-      setFeishuStatus(error instanceof Error ? error.message : "读取飞书表格失败。");
-      setFeishuStatusTone("error");
-    } finally {
-      setFeishuImporting(false);
+      setFeishuSyncLoading(false);
     }
   };
 
@@ -731,12 +670,7 @@ export default function Home() {
             <Icon>↥</Icon>{importing ? "导入中…" : "导入 Excel"}
             <input ref={inputRef} type="file" accept=".xlsx,.xls" hidden onChange={(event) => event.target.files?.[0] && void handleImport(event.target.files[0])} />
           </label>
-          <button className="button" onClick={() => { setFeishuStatus(""); setShowFeishuImport(true); }}><Icon>⌁</Icon>从飞书读取</button>
-          {feishuAccount.connected ? (
-            <div className="feishu-account"><span>飞书：{feishuAccount.name}</span><button type="button" onClick={() => void logoutFeishu()}>退出</button></div>
-          ) : (
-            <button className="button button-outline" onClick={() => { setFeishuStatus(""); setShowFeishuImport(true); }}><Icon>◎</Icon>登录飞书</button>
-          )}
+          <button className="button" onClick={() => { setFeishuStatus(""); setShowFeishuImport(true); }}><Icon>⌁</Icon>获取多维表格</button>
           <button className="button" onClick={() => exportWorkbook(data)}><Icon>↧</Icon>导出 Excel</button>
           <button className="button button-quiet" onClick={() => window.print()}><Icon>▣</Icon>打印 / PDF</button>
           <button className="icon-button" title="导出 PNG" onClick={exportPng}>▧</button>
@@ -781,12 +715,13 @@ export default function Home() {
             <div>
               <div className="breadcrumb">计划视图 <span>/</span> {activeView.name}</div>
               <h1>{data.title}</h1>
-              <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
+              <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
             </div>
             <div className="plan-heading-actions">
               <div className="workspace-mode-switch" aria-label="工作区模式">
                 <button className={workspaceMode === "overview" ? "active" : ""} onClick={() => { setWorkspaceMode("overview"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>◫</Icon>管理概览</button>
                 <button className={workspaceMode === "timeline" ? "active" : ""} onClick={() => setWorkspaceMode("timeline")}><Icon>▤</Icon>时间线</button>
+                <button className={workspaceMode === "cea" ? "active" : ""} onClick={() => { setWorkspaceMode("cea"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>⊟</Icon>CEA 版本</button>
               </div>
               {workspaceMode === "timeline" && <>
                 <button className="button button-outline" onClick={addProjectRow}><Icon>＋</Icon>新增行</button>
@@ -797,6 +732,12 @@ export default function Home() {
 
           {workspaceMode === "overview" ? (
             <ManagementDashboard view={activeView} onLocate={locateFromDashboard} />
+          ) : workspaceMode === "cea" ? (
+            <CeaVersionView
+              view={activeView}
+              projects={visibleProjects}
+              onMilestoneClick={(projectId, milestoneId) => { setSelectedProjectId(""); setSelectedMilestone({ projectId, milestoneId }); }}
+            />
           ) : <>
           <div className="toolbar">
             <div className="search-field"><Icon>⌕</Icon><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目、里程碑或备注…" /><kbd>⌘ K</kbd></div>
@@ -915,72 +856,90 @@ export default function Home() {
       {showViewDialog && <div className="modal-backdrop" onMouseDown={() => setShowViewDialog(false)}><div className="dialog" onMouseDown={(event) => event.stopPropagation()}><div className="dialog-head"><div><span className="eyebrow">NEW VIEW</span><h2>新建计划视图</h2></div><button onClick={() => setShowViewDialog(false)}>×</button></div><label className="form-field"><span>视图名称</span><input autoFocus value={newViewName} onChange={(event) => setNewViewName(event.target.value)} placeholder="例如：项目主计划" onKeyDown={(event) => event.key === "Enter" && createView()} /></label><label className="form-field"><span>视图类型</span><select value="plan" disabled><option value="plan">项目计划画板</option></select><small className="form-hint">所有视图统一使用计划画板，支持虚线框、自由文本、拖拽、行高和箭头编辑。</small></label><div className="dialog-actions"><button className="button button-quiet" onClick={() => setShowViewDialog(false)}>取消</button><button className="button button-primary" onClick={createView}>创建视图</button></div></div></div>}
 
       {showFeishuImport && (
-        <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !feishuImporting && setShowFeishuImport(false)}>
-          <div className="dialog feishu-import-dialog" role="dialog" aria-modal="true" aria-labelledby="feishu-import-title">
+        <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setShowFeishuImport(false)}>
+          <div className="dialog feishu-import-dialog" role="dialog" aria-modal="true" aria-labelledby="feishu-sync-title">
             <div className="dialog-head">
-              <div><span className="eyebrow">FEISHU SHEETS</span><h2 id="feishu-import-title">从飞书读取计划</h2></div>
-              <button onClick={() => !feishuImporting && setShowFeishuImport(false)} aria-label="关闭飞书读取">×</button>
+              <div><span className="eyebrow">FEISHU WEBHOOK</span><h2 id="feishu-sync-title">获取多维表格数据</h2></div>
+              <button onClick={() => setShowFeishuImport(false)} aria-label="关闭">×</button>
             </div>
-            {!feishuAccount.connected && (
-              <div className="feishu-login-panel">
-                <div><strong>{feishuAccount.configured ? "需要登录飞书" : "飞书应用尚未配置"}</strong><span>{feishuAccount.configured ? "登录会在当前浏览器窗口完成，授权后自动返回这里。" : "请先在 .env.local 填写 FEISHU_APP_ID 和 FEISHU_APP_SECRET。"}</span></div>
-                {feishuAccount.configured && <button className="button button-outline" onClick={startFeishuLogin}>登录飞书</button>}
-              </div>
-            )}
-            {feishuAccount.connected && (
-              <>
-                <div className="feishu-tabs">
-                  <button className={`feishu-tab ${feishuTab === "browse" ? "active" : ""}`} onClick={() => { setFeishuTab("browse"); if (!feishuFiles.length && !feishuFilesLoading) void loadFeishuFiles(); }}>云盘文件</button>
-                  <button className={`feishu-tab ${feishuTab === "link" ? "active" : ""}`} onClick={() => setFeishuTab("link")}>聊天文件链接</button>
+            <div className="feishu-sync-body">
+              <p className="feishu-sync-intro">飞书多维表格通过自动化流程将记录推送到本系统，无需应用权限审批。配置完成后，数据变更会准实时同步。</p>
+
+              <div className="feishu-sync-step">
+                <strong>1. Webhook 接收地址</strong>
+                <div className="feishu-sync-url-wrap">
+                  <code className="feishu-sync-url">{typeof window !== "undefined" ? `${window.location.origin}/api/feishu/sync` : "/api/feishu/sync"}</code>
+                  <button className="button button-outline feishu-copy-btn" onClick={() => { const url = `${window.location.origin}/api/feishu/sync`; navigator.clipboard?.writeText(url); setFeishuStatus("已复制到剪贴板"); setFeishuStatusTone("success"); }}>复制</button>
                 </div>
-                {feishuTab === "browse" && (
-                  <div className="feishu-file-browser">
-                    {feishuFiles.length > 0 && (
-                      <div className="feishu-filter-bar">
-                        <button className={`feishu-filter-chip ${feishuFileFilter === "all" ? "active" : ""}`} onClick={() => setFeishuFileFilter("all")}>全部 ({feishuFiles.length})</button>
-                        <button className={`feishu-filter-chip ${feishuFileFilter === "sheet" ? "active" : ""}`} onClick={() => setFeishuFileFilter("sheet")}>电子表格 ({feishuFiles.filter((f) => f.type === "sheet").length})</button>
-                        <button className={`feishu-filter-chip ${feishuFileFilter === "bitable" ? "active" : ""}`} onClick={() => setFeishuFileFilter("bitable")}>多维表格 ({feishuFiles.filter((f) => f.type === "bitable").length})</button>
+              </div>
+
+              <div className="feishu-sync-step">
+                <strong>2. 鉴权令牌（请求头 X-Webhook-Token）</strong>
+                <div className="feishu-sync-url-wrap">
+                  <code className="feishu-sync-url feishu-sync-token">{process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "部署后在环境变量中查看"}</code>
+                  <button className="button button-outline feishu-copy-btn" onClick={() => { const t = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""; if (t) { navigator.clipboard?.writeText(t); setFeishuStatus("已复制到剪贴板"); setFeishuStatusTone("success"); } }}>复制</button>
+                </div>
+              </div>
+
+              <div className="feishu-sync-step">
+                <strong>3. 同步状态</strong>
+                <div className="feishu-sync-status-grid">
+                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.projects ?? "—"}</span><span className="feishu-sync-stat-label">数据库项目</span></div>
+                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.syncedProjects ?? "—"}</span><span className="feishu-sync-stat-label">飞书同步</span></div>
+                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.milestones ?? "—"}</span><span className="feishu-sync-stat-label">里程碑</span></div>
+                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.recentSyncs?.length ?? 0}</span><span className="feishu-sync-stat-label">最近推送</span></div>
+                </div>
+                <button className="button button-outline" disabled={feishuStatusLoading} onClick={() => void loadFeishuSyncStatus()} style={{ marginTop: 8 }}>{feishuStatusLoading ? "查询中…" : "刷新状态"}</button>
+              </div>
+
+              {feishuSyncStatus?.recentSyncs && feishuSyncStatus.recentSyncs.length > 0 && (
+                <div className="feishu-sync-step">
+                  <strong>最近推送记录</strong>
+                  <div className="feishu-sync-log">
+                    {feishuSyncStatus.recentSyncs.map((r, i) => (
+                      <div key={i} className={`feishu-sync-log-item ${r.processed ? "ok" : "fail"}`}>
+                        <span className="feishu-sync-log-time">{new Date(r.receivedAt).toLocaleString("zh-CN")}</span>
+                        <span className="feishu-sync-log-id">{r.recordId}</span>
+                        <span className="feishu-sync-log-action">{r.action}</span>
+                        <span className="feishu-sync-log-status">{r.processed ? "✓" : r.error ? "✗" : "…"}</span>
+                        {r.error && <span className="feishu-sync-log-error" title={r.error}>{r.error.slice(0, 40)}</span>}
                       </div>
-                    )}
-                    {feishuFilesLoading && feishuFiles.length === 0 && <p className="feishu-import-status loading">正在加载文件列表…</p>}
-                    {feishuFilesError && <p className="feishu-import-status error">{feishuFilesError}</p>}
-                    {!feishuFilesLoading && !feishuFilesError && feishuFiles.length === 0 && (
-                      <p className="feishu-import-status error">没有找到表格文件。请确认飞书应用已开通 drive:drive:readonly 权限。</p>
-                    )}
-                    {feishuFiles.length > 0 && (
-                      <div className="feishu-file-list">
-                        {feishuFiles.filter((f) => feishuFileFilter === "all" || f.type === feishuFileFilter).map((file) => (
-                          <button key={file.token} className="feishu-file-item" disabled={feishuImporting} onClick={() => void handleFeishuFileSelect(file.token, file.name, file.type)}>
-                            <span className={`feishu-file-icon ${file.type}`}>{file.type === "bitable" ? "◳" : "▦"}</span>
-                            <span className="feishu-file-name">{file.name}</span>
-                            <span className={`feishu-file-type-badge ${file.type}`}>{file.type === "bitable" ? "多维表格" : "电子表格"}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {feishuFilesPage && (
-                      <button className="button button-outline feishu-load-more" disabled={feishuFilesLoading} onClick={() => void loadFeishuFiles(feishuFilesPage)}>
-                        {feishuFilesLoading ? "加载中…" : "加载更多"}
-                      </button>
-                    )}
+                    ))}
                   </div>
-                )}
-                {feishuTab === "link" && (
-                  <>
-                    <p className="feishu-import-help">支持飞书电子表格和 Wiki 表格链接。登录后将使用你本人的阅读权限。</p>
-                    <label className="form-field"><span>飞书表格链接</span><textarea rows={4} value={feishuUrl} onChange={(event) => setFeishuUrl(event.target.value)} disabled={feishuImporting} /></label>
-                  </>
-                )}
-              </>
-            )}
-            <div className="feishu-import-note"><strong>表格要求</strong><span>需要包含 Config 和 Data 工作表；飞书应用需开通用户身份的电子表格、知识库、云盘只读权限以及 offline_access。</span></div>
-            {feishuAccount.redirectUri && <div className="feishu-redirect-uri"><strong>飞书重定向 URL（先加入开放平台"安全设置"，发布应用后再登录）</strong><code>{feishuAccount.redirectUri}</code></div>}
+                </div>
+              )}
+
+              <div className="feishu-sync-step">
+                <strong>4. 飞书多维表格配置方法</strong>
+                <ol className="feishu-sync-guide">
+                  <li>打开飞书多维表格 → 点击顶部「自动化」标签</li>
+                  <li>新建流程：触发条件选「记录新增」或「记录修改」</li>
+                  <li>执行动作选「发送 HTTP 请求」</li>
+                  <li>请求方法 <code>POST</code>，URL 填上方 Webhook 地址</li>
+                  <li>请求头添加 <code>X-Webhook-Token</code>，值填上方令牌</li>
+                  <li>请求体选 JSON 格式，字段名见下方说明</li>
+                </ol>
+                <div className="feishu-sync-fields">
+                  <strong>支持的字段</strong>
+                  <div className="feishu-sync-field-list">
+                    <span><code>record_id</code> 必填</span>
+                    <span><code>type</code> project / milestone</span>
+                    <span><code>project_name</code> / <code>项目名称</code></span>
+                    <span><code>tag</code> / <code>标签</code></span>
+                    <span><code>milestone_name</code> / <code>里程碑名称</code></span>
+                    <span><code>release_date</code> / <code>发布日期</code></span>
+                    <span><code>project_id</code> / <code>所属项目</code></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {feishuStatus && <p className={`feishu-import-status ${feishuStatusTone}`}>{feishuStatus}</p>}
             <div className="dialog-actions">
-              <button className="button button-quiet" disabled={feishuImporting} onClick={() => setShowFeishuImport(false)}>取消</button>
-              {feishuTab === "link" && feishuAccount.connected && (
-                <button className="button button-primary" disabled={feishuImporting || !feishuUrl.trim()} onClick={() => void handleFeishuImport()}>{feishuImporting ? "读取中…" : "读取并打开"}</button>
-              )}
+              <button className="button button-quiet" onClick={() => setShowFeishuImport(false)}>关闭</button>
+              <button className="button button-primary" disabled={feishuSyncLoading} onClick={() => void loadFeishuSyncData()}>
+                {feishuSyncLoading ? "加载中…" : "加载到时间线"}
+              </button>
             </div>
           </div>
         </div>

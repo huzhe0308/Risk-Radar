@@ -56,6 +56,90 @@ AI 生成的更改会先显示预览，点击“应用更改”后才写入当�
 - Date-range controls, today marker, data integrity checks, and responsive UI.
 - Excel, print/PDF, PNG, and standalone HTML exports.
 
+## 飞书多维表格 Webhook 同步（无需应用权限）
+
+此方案绕开了飞书自建应用的权限审批流程。飞书多维表格的"自动化流程"原生支持在记录新增/修改/删除时发送 HTTP 请求到外部 URL，无需 `user_access_token` 或 `tenant_access_token`。
+
+### 架构
+
+```
+飞书多维表格 ──自动化触发──▶ HTTP POST /api/feishu/sync ──▶ Neon Postgres
+```
+
+### 配置步骤
+
+1. 在 `.env.local` 中填写：
+   ```
+   DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/dbname
+   FEISHU_WEBHOOK_TOKEN=你自定义的一个随机密钥
+   ```
+
+2. 运行数据库迁移：
+   ```powershell
+   npx drizzle-kit generate
+   npx drizzle-kit push
+   ```
+
+3. 在飞书多维表格中配置自动化流程：
+   - 触发条件：记录新增 / 记录修改 / 满足条件
+   - 执行动作：发送 HTTP 请求
+   - 请求方法：POST
+   - URL：`https://你的域名/api/feishu/sync`
+   - 请求头：`X-Webhook-Token: 你在 FEISHU_WEBHOOK_TOKEN 中设置的值`
+   - 请求体（JSON）见下方格式说明
+
+### Payload 格式
+
+支持两种格式：
+
+**扁平格式（推荐，用户自定义字段）：**
+```json
+{
+  "record_id": "recXXXX",
+  "type": "project",
+  "project_name": "CEA 2.X",
+  "tag": "PEP",
+  "deadline": "2027-09-10"
+}
+```
+
+**飞书原生格式（自动发送记录字段）：**
+```json
+{
+  "record_id": "recXXXX",
+  "fields": {
+    "项目名称": "CEA 2.X",
+    "标签": "PEP"
+  }
+}
+```
+
+`type` 字段可选，取值 `project` 或 `milestone`。不填时根据字段自动推断。
+
+### 支持的字段别名
+
+字段映射同时支持中英文：
+
+| 项目字段 | 支持的别名 |
+|---|---|
+| 名称 | `项目名称`、`项目名`、`project_name`、`name` |
+| 标签 | `项目标签`、`标签`、`tag` |
+| ID | `项目ID`、`project_id`、`uuid` |
+| 备注 | `项目备注`、`备注`、`detail_remark` |
+| 视图 | `视图`、`view_id`、`view` |
+
+| 里程碑字段 | 支持的别名 |
+|---|---|
+| 名称 | `里程碑名称`、`里程碑`、`milestone_name` |
+| 迭代 | `迭代`、`版本`、`iteration` |
+| 日期 | `发布日期`、`里程碑日期`、`日期`、`release_date`、`deadline` |
+| 所属项目 | `所属项目`、`项目ID`、`project_id` |
+| 形状 | `形状`、`shape` |
+
+### 幂等保证
+
+接口通过 `record_id` + payload hash 实现幂等。重复推送相同内容的记录不会产生副作用，仅在内容变化时更新数据库。
+
 ## Main folders
 
 - `app/` — product UI, data model, and Excel compatibility layer.

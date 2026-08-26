@@ -146,6 +146,7 @@ export function feishuProxy(): Plugin {
       const appId = process.env.FEISHU_APP_ID || "";
       const appSecret = process.env.FEISHU_APP_SECRET || "";
       const redirectUri = process.env.FEISHU_REDIRECT_URI || `${APP_ORIGIN}/api/feishu/oauth/callback`;
+      let pendingImport: { buffer: Buffer; timestamp: number } | null = null;
 
       if (proxyEnv) {
         console.log("[feishu-proxy] Using corporate proxy:", proxyEnv.split("@").pop());
@@ -299,6 +300,43 @@ export function feishuProxy(): Plugin {
             const responseBody = Buffer.from(await response.arrayBuffer());
             console.log("[feishu-proxy] ←", response.status, targetUrl);
             res.end(responseBody);
+            return;
+          }
+
+          // Raw import endpoint: POST xlsx binary from browser extension, GET retrieves it
+          if (reqUrl.startsWith("/import-raw")) {
+            res.setHeader("Access-Control-Allow-Origin", "*");
+            res.setHeader("Access-Control-Allow-Headers", "*");
+            res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            if (req.method === "POST") {
+              const chunks: Buffer[] = [];
+              for await (const chunk of req) chunks.push(chunk as Buffer);
+              pendingImport = { buffer: Buffer.concat(chunks), timestamp: Date.now() };
+              console.log("[feishu-proxy] raw import received:", pendingImport.buffer.length, "bytes");
+              res.statusCode = 200;
+              res.setHeader("Content-Type", "application/json");
+              res.end(JSON.stringify({ ok: true }));
+              return;
+            }
+            if (req.method === "GET") {
+              if (!pendingImport || Date.now() - pendingImport.timestamp > 5 * 60_000) {
+                pendingImport = null;
+                res.statusCode = 404;
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify({ error: "No pending import" }));
+                return;
+              }
+              const buffer = pendingImport.buffer;
+              pendingImport = null;
+              console.log("[feishu-proxy] raw import served:", buffer.length, "bytes");
+              res.statusCode = 200;
+              res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+              res.setHeader("Cache-Control", "no-store");
+              res.end(buffer);
+              return;
+            }
+            res.statusCode = 405;
+            res.end();
             return;
           }
 
