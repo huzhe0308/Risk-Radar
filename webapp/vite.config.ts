@@ -41,12 +41,16 @@ export default defineConfig(async ({ mode }) => {
   process.env.WRANGLER_LOG_PATH ??= ".wrangler/logs";
   process.env.MINIFLARE_REGISTRY_PATH ??= ".wrangler/registry";
 
-  const plugins = [vinext(), feishuProxy(), sites()];
+  const isVercel = Boolean(process.env.VERCEL) || Boolean(process.env.CI);
+  const plugins = [vinext()];
 
-  // Cloudflare plugin is only needed for local dev with D1/R2 bindings.
-  if (mode !== "production") {
-    const { cloudflare } = await import("@cloudflare/vite-plugin");
-    plugins.push(cloudflare({ viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] }, config: localBindingConfig }));
+  // These plugins are only needed for local dev.
+  if (!isVercel) {
+    plugins.push(feishuProxy(), sites());
+    if (mode !== "production") {
+      const { cloudflare } = await import("@cloudflare/vite-plugin");
+      plugins.push(cloudflare({ viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] }, config: localBindingConfig }));
+    }
   }
 
   return {
