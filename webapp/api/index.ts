@@ -32,7 +32,7 @@ async function ensureHandler() {
   await initPromise;
 }
 
-function buildWebRequest(req: any): Request {
+async function buildWebRequest(req: any): Promise<Request> {
   const proto = req.headers["x-forwarded-proto"]?.split(",")[0]?.trim() || "https";
   const host = req.headers["x-forwarded-host"] || req.headers["host"] || "localhost";
 
@@ -118,14 +118,15 @@ export default async function apiHandler(req: any, res: any) {
   try {
     await ensureHandler();
     if (!rscHandler) throw new Error("Handler initialization failed");
-    const webReq = buildWebRequest(req);
+    const webReq = await buildWebRequest(req);
     const response = await rscHandler(webReq);
     await sendWebResponse(response, req, res);
   } catch (error) {
     console.error("[api] Error:", error);
     if (!res.headersSent) {
       res.statusCode = 500;
-      res.end(JSON.stringify({ error: "Internal Server Error", detail: String(error) }));
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ error: "Internal Server Error", detail: String(error), stack: error instanceof Error ? error.stack?.split("\n").slice(0, 5).join(" | ") : undefined }));
     }
   }
 }
