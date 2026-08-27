@@ -42,7 +42,7 @@ function nodeToWebRequest(req: any): Request {
     else headers.set(key, value as string);
   }
   const method = req.method || "GET";
-  const init: RequestInit = { method, headers };
+  const init: RequestInit & { duplex?: "half" } = { method, headers };
   if (method !== "GET" && method !== "HEAD") {
     init.body = Readable.toWeb(req) as any;
     init.duplex = "half";
