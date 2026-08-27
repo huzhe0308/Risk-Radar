@@ -32,7 +32,7 @@ function extractFields(rawPayload: unknown): Record<string, unknown> {
 
 function formatValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  if (typeof value === "boolean") return value ? "æ˜¯" : "å¦";
+  if (typeof value === "boolean") return value ? "是" : "否";
   if (typeof value === "number") return String(value);
   if (Array.isArray(value)) return value.map((v) => typeof v === "object" ? JSON.stringify(v) : String(v)).join(", ");
   if (typeof value === "object") return JSON.stringify(value);
@@ -55,11 +55,11 @@ export default function FeishuTableView({ token }: { token: string }) {
       if (token) params.set("token", token);
       const response = await fetch(`/api/feishu/records${params.toString() ? `?${params}` : ""}`, { cache: "no-store" });
       const payload: RecordsResponse = await response.json();
-      if (!response.ok) throw new Error((payload as unknown as { error?: string }).error || "åŠ è½½å¤±è´¥");
+      if (!response.ok) throw new Error((payload as unknown as { error?: string }).error || "加载失败");
       setRecords(payload.records || []);
       setFieldNames(payload.fieldNames || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "åŠ è½½å¤±è´¥");
+      setError(err instanceof Error ? err.message : "加载失败");
     } finally {
       setLoading(false);
     }
@@ -83,13 +83,13 @@ export default function FeishuTableView({ token }: { token: string }) {
         <input
           className="feishu-table-search"
           type="text"
-          placeholder="æœç´¢è®°å½•â€¦"
+          placeholder="搜索记录…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <span className="feishu-table-count">{filteredRecords.length} æ¡è®°å½•</span>
+        <span className="feishu-table-count">{filteredRecords.length} 条记录</span>
         <button className="button button-outline" onClick={() => void load()} disabled={loading}>
-          {loading ? "åˆ·æ–°ä¸­â€¦" : "åˆ·æ–°"}
+          {loading ? "刷新中…" : "刷新"}
         </button>
       </div>
 
@@ -97,8 +97,8 @@ export default function FeishuTableView({ token }: { token: string }) {
 
       {!loading && filteredRecords.length === 0 && !error && (
         <div className="feishu-table-empty">
-          <p>æš‚æ— é£žä¹¦åŒæ­¥è®°å½•ã€‚</p>
-          <p className="feishu-table-empty-hint">è¯·åœ¨é£žä¹¦å¤šç»´è¡¨æ ¼ä¸­é…ç½®è‡ªåŠ¨åŒ–æŽ¨é€ï¼Œæ•°æ®å˜æ›´åŽä¼šè‡ªåŠ¨åŒæ­¥åˆ°è¿™é‡Œã€‚</p>
+          <p>暂无飞书同步记录。</p>
+          <p className="feishu-table-empty-hint">请在飞书多维表格中配置自动化推送，数据变更后会自动同步到这里。</p>
         </div>
       )}
 
@@ -107,13 +107,13 @@ export default function FeishuTableView({ token }: { token: string }) {
           <table className="raw-table feishu-records-table">
             <thead>
               <tr>
-                <th>æŽ¥æ”¶æ—¶é—´</th>
-                <th>åŠ¨ä½œ</th>
-                <th>è®°å½• ID</th>
+                <th>接收时间</th>
+                <th>动作</th>
+                <th>记录 ID</th>
                 {fieldNames.map((fn) => (
                   <th key={fn}>{fn}</th>
                 ))}
-                <th>çŠ¶æ€</th>
+                <th>状态</th>
               </tr>
             </thead>
             <tbody>
@@ -129,16 +129,16 @@ export default function FeishuTableView({ token }: { token: string }) {
                       onClick={() => setExpandedId(isExpanded ? null : r.id)}
                     >
                       <td className="feishu-cell-time">{new Date(r.receivedAt).toLocaleString("zh-CN")}</td>
-                      <td><span className="feishu-action-badge">{r.action || "â€”"}</span></td>
-                      <td className="feishu-cell-id" title={r.recordId}>{r.recordId.length > 50 ? r.recordId.slice(0, 50) + "â€¦" : r.recordId}</td>
+                      <td><span className="feishu-action-badge">{r.action || "—"}</span></td>
+                      <td className="feishu-cell-id" title={r.recordId}>{r.recordId.length > 50 ? r.recordId.slice(0, 50) + "…" : r.recordId}</td>
                       {fieldNames.map((fn) => (
                         <td key={fn}>{formatValue(fields[fn])}</td>
                       ))}
                       <td>
                         {r.processed ? (
-                          <span className="feishu-status-ok">âœ“ æˆåŠŸ</span>
+                          <span className="feishu-status-ok">✓ 成功</span>
                         ) : (
-                          <span className="feishu-status-fail" title={r.error || ""}>âœ— å¤±è´¥</span>
+                          <span className="feishu-status-fail" title={r.error || ""}>✗ 失败</span>
                         )}
                       </td>
                     </tr>
@@ -146,11 +146,11 @@ export default function FeishuTableView({ token }: { token: string }) {
                       <tr key={`${r.id}-detail`} className="feishu-detail-row">
                         <td colSpan={fieldNames.length + 4}>
                           <div className="feishu-detail-content">
-                            <h4>åŽŸå§‹ JSON æ•°æ®</h4>
+                            <h4>原始 JSON 数据</h4>
                             <pre className="feishu-raw-json">{JSON.stringify(r.rawPayload, null, 2)}</pre>
                             {r.error && (
                               <div className="feishu-detail-error">
-                                <strong>é”™è¯¯ä¿¡æ¯ï¼š</strong>{r.error}
+                                <strong>错误信息：</strong>{r.error}
                               </div>
                             )}
                           </div>
