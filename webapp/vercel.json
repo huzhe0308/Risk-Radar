@@ -5,7 +5,7 @@
   "outputDirectory": "dist/client",
   "rewrites": [
     { "source": "/", "destination": "/api" },
-    { "source": "/:path*", "destination": "/api/:path*" }
+    { "source": "/((?!api/).*)", "destination": "/api/:path*" }
   ],
   "functions": {
     "api/index.ts": {
