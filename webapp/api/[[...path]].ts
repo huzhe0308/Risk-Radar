@@ -14,8 +14,9 @@ async function ensureHandler() {
   if (handler) return;
   if (!initPromise) {
     initPromise = (async () => {
-      console.log("[api] Loading RSC handler from:", rscEntryPath);
-      console.log("[api] File exists:", fs.existsSync(rscEntryPath));
+      const exists = fs.existsSync(rscEntryPath);
+      console.log("[api] Loading RSC handler from:", rscEntryPath, "exists:", exists);
+      if (!exists) throw new Error("dist/server/index.js not found — check includeFiles");
       const mod = await import(rscEntryPath);
       const entry = mod.default;
       if (typeof entry === "function") {
@@ -23,7 +24,7 @@ async function ensureHandler() {
       } else if (entry && typeof entry.fetch === "function") {
         handler = (req: Request) => Promise.resolve(entry.fetch(req));
       } else {
-        throw new Error("RSC handler not found in build output");
+        throw new Error("RSC handler has unexpected shape: " + typeof entry);
       }
       console.log("[api] RSC handler loaded successfully");
     })();
@@ -34,7 +35,19 @@ async function ensureHandler() {
 function nodeToWebRequest(req: any): Request {
   const proto = req.headers["x-forwarded-proto"]?.split(",")[0]?.trim() || "https";
   const host = req.headers["x-forwarded-host"] || req.headers["host"] || "localhost";
-  const url = new URL(req.url || "/", `${proto}://${host}`);
+
+  const rawUrl = req.url || "/";
+  const parsed = new URL(rawUrl, `${proto}://${host}`);
+
+  let pathname = parsed.pathname;
+  if (pathname === "/api") {
+    pathname = "/";
+  } else if (pathname.startsWith("/api/")) {
+    pathname = pathname.slice(4);
+  }
+  const originalUrl = pathname + parsed.search;
+  const url = new URL(originalUrl, `${proto}://${host}`);
+
   const headers = new Headers();
   for (const [key, value] of Object.entries(req.headers)) {
     if (value === undefined) continue;

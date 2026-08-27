@@ -4,7 +4,7 @@
   "framework": null,
   "outputDirectory": "dist/client",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api" }
+    { "source": "/(.*)", "destination": "/api/$1" }
   ],
   "functions": {
     "api/[[...path]].ts": {
