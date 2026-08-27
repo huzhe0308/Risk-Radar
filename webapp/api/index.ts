@@ -58,7 +58,9 @@ async function buildWebRequest(req: any): Promise<Request> {
     for await (const chunk of req) {
       chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
     }
-    init.body = Buffer.concat(chunks);
+    const bodyBuffer = Buffer.concat(chunks);
+    console.log("[api] Body length:", bodyBuffer.length, "Content-Type:", headers.get("content-type"));
+    init.body = bodyBuffer;
   }
   return new Request(new URL(finalUrl, `${proto}://${host}`), init);
 }
