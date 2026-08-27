@@ -1175,17 +1175,17 @@ tbody tr:hover { background: #f7fbfb; }
   letter-spacing: .05em;
 }
 
-.excel-type.type-数字 { 
+.excel-type.type-æ•°å­— { 
   background: rgba(6, 182, 212, 0.2);
   color: #06b6d4;
 }
 
-.excel-type.type-日期 { 
+.excel-type.type-æ—¥æœŸ { 
   background: rgba(168, 85, 247, 0.2);
   color: #a855f7;
 }
 
-.excel-type.type-布尔 { 
+.excel-type.type-å¸ƒå°” { 
   background: rgba(251, 191, 36, 0.2);
   color: #fbbf24;
 }
@@ -2178,3 +2178,29 @@ tbody tr:hover { background: #f7fbfb; }
   .feishu-sync-log-item { font-size: 9px; gap: 4px; }
   .feishu-sync-log-id { max-width: 60px; }
 }
+
+.feishu-table-view { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+.feishu-table-toolbar { display: flex; align-items: center; gap: 12px; padding: 0 0 8px; }
+.feishu-table-search { width: 240px; height: 34px; padding: 0 12px; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; background: rgba(15, 23, 42, 0.04); color: #1e293b; font-size: 12px; outline: 0; }
+.feishu-table-search:focus { border-color: rgba(6, 182, 212, 0.4); }
+.feishu-table-count { font-size: 11px; color: #64748b; flex: 1; }
+.feishu-table-error { color: #dc2626; font-size: 12px; padding: 8px 12px; background: rgba(220, 38, 38, 0.06); border-radius: 8px; }
+.feishu-table-empty { text-align: center; padding: 60px 20px; color: #64748b; }
+.feishu-table-empty p { margin: 4px 0; font-size: 13px; }
+.feishu-table-empty-hint { font-size: 11px !important; color: #94a3b8; }
+.feishu-table-scroll { flex: 1; overflow: auto; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.12); }
+.feishu-records-table { font-size: 11px; }
+.feishu-records-table th { background: rgba(15, 23, 42, 0.95); color: #e2e8f0; }
+.feishu-records-table td { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+.feishu-records-table tr.ok { }
+.feishu-records-table tr.fail { background: rgba(220, 38, 38, 0.04); }
+.feishu-cell-time { white-space: nowrap; color: #64748b; font-size: 10px; }
+.feishu-cell-id { font-family: "SF Mono", monospace; color: #64748b; font-size: 10px; }
+.feishu-action-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(148, 163, 184, 0.12); color: #475569; font-size: 9px; font-weight: 600; }
+.feishu-status-ok { color: #059669; font-weight: 600; font-size: 10px; }
+.feishu-status-fail { color: #dc2626; font-weight: 600; font-size: 10px; }
+.feishu-detail-row { background: rgba(15, 23, 42, 0.06) !important; }
+.feishu-detail-content { padding: 12px 16px; }
+.feishu-detail-content h4 { font-size: 11px; color: #0f766e; margin: 0 0 8px; }
+.feishu-raw-json { background: rgba(15, 23, 42, 0.92); color: #67e8f9; padding: 12px 16px; border-radius: 8px; font-size: 11px; font-family: "SF Mono", "Fira Code", monospace; overflow-x: auto; max-height: 400px; overflow-y: auto; margin: 0; }
+.feishu-detail-error { margin-top: 8px; padding: 8px 12px; background: rgba(220, 38, 38, 0.06); border-radius: 6px; font-size: 11px; color: #dc2626; }
