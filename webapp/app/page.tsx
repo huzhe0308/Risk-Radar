@@ -37,7 +37,7 @@ function dateValue(value: string): number {
 }
 
 function formatDate(value: string): string {
-  if (!value) return "æœªè®¾ç½®";
+  if (!value) return "未设置";
   return new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric", year: "numeric" }).format(new Date(`${value}T00:00:00`));
 }
 
@@ -67,7 +67,7 @@ export default function Home() {
   const [rawSheetIndex, setRawSheetIndex] = useState(0);
   const [rawSearch, setRawSearch] = useState("");
   const [query, setQuery] = useState("");
-  const [tagFilter, setTagFilter] = useState("å…¨éƒ¨æ ‡ç­¾");
+  const [tagFilter, setTagFilter] = useState("全部标签");
   const [sortMode, setSortMode] = useState<"manual" | "date" | "name">("manual");
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [selectedMilestone, setSelectedMilestone] = useState<MilestoneSelection | null>(null);
@@ -150,12 +150,12 @@ export default function Home() {
           setTimeout(() => void tryImport(attempt + 1), 200);
           return;
         }
-        window.alert("Excel å¼•æ“ŽæœªåŠ è½½ï¼Œè¯·åˆ·æ–°é¡µé¢é‡è¯•ã€‚");
+        window.alert("Excel 引擎未加载，请刷新页面重试。");
         return;
       }
       try {
         const response = await fetch("http://127.0.0.1:3999/import-raw");
-        if (!response.ok) throw new Error("æœªæ‰¾åˆ°å¾…å¯¼å…¥çš„æ•°æ®ï¼Œè¯·é‡æ–°ä»Žé£žä¹¦å‘é€ã€‚");
+        if (!response.ok) throw new Error("未找到待导入的数据，请重新从飞书发送。");
         const buffer = await response.arrayBuffer();
         if (!alive) return;
         const workbook = window.XLSX.read(buffer, { type: "array", cellDates: true });
@@ -167,10 +167,10 @@ export default function Home() {
         setWorkspaceMode("timeline");
         window.history.replaceState(null, "", window.location.pathname);
         window.localStorage.setItem("time-plan-viewer-feishu-source", "feishu-script");
-        window.alert("å·²ä»Žé£žä¹¦å¯¼å…¥è¡¨æ ¼æ•°æ®ã€‚");
+        window.alert("已从飞书导入表格数据。");
       } catch (err) {
         if (!alive) return;
-        window.alert(`å¯¼å…¥å¤±è´¥ï¼š${err instanceof Error ? err.message : "æœªçŸ¥é”™è¯¯"}`);
+        window.alert(`导入失败：${err instanceof Error ? err.message : "未知错误"}`);
         window.history.replaceState(null, "", window.location.pathname);
       }
     };
@@ -232,7 +232,7 @@ export default function Home() {
     const normalizedQuery = query.trim().toLowerCase();
     const filtered = activeView.projects.filter((project) => {
       const matchesQuery = !normalizedQuery || [project.name, project.tag, project.detailRemark, ...project.milestones.map((milestone) => milestone.iteration)].join(" ").toLowerCase().includes(normalizedQuery);
-      return matchesQuery && (tagFilter === "å…¨éƒ¨æ ‡ç­¾" || project.tag === tagFilter);
+      return matchesQuery && (tagFilter === "全部标签" || project.tag === tagFilter);
     });
     return [...filtered].sort((a, b) => {
       if (sortMode === "name") return a.name.localeCompare(b.name, "zh");
@@ -257,7 +257,7 @@ export default function Home() {
     return { projects: [...projects], milestones: [...milestones] };
   }, [activeView, changePreview]);
   if (!data || !activeView) {
-    return <main className="loading-screen"><div className="loading-mark"><span className="radar-dot" /><span className="radar-ring ring-outer" /><span className="radar-ring ring-inner" /><span className="radar-sweep" /></div><p>æ­£åœ¨è½½å…¥æ—¶é—´è®¡åˆ’â€¦</p></main>;
+    return <main className="loading-screen"><div className="loading-mark"><span className="radar-dot" /><span className="radar-ring ring-outer" /><span className="radar-ring ring-inner" /><span className="radar-sweep" /></div><p>正在载入时间计划…</p></main>;
   }
 
   const handleImport = async (file: File) => {
@@ -271,7 +271,7 @@ export default function Home() {
       setSelectedMilestone(null);
       setShowAddMilestonePicker(false);
     } catch (error) {
-      window.alert(`å¯¼å…¥å¤±è´¥ï¼š${error instanceof Error ? error.message : "æ–‡ä»¶æ ¼å¼æ— æ³•è¯†åˆ«"}`);
+      window.alert(`导入失败：${error instanceof Error ? error.message : "文件格式无法识别"}`);
     } finally {
       setImporting(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -299,8 +299,8 @@ export default function Home() {
   };
 
   const removeView = () => {
-    if (data.views.length === 1) return window.alert("è‡³å°‘ä¿ç•™ä¸€ä¸ªè§†å›¾ã€‚");
-    if (!window.confirm(`ç¡®è®¤åˆ é™¤è§†å›¾â€œ${activeView.name}â€ï¼Ÿ`)) return;
+    if (data.views.length === 1) return window.alert("至少保留一个视图。");
+    if (!window.confirm(`确认删除视图“${activeView.name}”？`)) return;
     const nextViews = data.views.filter((view) => view.id !== activeView.id);
     setData({ ...data, views: nextViews, activeViewId: nextViews[0].id });
     setSelectedProjectId("");
@@ -334,7 +334,7 @@ export default function Home() {
   const addMilestoneToProject = (projectId: string) => {
     const milestone: Milestone = {
       id: `ms_${Date.now()}`,
-      iteration: "æ–°é‡Œç¨‹ç¢‘",
+      iteration: "新里程碑",
       releaseDate: activeView.startDate,
       remark: "",
       detailRemark: "",
@@ -354,7 +354,7 @@ export default function Home() {
 
   const deleteMilestone = () => {
     if (!selectedMilestone || !activeMilestoneProject || !activeMilestone) return;
-    if (!window.confirm(`ç¡®è®¤åˆ é™¤é‡Œç¨‹ç¢‘â€œ${activeMilestone.iteration}â€ï¼Ÿ`)) return;
+    if (!window.confirm(`确认删除里程碑“${activeMilestone.iteration}”？`)) return;
     setData(updateActiveView(data, (view) => ({
       ...view,
       projects: view.projects.map((project) => {
@@ -367,7 +367,7 @@ export default function Home() {
 
   const beginAddMilestone = () => {
     if (!activeView.projects.length) {
-      window.alert("å½“å‰è§†å›¾æ²¡æœ‰å¯æ·»åŠ é‡Œç¨‹ç¢‘çš„é¡¹ç›®ï¼Œè¯·å…ˆå¯¼å…¥åŒ…å«é¡¹ç›®çš„æ•°æ®ã€‚");
+      window.alert("当前视图没有可添加里程碑的项目，请先导入包含项目的数据。");
       return;
     }
     if (activeView.projects.length === 1) {
@@ -408,7 +408,7 @@ export default function Home() {
 
   const deleteProject = (projectId: string) => {
     const target = activeView.projects.find((project) => project.uuid === projectId);
-    if (!target || !window.confirm(`ç¡®å®šåˆ é™¤è¡Œâ€œ${target.name}â€åŠå…¶å…¨éƒ¨é‡Œç¨‹ç¢‘å—ï¼Ÿ`)) return;
+    if (!target || !window.confirm(`确定删除行“${target.name}”及其全部里程碑吗？`)) return;
     setData(updateActiveView(data, (view) => ({
       ...view,
       projects: view.projects.filter((project) => project.uuid !== projectId),
@@ -468,17 +468,17 @@ export default function Home() {
       if (webhookToken) params.set("token", webhookToken);
       const response = await fetch(`/api/feishu/sync-status${params.toString() ? `?${params}` : ""}`, { cache: "no-store" });
       const payload = await response.json() as { error?: string; projects?: number; milestones?: number; syncedProjects?: number; recentSyncs?: Array<{ recordId: string; action: string; processed: boolean; error: string | null; receivedAt: string }> };
-      if (!response.ok) throw new Error(payload.error || "æŸ¥è¯¢åŒæ­¥çŠ¶æ€å¤±è´¥ã€‚");
+      if (!response.ok) throw new Error(payload.error || "查询同步状态失败。");
       setFeishuSyncStatus({
         projects: payload.projects ?? 0,
         milestones: payload.milestones ?? 0,
         syncedProjects: payload.syncedProjects ?? 0,
         recentSyncs: payload.recentSyncs ?? [],
       });
-      setFeishuStatus("åŒæ­¥çŠ¶æ€å·²åˆ·æ–°ã€‚");
+      setFeishuStatus("同步状态已刷新。");
       setFeishuStatusTone("success");
     } catch (error) {
-      setFeishuStatus(error instanceof Error ? error.message : "æŸ¥è¯¢åŒæ­¥çŠ¶æ€å¤±è´¥ã€‚");
+      setFeishuStatus(error instanceof Error ? error.message : "查询同步状态失败。");
       setFeishuStatusTone("error");
     } finally {
       setFeishuStatusLoading(false);
@@ -487,7 +487,7 @@ export default function Home() {
 
   const loadFeishuSyncData = async () => {
     setFeishuSyncLoading(true);
-    setFeishuStatus("æ­£åœ¨ä»Žæ•°æ®åº“åŠ è½½é£žä¹¦åŒæ­¥æ•°æ®â€¦");
+    setFeishuStatus("正在从数据库加载飞书同步数据…");
     setFeishuStatusTone("loading");
     try {
       const webhookToken = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "";
@@ -502,10 +502,10 @@ export default function Home() {
         startDate?: string;
         endDate?: string;
       };
-      if (!response.ok) throw new Error(payload.error || "åŠ è½½åŒæ­¥æ•°æ®å¤±è´¥ã€‚");
+      if (!response.ok) throw new Error(payload.error || "加载同步数据失败。");
       const syncedProjects = payload.projects || [];
       if (!syncedProjects.length) {
-        setFeishuStatus("æ•°æ®åº“ä¸­æš‚æ— åŒæ­¥æ•°æ®ã€‚è¯·å…ˆåœ¨é£žä¹¦å¤šç»´è¡¨æ ¼ä¸­é…ç½®è‡ªåŠ¨åŒ–æŽ¨é€ã€‚");
+        setFeishuStatus("数据库中暂无同步数据。请先在飞书多维表格中配置自动化推送。");
         setFeishuStatusTone("error");
         return;
       }
@@ -532,9 +532,9 @@ export default function Home() {
 
       setWorkspaceMode("timeline");
       setShowFeishuImport(false);
-      window.alert(`å·²åŠ è½½ ${syncedProjects.length} ä¸ªé¡¹ç›®ï¼ˆ${payload.milestoneCount || 0} æ¡é‡Œç¨‹ç¢‘ï¼‰åˆ°æ—¶é—´çº¿ã€‚æ–°å¢ž ${newProjects.length} ä¸ªï¼Œæ›´æ–° ${updatedProjects.length} ä¸ªã€‚`);
+      window.alert(`已加载 ${syncedProjects.length} 个项目（${payload.milestoneCount || 0} 条里程碑）到时间线。新增 ${newProjects.length} 个，更新 ${updatedProjects.length} 个。`);
     } catch (error) {
-      setFeishuStatus(error instanceof Error ? error.message : "åŠ è½½åŒæ­¥æ•°æ®å¤±è´¥ã€‚");
+      setFeishuStatus(error instanceof Error ? error.message : "加载同步数据失败。");
       setFeishuStatusTone("error");
     } finally {
       setFeishuSyncLoading(false);
@@ -547,7 +547,7 @@ export default function Home() {
     const boundCount = target?.kind === "frame"
       ? activeView.planItems?.filter((item) => item.parentFrameId === selectedPlanItemId).length || 0
       : 0;
-    if (boundCount && !window.confirm(`è¯¥è™šçº¿æ¡†ç»‘å®šäº† ${boundCount} ä¸ªæ–‡æœ¬æ¡†ï¼Œåˆ é™¤åŽè¿™äº›æ–‡æœ¬æ¡†ä¹Ÿä¼šä¸€èµ·åˆ é™¤ã€‚æ˜¯å¦ç»§ç»­ï¼Ÿ`)) return;
+    if (boundCount && !window.confirm(`该虚线框绑定了 ${boundCount} 个文本框，删除后这些文本框也会一起删除。是否继续？`)) return;
     setData(updateActiveView(data, (view) => ({
       ...view,
       planItems: (view.planItems || []).filter((item) => item.id !== selectedPlanItemId && item.parentFrameId !== selectedPlanItemId),
@@ -613,7 +613,7 @@ export default function Home() {
     ctx.fillText(data.title, 40, 54);
     ctx.font = "16px Arial";
     ctx.fillStyle = "#64748b";
-    ctx.fillText(`${activeView.name}  Â·  ${formatDate(activeView.startDate)} â€” ${formatDate(activeView.endDate)}`, 40, 86);
+    ctx.fillText(`${activeView.name}  ·  ${formatDate(activeView.startDate)} — ${formatDate(activeView.endDate)}`, 40, 86);
     const left = 360;
     const trackWidth = 1370;
     const top = 145;
@@ -642,7 +642,7 @@ export default function Home() {
   };
 
   const exportHtml = () => {
-    const html = `<!doctype html><meta charset="utf-8"><title>${data.title}</title><body style="font:14px Arial;padding:32px"><h1>${data.title}</h1><h2>${activeView.name}</h2>${visibleProjects.map((project) => `<section><h3>${project.name}</h3><p>${project.milestones.map((milestone) => `${milestone.iteration}: ${milestone.releaseDate}`).join(" Â· ")}</p></section>`).join("")}</body>`;
+    const html = `<!doctype html><meta charset="utf-8"><title>${data.title}</title><body style="font:14px Arial;padding:32px"><h1>${data.title}</h1><h2>${activeView.name}</h2>${visibleProjects.map((project) => `<section><h3>${project.name}</h3><p>${project.milestones.map((milestone) => `${milestone.iteration}: ${milestone.releaseDate}`).join(" · ")}</p></section>`).join("")}</body>`;
     const url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
@@ -654,7 +654,7 @@ export default function Home() {
   const locateFromDashboard = (projectId: string, milestoneId: string) => {
     setWorkspaceMode("timeline");
     setQuery("");
-    setTagFilter("å…¨éƒ¨æ ‡ç­¾");
+    setTagFilter("全部标签");
     setSelectedProjectId("");
     setSelectedMilestone({ projectId, milestoneId });
   };
@@ -668,23 +668,23 @@ export default function Home() {
         </div>
         <div className="top-actions">
           <label className="button button-primary">
-            <Icon>â†¥</Icon>{importing ? "å¯¼å…¥ä¸­â€¦" : "å¯¼å…¥ Excel"}
+            <Icon>↥</Icon>{importing ? "导入中…" : "导入 Excel"}
             <input ref={inputRef} type="file" accept=".xlsx,.xls" hidden onChange={(event) => event.target.files?.[0] && void handleImport(event.target.files[0])} />
           </label>
-          <button className="button" onClick={() => { setFeishuStatus(""); setShowFeishuImport(true); }}><Icon>âŒ</Icon>èŽ·å–å¤šç»´è¡¨æ ¼</button>
-          <button className="button" onClick={() => exportWorkbook(data)}><Icon>â†§</Icon>å¯¼å‡º Excel</button>
-          <button className="button button-quiet" onClick={() => window.print()}><Icon>â–£</Icon>æ‰“å° / PDF</button>
-          <button className="icon-button" title="å¯¼å‡º PNG" onClick={exportPng}>â–§</button>
-          <button className="icon-button" title="å¯¼å‡º HTML" onClick={exportHtml}>â¤´</button>
-          <button className="button button-outline" onClick={() => setShowExcelAnalysis(true)}><Icon>â–¥</Icon>Excel åˆ†æž</button>
+          <button className="button" onClick={() => { setFeishuStatus(""); setShowFeishuImport(true); }}><Icon>⌁</Icon>获取多维表格</button>
+          <button className="button" onClick={() => exportWorkbook(data)}><Icon>↧</Icon>导出 Excel</button>
+          <button className="button button-quiet" onClick={() => window.print()}><Icon>▣</Icon>打印 / PDF</button>
+          <button className="icon-button" title="导出 PNG" onClick={exportPng}>▧</button>
+          <button className="icon-button" title="导出 HTML" onClick={exportHtml}>⤴</button>
+          <button className="button button-outline" onClick={() => setShowExcelAnalysis(true)}><Icon>▥</Icon>Excel 分析</button>
           <div className="avatar">U</div>
         </div>
       </header>
 
       {changePreview && (
         <section className="plan-change-preview-banner">
-          <div><strong>Excel å˜æ›´é¢„è§ˆ</strong><span>ä»¥å½“å‰æ—¶é—´è®¡åˆ’è§†å›¾ä¸ºæ˜¾ç¤ºåŸºçº¿ï¼Œå¯¹æ¯” {changePreview.sourceFile} Â· {changePreview.changes.length} é¡¹å˜æ›´å·²ç”¨æ©™è‰²æ ‡è®°</span></div>
-          <button className="button button-outline" onClick={() => { window.sessionStorage.removeItem(CHANGE_PREVIEW_KEY); window.location.assign("/"); }}>é€€å‡ºé¢„è§ˆï¼Œè¿”å›žå½“å‰è®¡åˆ’</button>
+          <div><strong>Excel 变更预览</strong><span>以当前时间计划视图为显示基线，对比 {changePreview.sourceFile} · {changePreview.changes.length} 项变更已用橙色标记</span></div>
+          <button className="button button-outline" onClick={() => { window.sessionStorage.removeItem(CHANGE_PREVIEW_KEY); window.location.assign("/"); }}>退出预览，返回当前计划</button>
         </section>
       )}
 
@@ -693,41 +693,41 @@ export default function Home() {
           <div className="sidebar-head">
             <div>
               <span className="eyebrow">WORKSPACE</span>
-              <h2>è®¡åˆ’è§†å›¾</h2>
+              <h2>计划视图</h2>
             </div>
-            <button className="round-button" title="æ·»åŠ è§†å›¾" onClick={() => setShowViewDialog(true)}>ï¼‹</button>
+            <button className="round-button" title="添加视图" onClick={() => setShowViewDialog(true)}>＋</button>
           </div>
           <div className="view-list">
             {data.views.map((view) => (
               <button key={view.id} className={`view-item ${view.id === activeView.id ? "active" : ""}`} onClick={() => { setData({ ...data, activeViewId: view.id }); setSelectedProjectId(""); setSelectedMilestone(null); setShowAddMilestonePicker(false); setSelectedPlanItemId(null); setArrowMode(false); setArrowStart(null); setSelectedConnectionId(null); }}>
-                <span className="view-icon">{view.type === "whiteboard" ? "âŒ˜" : "â–¤"}</span>
-                <span className="view-copy"><strong>{view.name}</strong>{changePreview && changedViewNames.has(view.name) && <small className="view-change-indicator">â— æœ‰å˜æ›´</small>}</span>
+                <span className="view-icon">{view.type === "whiteboard" ? "⌘" : "▤"}</span>
+                <span className="view-copy"><strong>{view.name}</strong>{changePreview && changedViewNames.has(view.name) && <small className="view-change-indicator">● 有变更</small>}</span>
                 {view.id === activeView.id && <span className="active-dot" />}
               </button>
             ))}
           </div>
           <div className="sidebar-foot">
-            <p>{changePreview ? "å˜æ›´é¢„è§ˆä¸ä¼šè¦†ç›–å½“å‰è®¡åˆ’" : "æœ¬åœ°è‡ªåŠ¨ä¿å­˜å·²å¼€å¯"}</p>
+            <p>{changePreview ? "变更预览不会覆盖当前计划" : "本地自动保存已开启"}</p>
           </div>
         </aside>
 
         <section className="content">
           <div className="page-heading">
             <div>
-              <div className="breadcrumb">è®¡åˆ’è§†å›¾ <span>/</span> {activeView.name}</div>
+              <div className="breadcrumb">计划视图 <span>/</span> {activeView.name}</div>
               <h1>{data.title}</h1>
-              <p>{workspaceMode === "overview" ? "ä»Žç®¡ç†è§†è§’æŽŒæ¡è®¡åˆ’å¥åº·åº¦ã€è¿‘æœŸèŠ‚ç‚¹ä¸Žå…³é”®é£Žé™©ã€‚" : workspaceMode === "cea" ? "æŒ‰ CEA è½¯ä»¶ç‰ˆæœ¬åˆ†ç»„æµè§ˆæ‰€æœ‰è½¦åž‹çš„é‡Œç¨‹ç¢‘èŠ‚ç‚¹ã€‚" : workspaceMode === "feishu-table" ? "æŸ¥çœ‹é£žä¹¦å¤šç»´è¡¨æ ¼ webhook æŽ¨é€çš„åŽŸå§‹è®°å½•æ•°æ®ã€‚" : "ç»Ÿä¸€ç®¡ç†äº§å“ã€è½¦åž‹å’Œç³»ç»Ÿé‡Œç¨‹ç¢‘ï¼Œæ”¯æŒ Excel å¾€è¿”ç¼–è¾‘ã€‚"}</p>
+              <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
             </div>
             <div className="plan-heading-actions">
-              <div className="workspace-mode-switch" aria-label="å·¥ä½œåŒºæ¨¡å¼">
-                <button className={workspaceMode === "overview" ? "active" : ""} onClick={() => { setWorkspaceMode("overview"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>â—«</Icon>ç®¡ç†æ¦‚è§ˆ</button>
-                <button className={workspaceMode === "timeline" ? "active" : ""} onClick={() => setWorkspaceMode("timeline")}><Icon>â–¤</Icon>æ—¶é—´çº¿</button>
-                <button className={workspaceMode === "cea" ? "active" : ""} onClick={() => { setWorkspaceMode("cea"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>âŠŸ</Icon>CEA ç‰ˆæœ¬</button>
-                <button className={workspaceMode === "feishu-table" ? "active" : ""} onClick={() => { setWorkspaceMode("feishu-table"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>âŒ</Icon>é£žä¹¦è¡¨æ ¼</button>
+              <div className="workspace-mode-switch" aria-label="工作区模式">
+                <button className={workspaceMode === "overview" ? "active" : ""} onClick={() => { setWorkspaceMode("overview"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>◫</Icon>管理概览</button>
+                <button className={workspaceMode === "timeline" ? "active" : ""} onClick={() => setWorkspaceMode("timeline")}><Icon>▤</Icon>时间线</button>
+                <button className={workspaceMode === "cea" ? "active" : ""} onClick={() => { setWorkspaceMode("cea"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>⊟</Icon>CEA 版本</button>
+                <button className={workspaceMode === "feishu-table" ? "active" : ""} onClick={() => { setWorkspaceMode("feishu-table"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>⌁</Icon>飞书表格</button>
               </div>
               {workspaceMode === "timeline" && <>
-                <button className="button button-outline" onClick={addProjectRow}><Icon>ï¼‹</Icon>æ–°å¢žè¡Œ</button>
-                <button className="button button-outline" onClick={beginAddMilestone}><Icon>ï¼‹</Icon>æ–°å¢žé‡Œç¨‹ç¢‘</button>
+                <button className="button button-outline" onClick={addProjectRow}><Icon>＋</Icon>新增行</button>
+                <button className="button button-outline" onClick={beginAddMilestone}><Icon>＋</Icon>新增里程碑</button>
               </>}
             </div>
           </div>
@@ -744,48 +744,48 @@ export default function Home() {
             <FeishuTableView token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} />
           ) : <>
           <div className="toolbar">
-            <div className="search-field"><Icon>âŒ•</Icon><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="æœç´¢é¡¹ç›®ã€é‡Œç¨‹ç¢‘æˆ–å¤‡æ³¨â€¦" /><kbd>âŒ˜ K</kbd></div>
-            <select value={tagFilter} onChange={(event) => setTagFilter(event.target.value)}><option>å…¨éƒ¨æ ‡ç­¾</option>{tags.map((tag) => <option key={tag}>{tag}</option>)}</select>
-            <select value={sortMode} onChange={(event) => setSortMode(event.target.value as typeof sortMode)}><option value="manual">é»˜è®¤æŽ’åº</option><option value="date">æŒ‰é¦–ä¸ªé‡Œç¨‹ç¢‘</option><option value="name">æŒ‰é¡¹ç›®åç§°</option></select>
+            <div className="search-field"><Icon>⌕</Icon><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目、里程碑或备注…" /><kbd>⌘ K</kbd></div>
+            <select value={tagFilter} onChange={(event) => setTagFilter(event.target.value)}><option>全部标签</option>{tags.map((tag) => <option key={tag}>{tag}</option>)}</select>
+            <select value={sortMode} onChange={(event) => setSortMode(event.target.value as typeof sortMode)}><option value="manual">默认排序</option><option value="date">按首个里程碑</option><option value="name">按项目名称</option></select>
             <div className="toolbar-spacer" />
-            <div className="column-width-control"><button onClick={() => updateColumnWidth(-1)}>âˆ’</button><input type="number" min="6" max="300" value={activeView.columnWidth || 20} onChange={(event) => { const v = Number(event.target.value); if (!isNaN(v)) updateColumnWidth(v - (activeView.columnWidth || 20)); }} /><span>px / å‘¨</span><button onClick={() => updateColumnWidth(1)}>ï¼‹</button></div>
-            <button className="button button-quiet" onClick={() => window.print()}><Icon>â‡©</Icon>å¯¼å‡º PDF</button>
+            <div className="column-width-control"><button onClick={() => updateColumnWidth(-1)}>−</button><input type="number" min="6" max="300" value={activeView.columnWidth || 20} onChange={(event) => { const v = Number(event.target.value); if (!isNaN(v)) updateColumnWidth(v - (activeView.columnWidth || 20)); }} /><span>px / 周</span><button onClick={() => updateColumnWidth(1)}>＋</button></div>
+            <button className="button button-quiet" onClick={() => window.print()}><Icon>⇩</Icon>导出 PDF</button>
           </div>
 
-          <div className="filter-summary"><span>æ˜¾ç¤º {visibleProjects.length} / {activeView.projects.length} è¡Œ</span>{(query || tagFilter !== "å…¨éƒ¨æ ‡ç­¾") && <button onClick={() => { setQuery(""); setTagFilter("å…¨éƒ¨æ ‡ç­¾"); }}>æ¸…é™¤ç­›é€‰ Ã—</button>}<div className="date-controls"><label>å¼€å§‹ <input type="date" value={activeView.startDate} onChange={(event) => updateViewDate("startDate", event.target.value)} /></label><label>ç»“æŸ <input type="date" value={activeView.endDate} onChange={(event) => updateViewDate("endDate", event.target.value)} /></label></div></div>
+          <div className="filter-summary"><span>显示 {visibleProjects.length} / {activeView.projects.length} 行</span>{(query || tagFilter !== "全部标签") && <button onClick={() => { setQuery(""); setTagFilter("全部标签"); }}>清除筛选 ×</button>}<div className="date-controls"><label>开始 <input type="date" value={activeView.startDate} onChange={(event) => updateViewDate("startDate", event.target.value)} /></label><label>结束 <input type="date" value={activeView.endDate} onChange={(event) => updateViewDate("endDate", event.target.value)} /></label></div></div>
 
           {(
             <>
               <div className="plan-canvas-toolbar">
-                <span>å¸ƒå±€å·¥å…·</span>
-                <button className="button button-primary" onClick={() => addPlanItem("frame")}>ï¼‹ æ–°å»ºè™šçº¿æ¡†</button>
-                <button className="button button-outline" onClick={() => addPlanItem("text")}>T æ–°å»ºæ–‡æœ¬</button>
-                <button className={`button ${arrowMode ? "button-primary" : "button-outline"}`} onClick={toggleArrowMode}>â†— {arrowMode ? "å–æ¶ˆæ·»åŠ ç®­å¤´" : "æ·»åŠ ç®­å¤´"}</button>
+                <span>布局工具</span>
+                <button className="button button-primary" onClick={() => addPlanItem("frame")}>＋ 新建虚线框</button>
+                <button className="button button-outline" onClick={() => addPlanItem("text")}>T 新建文本</button>
+                <button className={`button ${arrowMode ? "button-primary" : "button-outline"}`} onClick={toggleArrowMode}>↗ {arrowMode ? "取消添加箭头" : "添加箭头"}</button>
                 {arrowMode && <>
-                  <label className="plan-style-control">çº¿åž‹
-                    <button className={`button ${arrowDashed ? "button-outline" : "button-primary"}`} onClick={() => setArrowDashed(false)} style={{ padding: "4px 10px", fontSize: 10 }}>å®žçº¿</button>
-                    <button className={`button ${arrowDashed ? "button-primary" : "button-outline"}`} onClick={() => setArrowDashed(true)} style={{ padding: "4px 10px", fontSize: 10 }}>è™šçº¿</button>
+                  <label className="plan-style-control">线型
+                    <button className={`button ${arrowDashed ? "button-outline" : "button-primary"}`} onClick={() => setArrowDashed(false)} style={{ padding: "4px 10px", fontSize: 10 }}>实线</button>
+                    <button className={`button ${arrowDashed ? "button-primary" : "button-outline"}`} onClick={() => setArrowDashed(true)} style={{ padding: "4px 10px", fontSize: 10 }}>虚线</button>
                   </label>
-                  <label className="plan-style-control">é¢œè‰² <input type="color" value={arrowColor} onChange={(event) => setArrowColor(event.target.value)} /></label>
-                  <small className="arrow-help">{arrowStart ? "è¯·é€‰æ‹©ç»ˆç‚¹é‡Œç¨‹ç¢‘" : "è¯·é€‰æ‹©èµ·ç‚¹é‡Œç¨‹ç¢‘"}</small>
+                  <label className="plan-style-control">颜色 <input type="color" value={arrowColor} onChange={(event) => setArrowColor(event.target.value)} /></label>
+                  <small className="arrow-help">{arrowStart ? "请选择终点里程碑" : "请选择起点里程碑"}</small>
                 </>}
                 {selectedPlanItem && selectedPlanItem.kind === "frame" && <FrameWeekEditor item={selectedPlanItem} projects={visibleProjects} boundTextCount={(activeView.planItems || []).filter((item) => item.parentFrameId === selectedPlanItem.id).length} onUpdate={updatePlanItem} onDelete={deleteSelectedPlanItem} />}
               {selectedPlanItem && selectedPlanItem.kind === "text" && <>
-                <label className="plan-style-control">é¢œè‰² <input type="color" value={selectedPlanItem.color} onChange={(event) => updatePlanItem(selectedPlanItem.id, { color: event.target.value })} /></label>
-                <label className="plan-style-control">å­—å· <input type="number" min="10" max="28" value={selectedPlanItem.fontSize || 13} onChange={(event) => updatePlanItem(selectedPlanItem.id, { fontSize: Math.max(10, Math.min(28, Number(event.target.value) || 13)) })} /></label>
-                <label className="plan-style-control">æ‰€å±žè™šçº¿æ¡†
+                <label className="plan-style-control">颜色 <input type="color" value={selectedPlanItem.color} onChange={(event) => updatePlanItem(selectedPlanItem.id, { color: event.target.value })} /></label>
+                <label className="plan-style-control">字号 <input type="number" min="10" max="28" value={selectedPlanItem.fontSize || 13} onChange={(event) => updatePlanItem(selectedPlanItem.id, { fontSize: Math.max(10, Math.min(28, Number(event.target.value) || 13)) })} /></label>
+                <label className="plan-style-control">所属虚线框
                   <select value={selectedPlanItem.parentFrameId || ""} onChange={(event) => updatePlanItem(selectedPlanItem.id, { parentFrameId: event.target.value || undefined, bindingDisabled: !event.target.value })}>
-                    <option value="">æœªç»‘å®š</option>
-                    {(activeView.planItems || []).filter((item) => item.kind === "frame").map((frame, index) => <option key={frame.id} value={frame.id}>è™šçº¿æ¡† {index + 1}</option>)}
+                    <option value="">未绑定</option>
+                    {(activeView.planItems || []).filter((item) => item.kind === "frame").map((frame, index) => <option key={frame.id} value={frame.id}>虚线框 {index + 1}</option>)}
                   </select>
                 </label>
-                {selectedPlanItem.parentFrameId && <span className="week-bound-hint">å·²ç»‘å®šï¼Œç§»åŠ¨è™šçº¿æ¡†æ—¶æ–‡æœ¬ä¼šåŒæ­¥ç§»åŠ¨</span>}
-                <button className="button button-quiet" onClick={deleteSelectedPlanItem}>åˆ é™¤é€‰ä¸­å…ƒç´ </button>
+                {selectedPlanItem.parentFrameId && <span className="week-bound-hint">已绑定，移动虚线框时文本会同步移动</span>}
+                <button className="button button-quiet" onClick={deleteSelectedPlanItem}>删除选中元素</button>
               </>}
-                {selectedConnection && <><label className="plan-style-control">ç®­å¤´çº¿åž‹
-                  <button className={`button ${selectedConnection.lineType.includes("dash") ? "button-outline" : "button-primary"}`} onClick={() => updateConnection(selectedConnection.id, { lineType: "thin-solid" })} style={{ padding: "4px 10px", fontSize: 10 }}>å®žçº¿</button>
-                  <button className={`button ${selectedConnection.lineType.includes("dash") ? "button-primary" : "button-outline"}`} onClick={() => updateConnection(selectedConnection.id, { lineType: "thin-dashed" })} style={{ padding: "4px 10px", fontSize: 10 }}>è™šçº¿</button>
-                </label><label className="plan-style-control">ç®­å¤´é¢œè‰² <input type="color" value={selectedConnection.color} onChange={(event) => updateConnection(selectedConnection.id, { color: event.target.value })} /></label><button className="button button-quiet" onClick={deleteSelectedConnection}>åˆ é™¤ç®­å¤´</button></>}
+                {selectedConnection && <><label className="plan-style-control">箭头线型
+                  <button className={`button ${selectedConnection.lineType.includes("dash") ? "button-outline" : "button-primary"}`} onClick={() => updateConnection(selectedConnection.id, { lineType: "thin-solid" })} style={{ padding: "4px 10px", fontSize: 10 }}>实线</button>
+                  <button className={`button ${selectedConnection.lineType.includes("dash") ? "button-primary" : "button-outline"}`} onClick={() => updateConnection(selectedConnection.id, { lineType: "thin-dashed" })} style={{ padding: "4px 10px", fontSize: 10 }}>虚线</button>
+                </label><label className="plan-style-control">箭头颜色 <input type="color" value={selectedConnection.color} onChange={(event) => updateConnection(selectedConnection.id, { color: event.target.value })} /></label><button className="button button-quiet" onClick={deleteSelectedConnection}>删除箭头</button></>}
               </div>
               <ProjectPlanCanvas
                 view={activeView}
@@ -839,73 +839,73 @@ export default function Home() {
         <div className="modal-backdrop add-milestone-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setShowAddMilestonePicker(false)}>
           <div className="dialog add-milestone-dialog" role="dialog" aria-modal="true" aria-labelledby="add-milestone-title">
             <div className="dialog-head">
-              <div><span className="eyebrow">NEW MILESTONE</span><h2 id="add-milestone-title">æ·»åŠ é‡Œç¨‹ç¢‘</h2></div>
-              <button onClick={() => setShowAddMilestonePicker(false)} aria-label="å…³é—­é¡¹ç›®é€‰æ‹©">Ã—</button>
+              <div><span className="eyebrow">NEW MILESTONE</span><h2 id="add-milestone-title">添加里程碑</h2></div>
+              <button onClick={() => setShowAddMilestonePicker(false)} aria-label="关闭项目选择">×</button>
             </div>
-            <p className="project-picker-help">è¯·é€‰æ‹©é‡Œç¨‹ç¢‘æ‰€å±žçš„é¡¹ç›®ã€‚</p>
+            <p className="project-picker-help">请选择里程碑所属的项目。</p>
             <div className="project-picker-list">
               {activeView.projects.map((project) => (
                 <button key={project.uuid} onClick={() => { setShowAddMilestonePicker(false); addMilestoneToProject(project.uuid); }}>
                   <span className="project-picker-swatch" style={{ background: project.bgColor || "#ecf0f1" }} />
                   <span><strong>{project.name}</strong>{project.tag && <small>{project.tag}</small>}</span>
-                  <em>é€‰æ‹©</em>
+                  <em>选择</em>
                 </button>
               ))}
             </div>
-            <div className="dialog-actions"><button className="button button-quiet" onClick={() => setShowAddMilestonePicker(false)}>å–æ¶ˆ</button></div>
+            <div className="dialog-actions"><button className="button button-quiet" onClick={() => setShowAddMilestonePicker(false)}>取消</button></div>
           </div>
         </div>
       )}
 
-      {showViewDialog && <div className="modal-backdrop" onMouseDown={() => setShowViewDialog(false)}><div className="dialog" onMouseDown={(event) => event.stopPropagation()}><div className="dialog-head"><div><span className="eyebrow">NEW VIEW</span><h2>æ–°å»ºè®¡åˆ’è§†å›¾</h2></div><button onClick={() => setShowViewDialog(false)}>Ã—</button></div><label className="form-field"><span>è§†å›¾åç§°</span><input autoFocus value={newViewName} onChange={(event) => setNewViewName(event.target.value)} placeholder="ä¾‹å¦‚ï¼šé¡¹ç›®ä¸»è®¡åˆ’" onKeyDown={(event) => event.key === "Enter" && createView()} /></label><label className="form-field"><span>è§†å›¾ç±»åž‹</span><select value="plan" disabled><option value="plan">é¡¹ç›®è®¡åˆ’ç”»æ¿</option></select><small className="form-hint">æ‰€æœ‰è§†å›¾ç»Ÿä¸€ä½¿ç”¨è®¡åˆ’ç”»æ¿ï¼Œæ”¯æŒè™šçº¿æ¡†ã€è‡ªç”±æ–‡æœ¬ã€æ‹–æ‹½ã€è¡Œé«˜å’Œç®­å¤´ç¼–è¾‘ã€‚</small></label><div className="dialog-actions"><button className="button button-quiet" onClick={() => setShowViewDialog(false)}>å–æ¶ˆ</button><button className="button button-primary" onClick={createView}>åˆ›å»ºè§†å›¾</button></div></div></div>}
+      {showViewDialog && <div className="modal-backdrop" onMouseDown={() => setShowViewDialog(false)}><div className="dialog" onMouseDown={(event) => event.stopPropagation()}><div className="dialog-head"><div><span className="eyebrow">NEW VIEW</span><h2>新建计划视图</h2></div><button onClick={() => setShowViewDialog(false)}>×</button></div><label className="form-field"><span>视图名称</span><input autoFocus value={newViewName} onChange={(event) => setNewViewName(event.target.value)} placeholder="例如：项目主计划" onKeyDown={(event) => event.key === "Enter" && createView()} /></label><label className="form-field"><span>视图类型</span><select value="plan" disabled><option value="plan">项目计划画板</option></select><small className="form-hint">所有视图统一使用计划画板，支持虚线框、自由文本、拖拽、行高和箭头编辑。</small></label><div className="dialog-actions"><button className="button button-quiet" onClick={() => setShowViewDialog(false)}>取消</button><button className="button button-primary" onClick={createView}>创建视图</button></div></div></div>}
 
       {showFeishuImport && (
         <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setShowFeishuImport(false)}>
           <div className="dialog feishu-import-dialog" role="dialog" aria-modal="true" aria-labelledby="feishu-sync-title">
             <div className="dialog-head">
-              <div><span className="eyebrow">FEISHU WEBHOOK</span><h2 id="feishu-sync-title">èŽ·å–å¤šç»´è¡¨æ ¼æ•°æ®</h2></div>
-              <button onClick={() => setShowFeishuImport(false)} aria-label="å…³é—­">Ã—</button>
+              <div><span className="eyebrow">FEISHU WEBHOOK</span><h2 id="feishu-sync-title">获取多维表格数据</h2></div>
+              <button onClick={() => setShowFeishuImport(false)} aria-label="关闭">×</button>
             </div>
             <div className="feishu-sync-body">
-              <p className="feishu-sync-intro">é£žä¹¦å¤šç»´è¡¨æ ¼é€šè¿‡è‡ªåŠ¨åŒ–æµç¨‹å°†è®°å½•æŽ¨é€åˆ°æœ¬ç³»ç»Ÿï¼Œæ— éœ€åº”ç”¨æƒé™å®¡æ‰¹ã€‚é…ç½®å®ŒæˆåŽï¼Œæ•°æ®å˜æ›´ä¼šå‡†å®žæ—¶åŒæ­¥ã€‚</p>
+              <p className="feishu-sync-intro">飞书多维表格通过自动化流程将记录推送到本系统，无需应用权限审批。配置完成后，数据变更会准实时同步。</p>
 
               <div className="feishu-sync-step">
-                <strong>1. Webhook æŽ¥æ”¶åœ°å€</strong>
+                <strong>1. Webhook 接收地址</strong>
                 <div className="feishu-sync-url-wrap">
                   <code className="feishu-sync-url">{typeof window !== "undefined" ? `${window.location.origin}/api/feishu/sync` : "/api/feishu/sync"}</code>
-                  <button className="button button-outline feishu-copy-btn" onClick={() => { const url = `${window.location.origin}/api/feishu/sync`; navigator.clipboard?.writeText(url); setFeishuStatus("å·²å¤åˆ¶åˆ°å‰ªè´´æ¿"); setFeishuStatusTone("success"); }}>å¤åˆ¶</button>
+                  <button className="button button-outline feishu-copy-btn" onClick={() => { const url = `${window.location.origin}/api/feishu/sync`; navigator.clipboard?.writeText(url); setFeishuStatus("已复制到剪贴板"); setFeishuStatusTone("success"); }}>复制</button>
                 </div>
               </div>
 
               <div className="feishu-sync-step">
-                <strong>2. é‰´æƒä»¤ç‰Œï¼ˆè¯·æ±‚å¤´ X-Webhook-Tokenï¼‰</strong>
+                <strong>2. 鉴权令牌（请求头 X-Webhook-Token）</strong>
                 <div className="feishu-sync-url-wrap">
-                  <code className="feishu-sync-url feishu-sync-token">{process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "éƒ¨ç½²åŽåœ¨çŽ¯å¢ƒå˜é‡ä¸­æŸ¥çœ‹"}</code>
-                  <button className="button button-outline feishu-copy-btn" onClick={() => { const t = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""; if (t) { navigator.clipboard?.writeText(t); setFeishuStatus("å·²å¤åˆ¶åˆ°å‰ªè´´æ¿"); setFeishuStatusTone("success"); } }}>å¤åˆ¶</button>
+                  <code className="feishu-sync-url feishu-sync-token">{process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "部署后在环境变量中查看"}</code>
+                  <button className="button button-outline feishu-copy-btn" onClick={() => { const t = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""; if (t) { navigator.clipboard?.writeText(t); setFeishuStatus("已复制到剪贴板"); setFeishuStatusTone("success"); } }}>复制</button>
                 </div>
               </div>
 
               <div className="feishu-sync-step">
-                <strong>3. åŒæ­¥çŠ¶æ€</strong>
+                <strong>3. 同步状态</strong>
                 <div className="feishu-sync-status-grid">
-                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.projects ?? "â€”"}</span><span className="feishu-sync-stat-label">æ•°æ®åº“é¡¹ç›®</span></div>
-                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.syncedProjects ?? "â€”"}</span><span className="feishu-sync-stat-label">é£žä¹¦åŒæ­¥</span></div>
-                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.milestones ?? "â€”"}</span><span className="feishu-sync-stat-label">é‡Œç¨‹ç¢‘</span></div>
-                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.recentSyncs?.length ?? 0}</span><span className="feishu-sync-stat-label">æœ€è¿‘æŽ¨é€</span></div>
+                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.projects ?? "—"}</span><span className="feishu-sync-stat-label">数据库项目</span></div>
+                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.syncedProjects ?? "—"}</span><span className="feishu-sync-stat-label">飞书同步</span></div>
+                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.milestones ?? "—"}</span><span className="feishu-sync-stat-label">里程碑</span></div>
+                  <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.recentSyncs?.length ?? 0}</span><span className="feishu-sync-stat-label">最近推送</span></div>
                 </div>
-                <button className="button button-outline" disabled={feishuStatusLoading} onClick={() => void loadFeishuSyncStatus()} style={{ marginTop: 8 }}>{feishuStatusLoading ? "æŸ¥è¯¢ä¸­â€¦" : "åˆ·æ–°çŠ¶æ€"}</button>
+                <button className="button button-outline" disabled={feishuStatusLoading} onClick={() => void loadFeishuSyncStatus()} style={{ marginTop: 8 }}>{feishuStatusLoading ? "查询中…" : "刷新状态"}</button>
               </div>
 
               {feishuSyncStatus?.recentSyncs && feishuSyncStatus.recentSyncs.length > 0 && (
                 <div className="feishu-sync-step">
-                  <strong>æœ€è¿‘æŽ¨é€è®°å½•</strong>
+                  <strong>最近推送记录</strong>
                   <div className="feishu-sync-log">
                     {feishuSyncStatus.recentSyncs.map((r, i) => (
                       <div key={i} className={`feishu-sync-log-item ${r.processed ? "ok" : "fail"}`}>
                         <span className="feishu-sync-log-time">{new Date(r.receivedAt).toLocaleString("zh-CN")}</span>
                         <span className="feishu-sync-log-id">{r.recordId}</span>
                         <span className="feishu-sync-log-action">{r.action}</span>
-                        <span className="feishu-sync-log-status">{r.processed ? "âœ“" : r.error ? "âœ—" : "â€¦"}</span>
+                        <span className="feishu-sync-log-status">{r.processed ? "✓" : r.error ? "✗" : "…"}</span>
                         {r.error && <span className="feishu-sync-log-error" title={r.error}>{r.error.slice(0, 40)}</span>}
                       </div>
                     ))}
@@ -914,25 +914,25 @@ export default function Home() {
               )}
 
               <div className="feishu-sync-step">
-                <strong>4. é£žä¹¦å¤šç»´è¡¨æ ¼é…ç½®æ–¹æ³•</strong>
+                <strong>4. 飞书多维表格配置方法</strong>
                 <ol className="feishu-sync-guide">
-                  <li>æ‰“å¼€é£žä¹¦å¤šç»´è¡¨æ ¼ â†’ ç‚¹å‡»é¡¶éƒ¨ã€Œè‡ªåŠ¨åŒ–ã€æ ‡ç­¾</li>
-                  <li>æ–°å»ºæµç¨‹ï¼šè§¦å‘æ¡ä»¶é€‰ã€Œè®°å½•æ–°å¢žã€æˆ–ã€Œè®°å½•ä¿®æ”¹ã€</li>
-                  <li>æ‰§è¡ŒåŠ¨ä½œé€‰ã€Œå‘é€ HTTP è¯·æ±‚ã€</li>
-                  <li>è¯·æ±‚æ–¹æ³• <code>POST</code>ï¼ŒURL å¡«ä¸Šæ–¹ Webhook åœ°å€</li>
-                  <li>è¯·æ±‚å¤´æ·»åŠ  <code>X-Webhook-Token</code>ï¼Œå€¼å¡«ä¸Šæ–¹ä»¤ç‰Œ</li>
-                  <li>è¯·æ±‚ä½“é€‰ JSON æ ¼å¼ï¼Œå­—æ®µåè§ä¸‹æ–¹è¯´æ˜Ž</li>
+                  <li>打开飞书多维表格 → 点击顶部「自动化」标签</li>
+                  <li>新建流程：触发条件选「记录新增」或「记录修改」</li>
+                  <li>执行动作选「发送 HTTP 请求」</li>
+                  <li>请求方法 <code>POST</code>，URL 填上方 Webhook 地址</li>
+                  <li>请求头添加 <code>X-Webhook-Token</code>，值填上方令牌</li>
+                  <li>请求体选 JSON 格式，字段名见下方说明</li>
                 </ol>
                 <div className="feishu-sync-fields">
-                  <strong>æ”¯æŒçš„å­—æ®µ</strong>
+                  <strong>支持的字段</strong>
                   <div className="feishu-sync-field-list">
-                    <span><code>record_id</code> å¿…å¡«</span>
+                    <span><code>record_id</code> 必填</span>
                     <span><code>type</code> project / milestone</span>
-                    <span><code>project_name</code> / <code>é¡¹ç›®åç§°</code></span>
-                    <span><code>tag</code> / <code>æ ‡ç­¾</code></span>
-                    <span><code>milestone_name</code> / <code>é‡Œç¨‹ç¢‘åç§°</code></span>
-                    <span><code>release_date</code> / <code>å‘å¸ƒæ—¥æœŸ</code></span>
-                    <span><code>project_id</code> / <code>æ‰€å±žé¡¹ç›®</code></span>
+                    <span><code>project_name</code> / <code>项目名称</code></span>
+                    <span><code>tag</code> / <code>标签</code></span>
+                    <span><code>milestone_name</code> / <code>里程碑名称</code></span>
+                    <span><code>release_date</code> / <code>发布日期</code></span>
+                    <span><code>project_id</code> / <code>所属项目</code></span>
                   </div>
                 </div>
               </div>
@@ -940,9 +940,9 @@ export default function Home() {
 
             {feishuStatus && <p className={`feishu-import-status ${feishuStatusTone}`}>{feishuStatus}</p>}
             <div className="dialog-actions">
-              <button className="button button-quiet" onClick={() => setShowFeishuImport(false)}>å…³é—­</button>
+              <button className="button button-quiet" onClick={() => setShowFeishuImport(false)}>关闭</button>
               <button className="button button-primary" disabled={feishuSyncLoading} onClick={() => { setShowFeishuImport(false); setWorkspaceMode("feishu-table"); }}>
-                æŸ¥çœ‹é£žä¹¦è¡¨æ ¼
+                查看飞书表格
               </button>
             </div>
           </div>
@@ -954,10 +954,10 @@ export default function Home() {
           <div className="raw-table-dialog">
             <div className="raw-table-header">
               <div className="raw-table-title-row">
-                <div><span className="eyebrow">FEISHU DATA</span><h2>é£žä¹¦è¡¨æ ¼æ•°æ®</h2></div>
+                <div><span className="eyebrow">FEISHU DATA</span><h2>飞书表格数据</h2></div>
                 <div className="raw-table-header-actions">
-                  <input className="raw-table-search" type="text" placeholder="æœç´¢â€¦" value={rawSearch} onChange={(e) => setRawSearch(e.target.value)} />
-                  <button className="raw-table-close" onClick={() => { setRawFeishuSheets(null); setRawSearch(""); }} aria-label="å…³é—­">Ã—</button>
+                  <input className="raw-table-search" type="text" placeholder="搜索…" value={rawSearch} onChange={(e) => setRawSearch(e.target.value)} />
+                  <button className="raw-table-close" onClick={() => { setRawFeishuSheets(null); setRawSearch(""); }} aria-label="关闭">×</button>
                 </div>
               </div>
               {rawFeishuSheets.length > 1 && (
@@ -982,7 +982,7 @@ export default function Home() {
               return (
                 <div className="raw-table-body">
                   <div className="raw-table-info-bar">
-                    <span>{bodyRows.length} è¡Œ Ã— {Array.isArray(header) ? header.length : 0} åˆ—{rawSearch && ` ï¼ˆç­›é€‰è‡ª ${allRows.length - 1} è¡Œï¼‰`}</span>
+                    <span>{bodyRows.length} 行 × {Array.isArray(header) ? header.length : 0} 列{rawSearch && ` （筛选自 ${allRows.length - 1} 行）`}</span>
                   </div>
                   <div className="raw-table-scroll">
                     <table className="raw-table">
@@ -1004,20 +1004,20 @@ export default function Home() {
                       </tbody>
                     </table>
                   </div>
-                  {bodyRows.length > 500 && <p className="raw-table-truncated">ä»…æ˜¾ç¤ºå‰ 500 è¡Œï¼Œå…± {bodyRows.length} è¡Œ</p>}
+                  {bodyRows.length > 500 && <p className="raw-table-truncated">仅显示前 500 行，共 {bodyRows.length} 行</p>}
                 </div>
               );
             })()}
             <div className="raw-table-footer">
-              <span className="raw-table-source">æ•°æ®æ¥æºï¼šé£žä¹¦</span>
-              <button className="button button-quiet" onClick={() => { setRawFeishuSheets(null); setRawSearch(""); }}>å…³é—­</button>
+              <span className="raw-table-source">数据来源：飞书</span>
+              <button className="button button-quiet" onClick={() => { setRawFeishuSheets(null); setRawSearch(""); }}>关闭</button>
             </div>
           </div>
         </div>
       )}
 
       {showExcelAnalysis && (
-        <div className="excel-analysis-overlay" role="dialog" aria-modal="true" aria-label="Excel å˜æ›´åˆ†æž">
+        <div className="excel-analysis-overlay" role="dialog" aria-modal="true" aria-label="Excel 变更分析">
           <div className="excel-analysis-dialog">
             <ExcelAnalysisEmbedded
               baselineData={data}
@@ -1044,7 +1044,7 @@ export default function Home() {
         })}
       />
 
-      <footer className="statusbar"><span><i className="online-dot" />{changePreview ? "Excel å˜æ›´é¢„è§ˆæ¨¡å¼" : "æœ¬åœ°è¿è¡Œæ¨¡å¼"}</span><span>å…¼å®¹ V3.40 Excel æ•°æ®æ ¼å¼</span><span className="status-spacer" /><button onClick={removeView}>åˆ é™¤å½“å‰è§†å›¾</button></footer>
+      <footer className="statusbar"><span><i className="online-dot" />{changePreview ? "Excel 变更预览模式" : "本地运行模式"}</span><span>兼容 V3.40 Excel 数据格式</span><span className="status-spacer" /><button onClick={removeView}>删除当前视图</button></footer>
     </main>
   );
 }
@@ -1083,35 +1083,35 @@ function ProjectMilestoneDrawer({
       <div className="drawer-head">
         <div>
           <span className="eyebrow">MILESTONES</span>
-          <h2>ä¿®æ”¹é‡Œç¨‹ç¢‘</h2>
+          <h2>修改里程碑</h2>
           <p className="drawer-context">{project.name}</p>
         </div>
-        <button className="drawer-close" onClick={onClose} aria-label="å…³é—­é‡Œç¨‹ç¢‘åˆ—è¡¨">Ã—</button>
+        <button className="drawer-close" onClick={onClose} aria-label="关闭里程碑列表">×</button>
       </div>
       <div className="drawer-scroll">
         <div className="drawer-section project-editor">
-          <div className="section-title"><span>è¡Œä¿¡æ¯</span><button onClick={() => onSaveProject({ name: name.trim() || "æœªå‘½åè¡Œ", tag: tag.trim(), detailRemark, bgColor, showSeparatorAbove })}>ä¿å­˜è¡Œè®¾ç½®</button></div>
-          <label className="form-field"><span>è¡Œåç§°</span><input value={name} onChange={(event) => setName(event.target.value)} /></label>
-          <div className="drawer-row"><label className="form-field"><span>æ ‡ç­¾</span><input value={tag} onChange={(event) => setTag(event.target.value)} /></label><label className="form-field"><span>è¡Œåº•è‰²</span><input type="color" value={bgColor} onChange={(event) => setBgColor(event.target.value)} /></label></div>
-          <label className="form-field"><span>è¯´æ˜Ž</span><textarea rows={2} value={detailRemark} onChange={(event) => setDetailRemark(event.target.value)} /></label>
-          <label className="form-field separator-toggle"><input type="checkbox" checked={showSeparatorAbove} onChange={(event) => setShowSeparatorAbove(event.target.checked)} /><span>åœ¨æ­¤è¡Œä¸Šæ–¹æ˜¾ç¤ºåˆ†å‰²è™šçº¿</span></label>
+          <div className="section-title"><span>行信息</span><button onClick={() => onSaveProject({ name: name.trim() || "未命名行", tag: tag.trim(), detailRemark, bgColor, showSeparatorAbove })}>保存行设置</button></div>
+          <label className="form-field"><span>行名称</span><input value={name} onChange={(event) => setName(event.target.value)} /></label>
+          <div className="drawer-row"><label className="form-field"><span>标签</span><input value={tag} onChange={(event) => setTag(event.target.value)} /></label><label className="form-field"><span>行底色</span><input type="color" value={bgColor} onChange={(event) => setBgColor(event.target.value)} /></label></div>
+          <label className="form-field"><span>说明</span><textarea rows={2} value={detailRemark} onChange={(event) => setDetailRemark(event.target.value)} /></label>
+          <label className="form-field separator-toggle"><input type="checkbox" checked={showSeparatorAbove} onChange={(event) => setShowSeparatorAbove(event.target.checked)} /><span>在此行上方显示分割虚线</span></label>
         </div>
-        <p className="picker-help">è¯·é€‰æ‹©éœ€è¦ä¿®æ”¹çš„é‡Œç¨‹ç¢‘ï¼Œç¼–è¾‘ç•Œé¢ä¼šç«‹å³æ˜¾ç¤ºã€‚</p>
+        <p className="picker-help">请选择需要修改的里程碑，编辑界面会立即显示。</p>
         <div className="milestone-picker-list">
           {project.milestones.map((milestone) => (
             <button className="milestone-picker-item" key={milestone.id} onClick={() => onSelect(milestone.id)}>
               <span className="milestone-bullet" style={{ background: milestone.color }} />
               <span>
                 <strong>{milestone.iteration}</strong>
-                <small>{formatDate(milestone.releaseDate)}{milestone.remark ? ` Â· ${milestone.remark}` : ""}</small>
+                <small>{formatDate(milestone.releaseDate)}{milestone.remark ? ` · ${milestone.remark}` : ""}</small>
               </span>
-              <em>ä¿®æ”¹</em>
+              <em>修改</em>
             </button>
           ))}
-          {!project.milestones.length && <div className="picker-empty">è¯¥é¡¹ç›®æš‚æ— é‡Œç¨‹ç¢‘</div>}
+          {!project.milestones.length && <div className="picker-empty">该项目暂无里程碑</div>}
         </div>
-        <button className="button button-outline full-width" onClick={onAdd}>ï¼‹ æ·»åŠ å¹¶ä¿®æ”¹é‡Œç¨‹ç¢‘</button>
-        <button className="danger-button project-delete" onClick={onDeleteProject}>åˆ é™¤æ­¤è¡Œ</button>
+        <button className="button button-outline full-width" onClick={onAdd}>＋ 添加并修改里程碑</button>
+        <button className="danger-button project-delete" onClick={onDeleteProject}>删除此行</button>
       </div>
     </aside>
   );
@@ -1136,28 +1136,28 @@ function FrameWeekEditor({
 
   return (
     <>
-      <label className="plan-style-control">é¢œè‰² <input type="color" value={item.color} onChange={(event) => onUpdate(item.id, { color: event.target.value })} /></label>
-      <label className="plan-style-control">å­—å· <input type="number" min="10" max="28" value={item.fontSize || 13} onChange={(event) => onUpdate(item.id, { fontSize: Math.max(10, Math.min(28, Number(event.target.value) || 13)) })} /></label>
+      <label className="plan-style-control">颜色 <input type="color" value={item.color} onChange={(event) => onUpdate(item.id, { color: event.target.value })} /></label>
+      <label className="plan-style-control">字号 <input type="number" min="10" max="28" value={item.fontSize || 13} onChange={(event) => onUpdate(item.id, { fontSize: Math.max(10, Math.min(28, Number(event.target.value) || 13)) })} /></label>
       <div className="frame-week-editor">
         <div className="frame-week-row">
-          <span className="frame-week-label">èŒƒå›´</span>
-          <span className="week-bound-hint">{isBound ? `W${item.startWeek}/${startYear} â†’ W${item.endWeek}/${endYear}` : "è‡ªåŠ¨è¯†åˆ«ä¸­"}</span>
+          <span className="frame-week-label">范围</span>
+          <span className="week-bound-hint">{isBound ? `W${item.startWeek}/${startYear} → W${item.endWeek}/${endYear}` : "自动识别中"}</span>
         </div>
         <div className="frame-week-row">
-          <span className="frame-week-label">ä½ç½®</span>
+          <span className="frame-week-label">位置</span>
           <label className="frame-week-field frame-week-project">
             <select value={item.projectId || ""} onChange={(event) => onUpdate(item.id, { projectId: event.target.value || undefined })}>
-              <option value="">å…¨éƒ¨è¡Œ</option>
+              <option value="">全部行</option>
               {projects.map((p) => <option key={p.uuid} value={p.uuid}>{p.name}</option>)}
             </select>
           </label>
         </div>
         <div className="frame-week-actions">
-          <span className="week-bound-hint">æŒ‰å‘¨åˆ—å¸é™„ï¼šæ‹–åŠ¨è™šçº¿æ¡†ç§»åŠ¨ï¼Œæ‹–åŠ¨å³ä¸‹è§’ç¼©æ”¾</span>
-          <span className="week-bound-hint">å·²ç»‘å®š {boundTextCount} ä¸ªæ–‡æœ¬æ¡†</span>
+          <span className="week-bound-hint">按周列吸附：拖动虚线框移动，拖动右下角缩放</span>
+          <span className="week-bound-hint">已绑定 {boundTextCount} 个文本框</span>
         </div>
       </div>
-      <button className="button button-quiet" onClick={onDelete}>åˆ é™¤é€‰ä¸­å…ƒç´ </button>
+      <button className="button button-quiet" onClick={onDelete}>删除选中元素</button>
     </>
   );
 }
