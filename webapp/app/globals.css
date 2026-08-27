@@ -1175,17 +1175,17 @@ tbody tr:hover { background: #f7fbfb; }
   letter-spacing: .05em;
 }
 
-.excel-type.type-æ•°å­— { 
+.excel-type.type-数字 { 
   background: rgba(6, 182, 212, 0.2);
   color: #06b6d4;
 }
 
-.excel-type.type-æ—¥æœŸ { 
+.excel-type.type-日期 { 
   background: rgba(168, 85, 247, 0.2);
   color: #a855f7;
 }
 
-.excel-type.type-å¸ƒå°” { 
+.excel-type.type-布尔 { 
   background: rgba(251, 191, 36, 0.2);
   color: #fbbf24;
 }
