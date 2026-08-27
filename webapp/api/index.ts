@@ -42,8 +42,6 @@ function buildWebRequest(req: any): Request {
   let pathname = parsed.pathname;
   if (pathname === "/api" || pathname === "/api/") {
     pathname = "/";
-  } else if (pathname.startsWith("/api/")) {
-    pathname = pathname.slice(4);
   }
   const finalUrl = pathname + parsed.search;
 
