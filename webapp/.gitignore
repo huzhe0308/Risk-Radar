@@ -44,5 +44,5 @@ next-env.d.ts
 /.devserver.log
 /.devserver-error.log
 
-# local AI credentials
-/config/ai.yaml
+# local AI credentials (ai.yaml committed with placeholder values;
+# real API key is provided via DASHSCOPE_API_KEY env var)

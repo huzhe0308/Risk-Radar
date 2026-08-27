@@ -1,0 +1,10 @@
+# Local development: replace api_key with your real DashScope key.
+# Production (Vercel): set DASHSCOPE_API_KEY env var instead.
+bailian:
+  api_key: "sk-your-dashscope-api-key"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  model: "qwen3.7-plus"
+  temperature: 0.1
+  timeout_ms: 45000
+  analysis_timeout_ms: 180000
+  analysis_thinking_budget: 4096

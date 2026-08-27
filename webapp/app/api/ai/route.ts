@@ -1,5 +1,5 @@
 import { load } from "js-yaml";
-import { aiConfigSource as configSource } from "../../ai-config";
+import configSource from "../../../config/ai.yaml?raw";
 import { validateAiCommand } from "../../ai-actions";
 import type { View } from "../../types";
 
