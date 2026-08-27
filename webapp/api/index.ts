@@ -7,11 +7,11 @@ const STATIC_FILE_HEADER = "x-vinext-static-file";
 const rscEntryPath = path.join(process.cwd(), "dist", "server", "index.js");
 const clientDir = path.join(process.cwd(), "dist", "client");
 
-let handler: ((req: Request) => Promise<Response>) | null = null;
+let rscHandler: ((req: Request) => Promise<Response>) | null = null;
 let initPromise: Promise<void> | null = null;
 
 async function ensureHandler() {
-  if (handler) return;
+  if (rscHandler) return;
   if (!initPromise) {
     initPromise = (async () => {
       const exists = fs.existsSync(rscEntryPath);
@@ -20,9 +20,9 @@ async function ensureHandler() {
       const mod = await import(rscEntryPath);
       const entry = mod.default;
       if (typeof entry === "function") {
-        handler = (req: Request) => Promise.resolve(entry(req));
+        rscHandler = (req: Request) => Promise.resolve(entry(req));
       } else if (entry && typeof entry.fetch === "function") {
-        handler = (req: Request) => Promise.resolve(entry.fetch(req));
+        rscHandler = (req: Request) => Promise.resolve(entry.fetch(req));
       } else {
         throw new Error("RSC handler has unexpected shape: " + typeof entry);
       }
@@ -113,12 +113,12 @@ async function sendWebResponse(response: Response, req: any, res: any) {
   res.end();
 }
 
-export default async function handler(req: any, res: any) {
+export default async function apiHandler(req: any, res: any) {
   try {
     await ensureHandler();
-    if (!handler) throw new Error("Handler initialization failed");
+    if (!rscHandler) throw new Error("Handler initialization failed");
     const webReq = buildWebRequest(req);
-    const response = await handler(webReq);
+    const response = await rscHandler(webReq);
     await sendWebResponse(response, req, res);
   } catch (error) {
     console.error("[api] Error:", error);
