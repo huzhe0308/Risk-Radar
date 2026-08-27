@@ -44,14 +44,15 @@ export default defineConfig(async ({ mode }) => {
   const isVercel = Boolean(process.env.VERCEL) || Boolean(process.env.CI);
   const plugins = [vinext()];
 
-  // These plugins are only needed for local dev.
   if (!isVercel) {
-    plugins.push(feishuProxy(), sites());
+    plugins.push(feishuProxy());
     if (mode !== "production") {
       const { cloudflare } = await import("@cloudflare/vite-plugin");
       plugins.push(cloudflare({ viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] }, config: localBindingConfig }));
     }
   }
+
+  plugins.push(sites());
 
   return {
     server: {

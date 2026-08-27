@@ -1,0 +1,11 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "framework": null,
+  "outputDirectory": "dist/client",
+  "functions": {
+    "api/[[...path]].ts": {
+      "includeFiles": "dist/server/**"
+    }
+  }
+}
