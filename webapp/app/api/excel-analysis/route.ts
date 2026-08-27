@@ -1,5 +1,5 @@
 import { load } from "js-yaml";
-import configSource from "../../../config/ai.yaml?raw";
+import { aiConfigSource as configSource } from "../../ai-config";
 import type { AiWorkbookContext, ChangeKind, ComparisonResult, EntityType, ExcelChange } from "../../excel-analysis/excel-diff";
 
 export const runtime = "edge";
