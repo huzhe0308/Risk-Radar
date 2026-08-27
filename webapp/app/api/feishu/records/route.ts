@@ -1,0 +1,67 @@
+import { desc } from "drizzle-orm";
+import { getDb } from "../../../../db";
+import { syncRecords } from "../../../../db/schema";
+
+export const runtime = "edge";
+
+export async function GET(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token");
+
+  const expectedToken = process.env.FEISHU_WEBHOOK_TOKEN;
+  if (!expectedToken) {
+    return Response.json({ error: "Webhook token not configured." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
+  if (token !== expectedToken) {
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+  }
+
+  let db;
+  try {
+    db = getDb();
+  } catch (err) {
+    return Response.json({ error: err instanceof Error ? err.message : "Database unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const rows = await db
+    .select()
+    .from(syncRecords)
+    .orderBy(desc(syncRecords.receivedAt))
+    .limit(200);
+
+  const records = rows.map((r) => ({
+    id: r.id,
+    recordId: r.recordId,
+    tableId: r.tableId,
+    action: r.action,
+    payloadHash: r.payloadHash,
+    rawPayload: r.rawPayload,
+    receivedAt: r.receivedAt,
+    processed: r.processed,
+    error: r.error,
+  }));
+
+  const fieldNamesSet = new Set<string>();
+  for (const r of records) {
+    const payload = r.rawPayload as Record<string, unknown> | null;
+    if (!payload) continue;
+    const fields = payload.fields;
+    if (fields && typeof fields === "object" && !Array.isArray(fields)) {
+      for (const key of Object.keys(fields as Record<string, unknown>)) {
+        fieldNamesSet.add(key);
+      }
+    } else {
+      for (const key of Object.keys(payload)) {
+        if (!["record_id", "recordId", "table_id", "tableId", "action", "event_type", "type_event", "type", "record_type", "fields"].includes(key)) {
+          fieldNamesSet.add(key);
+        }
+      }
+    }
+  }
+
+  return Response.json({
+    records,
+    fieldNames: Array.from(fieldNamesSet).sort(),
+    count: records.length,
+  }, { headers: { "Cache-Control": "no-store" } });
+}
