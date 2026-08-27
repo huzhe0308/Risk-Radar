@@ -4,14 +4,10 @@
   "framework": null,
   "outputDirectory": "dist/client",
   "rewrites": [
-    { "source": "/", "destination": "/api" },
-    { "source": "/((?!api/).*)", "destination": "/api/:path*" }
+    { "source": "/(.*)", "destination": "/api" }
   ],
   "functions": {
     "api/index.ts": {
-      "includeFiles": "dist/**"
-    },
-    "api/[...path].ts": {
       "includeFiles": "dist/**"
     }
   }
