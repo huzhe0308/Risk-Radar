@@ -2,8 +2,8 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "framework": null,
-  "outputDirectory": "dist/client",
   "rewrites": [
+    { "source": "/", "destination": "/api" },
     { "source": "/:path*", "destination": "/api/:path*" }
   ],
   "functions": {
