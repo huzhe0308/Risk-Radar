@@ -58,8 +58,8 @@ async function buildWebRequest(req: any): Promise<Request> {
     for await (const chunk of req) {
       chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
     }
-    const bodyStr = Buffer.concat(chunks).toString("utf-8");
-    init.body = bodyStr;
+    const bodyBuffer = Buffer.concat(chunks);
+    init.body = new Blob([new Uint8Array(bodyBuffer)], { type: headers.get("content-type") || "application/json" });
   }
   return new Request(new URL(finalUrl, `${proto}://${host}`), init);
 }
