@@ -52,10 +52,13 @@ function buildWebRequest(req: any): Request {
     else headers.set(key, value as string);
   }
   const method = req.method || "GET";
-  const init: RequestInit & { duplex?: "half" } = { method, headers };
+  const init: RequestInit = { method, headers };
   if (method !== "GET" && method !== "HEAD") {
-    init.body = Readable.toWeb(req) as any;
-    init.duplex = "half";
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    }
+    init.body = Buffer.concat(chunks);
   }
   return new Request(new URL(finalUrl, `${proto}://${host}`), init);
 }
