@@ -16,7 +16,7 @@ async function ensureHandler() {
     initPromise = (async () => {
       const exists = fs.existsSync(rscEntryPath);
       console.log("[api] Loading RSC handler from:", rscEntryPath, "exists:", exists);
-      if (!exists) throw new Error("dist/server/index.js not found — check includeFiles");
+      if (!exists) throw new Error("dist/server/index.js not found");
       const mod = await import(rscEntryPath);
       const entry = mod.default;
       if (typeof entry === "function") {
@@ -32,7 +32,7 @@ async function ensureHandler() {
   await initPromise;
 }
 
-function nodeToWebRequest(req: any): Request {
+function buildWebRequest(req: any): Request {
   const proto = req.headers["x-forwarded-proto"]?.split(",")[0]?.trim() || "https";
   const host = req.headers["x-forwarded-host"] || req.headers["host"] || "localhost";
 
@@ -40,13 +40,12 @@ function nodeToWebRequest(req: any): Request {
   const parsed = new URL(rawUrl, `${proto}://${host}`);
 
   let pathname = parsed.pathname;
-  if (pathname === "/api") {
+  if (pathname === "/api" || pathname === "/api/") {
     pathname = "/";
   } else if (pathname.startsWith("/api/")) {
     pathname = pathname.slice(4);
   }
-  const originalUrl = pathname + parsed.search;
-  const url = new URL(originalUrl, `${proto}://${host}`);
+  const finalUrl = pathname + parsed.search;
 
   const headers = new Headers();
   for (const [key, value] of Object.entries(req.headers)) {
@@ -60,7 +59,7 @@ function nodeToWebRequest(req: any): Request {
     init.body = Readable.toWeb(req) as any;
     init.duplex = "half";
   }
-  return new Request(url, init);
+  return new Request(new URL(finalUrl, `${proto}://${host}`), init);
 }
 
 const MIME: Record<string, string> = {
@@ -114,11 +113,11 @@ async function sendWebResponse(response: Response, req: any, res: any) {
   res.end();
 }
 
-export default async function apiHandler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   try {
     await ensureHandler();
     if (!handler) throw new Error("Handler initialization failed");
-    const webReq = nodeToWebRequest(req);
+    const webReq = buildWebRequest(req);
     const response = await handler(webReq);
     await sendWebResponse(response, req, res);
   } catch (error) {
