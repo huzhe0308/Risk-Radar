@@ -863,42 +863,59 @@ export default function Home() {
         <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setShowFeishuImport(false)}>
           <div className="dialog feishu-import-dialog" role="dialog" aria-modal="true" aria-labelledby="feishu-sync-title">
             <div className="dialog-head">
-              <div><span className="eyebrow">FEISHU WEBHOOK</span><h2 id="feishu-sync-title">获取多维表格数据</h2></div>
+              <div>
+                <span className="eyebrow">FEISHU WEBHOOK</span>
+                <h2 id="feishu-sync-title">飞书多维表格同步</h2>
+              </div>
               <button onClick={() => setShowFeishuImport(false)} aria-label="关闭">×</button>
             </div>
             <div className="feishu-sync-body">
-              <p className="feishu-sync-intro">飞书多维表格通过自动化流程将记录推送到本系统，无需应用权限审批。配置完成后，数据变更会准实时同步。</p>
+              <p className="feishu-sync-intro">飞书多维表格通过自动化流程将记录推送到本系统。配置完成后，数据变更会准实时同步。</p>
 
-              <div className="feishu-sync-step">
-                <strong>1. Webhook 接收地址</strong>
+              <div className="feishu-sync-card">
+                <div className="feishu-sync-card-title">
+                  <span className="feishu-sync-card-icon">📡</span>
+                  <div>
+                    <strong>Webhook 接收地址</strong>
+                    <small>飞书自动化中填入此 URL</small>
+                  </div>
+                </div>
                 <div className="feishu-sync-url-wrap">
                   <code className="feishu-sync-url">{typeof window !== "undefined" ? `${window.location.origin}/api/feishu/sync` : "/api/feishu/sync"}</code>
                   <button className="button button-outline feishu-copy-btn" onClick={() => { const url = `${window.location.origin}/api/feishu/sync`; navigator.clipboard?.writeText(url); setFeishuStatus("已复制到剪贴板"); setFeishuStatusTone("success"); }}>复制</button>
                 </div>
               </div>
 
-              <div className="feishu-sync-step">
-                <strong>2. 鉴权令牌（请求头 X-Webhook-Token）</strong>
+              <div className="feishu-sync-card">
+                <div className="feishu-sync-card-title">
+                  <span className="feishu-sync-card-icon">🔑</span>
+                  <div>
+                    <strong>鉴权令牌</strong>
+                    <small>请求头 X-Webhook-Token 的值</small>
+                  </div>
+                </div>
                 <div className="feishu-sync-url-wrap">
                   <code className="feishu-sync-url feishu-sync-token">{process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "部署后在环境变量中查看"}</code>
                   <button className="button button-outline feishu-copy-btn" onClick={() => { const t = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""; if (t) { navigator.clipboard?.writeText(t); setFeishuStatus("已复制到剪贴板"); setFeishuStatusTone("success"); } }}>复制</button>
                 </div>
               </div>
 
-              <div className="feishu-sync-step">
-                <strong>3. 同步状态</strong>
+              <div className="feishu-sync-card">
+                <div className="feishu-sync-card-title">
+                  <span className="feishu-sync-card-icon">📊</span>
+                  <div>
+                    <strong>同步状态</strong>
+                    <button className="button button-outline feishu-refresh-btn" disabled={feishuStatusLoading} onClick={() => void loadFeishuSyncStatus()}>{feishuStatusLoading ? "查询中…" : "刷新"}</button>
+                  </div>
+                </div>
                 <div className="feishu-sync-status-grid">
                   <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.projects ?? "—"}</span><span className="feishu-sync-stat-label">数据库项目</span></div>
                   <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.syncedProjects ?? "—"}</span><span className="feishu-sync-stat-label">飞书同步</span></div>
                   <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.milestones ?? "—"}</span><span className="feishu-sync-stat-label">里程碑</span></div>
                   <div className="feishu-sync-stat"><span className="feishu-sync-stat-num">{feishuSyncStatus?.recentSyncs?.length ?? 0}</span><span className="feishu-sync-stat-label">最近推送</span></div>
                 </div>
-                <button className="button button-outline" disabled={feishuStatusLoading} onClick={() => void loadFeishuSyncStatus()} style={{ marginTop: 8 }}>{feishuStatusLoading ? "查询中…" : "刷新状态"}</button>
-              </div>
 
-              {feishuSyncStatus?.recentSyncs && feishuSyncStatus.recentSyncs.length > 0 && (
-                <div className="feishu-sync-step">
-                  <strong>最近推送记录</strong>
+                {feishuSyncStatus?.recentSyncs && feishuSyncStatus.recentSyncs.length > 0 && (
                   <div className="feishu-sync-log">
                     {feishuSyncStatus.recentSyncs.map((r, i) => (
                       <div key={i} className={`feishu-sync-log-item ${r.processed ? "ok" : "fail"}`}>
@@ -906,34 +923,41 @@ export default function Home() {
                         <span className="feishu-sync-log-id">{r.recordId}</span>
                         <span className="feishu-sync-log-action">{r.action}</span>
                         <span className="feishu-sync-log-status">{r.processed ? "✓" : r.error ? "✗" : "…"}</span>
-                        {r.error && <span className="feishu-sync-log-error" title={r.error}>{r.error.slice(0, 40)}</span>}
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              <div className="feishu-sync-step">
-                <strong>4. 飞书多维表格配置方法</strong>
+              <div className="feishu-sync-card feishu-sync-guide-card">
+                <div className="feishu-sync-card-title">
+                  <span className="feishu-sync-card-icon">📖</span>
+                  <div>
+                    <strong>飞书配置方法</strong>
+                    <small>点击展开查看步骤</small>
+                  </div>
+                </div>
                 <ol className="feishu-sync-guide">
                   <li>打开飞书多维表格 → 点击顶部「自动化」标签</li>
                   <li>新建流程：触发条件选「记录新增」或「记录修改」</li>
                   <li>执行动作选「发送 HTTP 请求」</li>
                   <li>请求方法 <code>POST</code>，URL 填上方 Webhook 地址</li>
                   <li>请求头添加 <code>X-Webhook-Token</code>，值填上方令牌</li>
-                  <li>请求体选 JSON 格式，字段名见下方说明</li>
+                  <li>请求体选 JSON 格式，字段值用飞书字段插入器选择</li>
                 </ol>
                 <div className="feishu-sync-fields">
-                  <strong>支持的字段</strong>
-                  <div className="feishu-sync-field-list">
-                    <span><code>record_id</code> 必填</span>
-                    <span><code>type</code> project / milestone</span>
-                    <span><code>project_name</code> / <code>项目名称</code></span>
-                    <span><code>tag</code> / <code>标签</code></span>
-                    <span><code>milestone_name</code> / <code>里程碑名称</code></span>
-                    <span><code>release_date</code> / <code>发布日期</code></span>
-                    <span><code>project_id</code> / <code>所属项目</code></span>
-                  </div>
+                  <strong>请求体模板</strong>
+                  <pre className="feishu-sync-json-template">{`{
+  "record_id": "",
+  "type": "project",
+  "action": "create",
+  "fields": {
+    "项目ID": "",
+    "项目名称": "",
+    "项目标签": "",
+    "项目备注": ""
+  }
+}`}</pre>
                 </div>
               </div>
             </div>
@@ -942,7 +966,7 @@ export default function Home() {
             <div className="dialog-actions">
               <button className="button button-quiet" onClick={() => setShowFeishuImport(false)}>关闭</button>
               <button className="button button-primary" disabled={feishuSyncLoading} onClick={() => { setShowFeishuImport(false); setWorkspaceMode("feishu-table"); }}>
-                查看飞书表格
+                查看飞书表格 →
               </button>
             </div>
           </div>
