@@ -82,10 +82,12 @@ export function CeaVersionView({
   view,
   projects,
   onMilestoneClick,
+  onColumnWidthChange,
 }: {
   view: View;
   projects: Project[];
   onMilestoneClick: (projectId: string, milestoneId: string) => void;
+  onColumnWidthChange?: (delta: number) => void;
 }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
     ipd: true,
@@ -220,7 +222,7 @@ export function CeaVersionView({
         selectedItemId={null}
         onConnectionClick={() => {}}
         selectedConnectionId={null}
-        onColumnWidthChange={() => {}}
+        onColumnWidthChange={onColumnWidthChange || (() => {})}
         readOnly
       />
     </section>
