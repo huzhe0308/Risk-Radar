@@ -100,9 +100,13 @@ export function CeaVersionView({
   const { versionProjects, groupStats, remappedConnections } = useMemo(() => {
     const map = new Map<string, { milestones: Milestone[]; gId: string }>();
     const msIdToVersionName = new Map<string, string>();
+    const seenMsIds = new Set<string>();
 
     for (const project of projects) {
       for (const ms of project.milestones) {
+        if (seenMsIds.has(ms.id)) continue;
+        seenMsIds.add(ms.id);
+
         const key = normKey(ms.iteration);
         const gId = groupId(key);
         let entry = map.get(key);
@@ -110,6 +114,12 @@ export function CeaVersionView({
           entry = { milestones: [], gId };
           map.set(key, entry);
         }
+
+        const dedupeKey = `${ms.releaseDate || ""}__${ms.remark || ms.iteration}`;
+        if (entry.milestones.some((m) => `${m.releaseDate || ""}__${m.remark || m.iteration}` === dedupeKey)) {
+          continue;
+        }
+
         entry.milestones.push({
           ...ms,
           iteration: project.name,
