@@ -1,6 +1,5 @@
 import path from "node:path";
 import fs from "node:fs";
-import { Readable } from "node:stream";
 
 const STATIC_FILE_HEADER = "x-vinext-static-file";
 
@@ -59,7 +58,9 @@ async function buildWebRequest(req: any): Promise<Request> {
       chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
     }
     const bodyBuffer = Buffer.concat(chunks);
-    init.body = new Blob([new Uint8Array(bodyBuffer)], { type: headers.get("content-type") || "application/json" });
+    const contentType = headers.get("content-type") || "application/json";
+    const blobType = contentType.includes("charset") ? contentType : `${contentType}; charset=utf-8`;
+    init.body = new Blob([new Uint8Array(bodyBuffer)], { type: blobType });
   }
   return new Request(new URL(finalUrl, `${proto}://${host}`), init);
 }
