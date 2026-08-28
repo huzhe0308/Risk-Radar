@@ -58,6 +58,7 @@ export default function FeishuTableView({ token }: { token: string }) {
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "log">("table");
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,6 +81,29 @@ export default function FeishuTableView({ token }: { token: string }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const handleDelete = async (recordId: string, recordDbId: number) => {
+    if (!window.confirm("确认删除该记录？此操作不可撤销。")) return;
+    setDeletingId(recordDbId);
+    try {
+      const params = new URLSearchParams();
+      if (token) params.set("token", token);
+      const response = await fetch(`/api/feishu/records?${params}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId }),
+      });
+      if (!response.ok) {
+        const payload = await response.json();
+        throw new Error(payload.error || "删除失败");
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除失败");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const filteredRecords = search
     ? records.filter((r) => {
@@ -137,6 +161,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                 {fieldNames.map((fn) => (
                   <th key={fn}>{fn}</th>
                 ))}
+                <th className="feishu-action-col">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -153,10 +178,19 @@ export default function FeishuTableView({ token }: { token: string }) {
                       {fieldNames.map((fn) => (
                         <td key={fn}>{formatValue(fields[fn])}</td>
                       ))}
+                      <td className="feishu-action-col" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="feishu-delete-btn"
+                          disabled={deletingId === r.id}
+                          onClick={() => void handleDelete(r.recordId, r.id)}
+                        >
+                          {deletingId === r.id ? "删除中…" : "删除"}
+                        </button>
+                      </td>
                     </tr>
                     {isExpanded && (
                       <tr key={`${r.id}-detail`} className="feishu-detail-row">
-                        <td colSpan={fieldNames.length}>
+                        <td colSpan={fieldNames.length + 1}>
                           <div className="feishu-detail-content">
                             <div className="feishu-detail-meta">
                               <span>记录 ID: {r.recordId}</span>
@@ -185,7 +219,7 @@ export default function FeishuTableView({ token }: { token: string }) {
 
       {viewMode === "log" && filteredRecords.length > 0 && (
         <div className="feishu-table-scroll">
-          <table className="raw-table feishu-records-table">
+          <table className="raw-table feishu-records-table feishu-log-table">
             <thead>
               <tr>
                 <th>接收时间</th>
@@ -195,6 +229,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                   <th key={fn}>{fn}</th>
                 ))}
                 <th>状态</th>
+                <th className="feishu-action-col">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -222,10 +257,19 @@ export default function FeishuTableView({ token }: { token: string }) {
                           <span className="feishu-status-fail" title={r.error || ""}>失败</span>
                         )}
                       </td>
+                      <td className="feishu-action-col" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="feishu-delete-btn"
+                          disabled={deletingId === r.id}
+                          onClick={() => void handleDelete(r.recordId, r.id)}
+                        >
+                          {deletingId === r.id ? "…" : "删除"}
+                        </button>
+                      </td>
                     </tr>
                     {isExpanded && (
                       <tr key={`${r.id}-detail`} className="feishu-detail-row">
-                        <td colSpan={fieldNames.length + 4}>
+                        <td colSpan={fieldNames.length + 5}>
                           <div className="feishu-detail-content">
                             <h4>原始 JSON 数据</h4>
                             <pre className="feishu-raw-json">{JSON.stringify(r.rawPayload, null, 2)}</pre>
