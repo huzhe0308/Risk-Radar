@@ -168,6 +168,7 @@ export function CeaVersionView({
       }
     }
 
+    let colorIdx = 0;
     const allProjects = ordered.map((key) => {
       const entry = map.get(key)!;
       const gId = entry.gId;
