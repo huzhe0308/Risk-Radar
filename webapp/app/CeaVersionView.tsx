@@ -128,11 +128,19 @@ export function CeaVersionView({
         .sort()[0];
     };
 
-    const connPairs: Array<[string, string]> = (view.connections || []).map((conn) => {
-      const fromKey = normKey(projects.flatMap((p) => p.milestones).find((m) => m.id === conn.fromMsId)?.iteration || "");
-      const toKey = normKey(projects.flatMap((p) => p.milestones).find((m) => m.id === conn.toMsId)?.iteration || "");
-      return [fromKey, toKey];
-    }).filter(([a, b]) => a && b);
+    const allMsById = new Map<string, string>();
+    for (const project of projects) {
+      for (const ms of project.milestones) {
+        allMsById.set(ms.id, normKey(ms.iteration));
+      }
+    }
+
+    const connPairs: Array<[string, string]> = [];
+    for (const conn of (view.connections || [])) {
+      const fromKey = allMsById.get(conn.fromMsId);
+      const toKey = allMsById.get(conn.toMsId);
+      if (fromKey && toKey) connPairs.push([fromKey, toKey]);
+    }
 
     const allKeys = [...map.keys()].sort((a, b) => earliestDate(a).localeCompare(earliestDate(b)));
 
