@@ -35,7 +35,8 @@ export async function POST(request: Request): Promise<Response> {
 
   let body: Record<string, unknown>;
   try {
-    body = await request.json();
+    const rawText = await request.text();
+    body = JSON.parse(rawText);
   } catch {
     return json({ error: "Invalid JSON body." }, 400);
   }
