@@ -120,26 +120,35 @@ export function CeaVersionView({
       }
     }
 
-    const allKeys = [...map.keys()].sort((a, b) => rawSort(a) - rawSort(b));
-    let colorIdx = 0;
+    const earliestDate = (key: string): string => {
+      const entry = map.get(key);
+      if (!entry || !entry.milestones.length) return "9999";
+      return entry.milestones
+        .map((m) => m.releaseDate || "9999")
+        .sort()[0];
+    };
 
-    const allProjects = allKeys.map((key) => {
-      const entry = map.get(key)!;
-      const c = VERSION_COLORS[colorIdx % VERSION_COLORS.length];
-      colorIdx++;
-      const name = displayKey(key);
-      return {
-        uuid: `cea_${key}`,
-        name,
-        tag: GROUP_DEFS.find((g) => g.id === entry.gId)?.label || "其他",
-        detailRemark: "",
-        bgColor: c.bg,
-        textColor: c.text,
-        milestones: entry.milestones.sort((a, b) =>
-          (a.releaseDate || "9999").localeCompare(b.releaseDate || "9999"),
-        ),
-        viewId: "cea",
-      } as Project;
+    const allProjects = GROUP_DEFS.flatMap((gd) => {
+      const groupKeys = [...map.keys()].filter((k) => groupId(k) === gd.id);
+      groupKeys.sort((a, b) => earliestDate(a).localeCompare(earliestDate(b)));
+      return groupKeys.map((key) => {
+        const entry = map.get(key)!;
+        const c = VERSION_COLORS[colorIdx % VERSION_COLORS.length];
+        colorIdx++;
+        const name = displayKey(key);
+        return {
+          uuid: `cea_${key}`,
+          name,
+          tag: gd.label,
+          detailRemark: "",
+          bgColor: c.bg,
+          textColor: c.text,
+          milestones: entry.milestones.sort((a, b) =>
+            (a.releaseDate || "9999").localeCompare(b.releaseDate || "9999"),
+          ),
+          viewId: "cea",
+        } as Project;
+      });
     });
 
     const stats = GROUP_DEFS.map((gd) => {
