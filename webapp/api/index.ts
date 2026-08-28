@@ -157,9 +157,17 @@ async function handleFeishuWebhook(req: any, res: any, bodyBuffer: Buffer): Prom
     return true;
   }
 
+  const reqHeaders = new Headers();
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) for (const v of value) reqHeaders.append(key, v);
+    else reqHeaders.set(key, value as string);
+  }
+  reqHeaders.set("content-type", "application/json; charset=utf-8");
+
   const webReq = new Request(`https://${req.headers["x-forwarded-host"] || req.headers["host"] || "localhost"}/api/feishu/sync`, {
     method: "POST",
-    headers: { "content-type": "application/json; charset=utf-8" },
+    headers: reqHeaders,
     body: JSON.stringify(body),
   });
 
