@@ -75,16 +75,16 @@ export async function DELETE(request: Request): Promise<Response> {
   const auth = checkToken(request);
   if (auth.error) return auth.error;
 
-  let body: { recordId?: string };
+  let body: { id?: number; recordId?: string };
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid JSON body." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
-  const recordId = body.recordId;
-  if (!recordId) {
-    return Response.json({ error: "Missing recordId." }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  const rowId = body.id;
+  if (!rowId) {
+    return Response.json({ error: "Missing id." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
   let db;
@@ -94,9 +94,5 @@ export async function DELETE(request: Request): Promise<Response> {
     return Response.json({ error: err instanceof Error ? err.message : "Database unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
   }
 
-  await db.delete(syncRecords).where(eq(syncRecords.recordId, recordId));
-  await db.delete(projects).where(eq(projects.feishuRecordId, recordId));
-  await db.delete(milestones).where(eq(milestones.feishuRecordId, recordId));
-
-  return Response.json({ ok: true, recordId }, { headers: { "Cache-Control": "no-store" } });
+  await db.delete(syncRecords).where(eq(syncRecords.id, rowId));
 }
