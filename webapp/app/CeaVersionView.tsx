@@ -92,9 +92,9 @@ export function CeaVersionView({
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
     ipd: true,
     cea: false,
-    production: false,
-    release: false,
-    other: false,
+    production: true,
+    release: true,
+    other: true,
   });
 
   const { versionProjects, groupStats, remappedConnections } = useMemo(() => {
