@@ -1,21 +1,8 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Milestone, Project, View } from "./types";
-
-type VersionRow = {
-  key: string;
-  name: string;
-  tag: string;
-  milestones: (Milestone & { _sourceProject: string })[];
-};
-
-type GroupDef = {
-  id: string;
-  label: string;
-  icon: string;
-  rows: VersionRow[];
-};
+import { ProjectPlanCanvas } from "./ProjectPlanCanvas";
 
 function normKey(iteration: string): string {
   return iteration.trim().replace(/\s+/g, "").toUpperCase();
@@ -80,28 +67,21 @@ const GROUP_COLORS: Record<string, { bg: string; text: string }> = {
   other: { bg: "#3a3a1a", text: "#fde047" },
 };
 
-function shapeClass(shape: string | undefined): string {
-  if (!shape) return "shape-diamond";
-  const s = shape.toLowerCase();
-  if (s.includes("diamond")) return "shape-diamond";
-  if (s.includes("triangle")) return "shape-triangle";
-  if (s.includes("circle")) return "shape-circle";
-  if (s.includes("flag")) return "shape-flag";
-  if (s.includes("cross")) return "shape-cross";
-  return "shape-diamond";
-}
-
-function fmtDate(d: string | undefined): string {
-  if (!d) return "—";
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return d;
-  return `${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, "0")}/${String(dt.getDate()).padStart(2, "0")}`;
-}
+const VERSION_COLORS: Array<{ bg: string; text: string }> = [
+  { bg: "#0d4f4a", text: "#a7f3d0" },
+  { bg: "#1a3a5c", text: "#93c5fd" },
+  { bg: "#3c2a1a", text: "#fbbf24" },
+  { bg: "#3a1a2c", text: "#f9a8d4" },
+  { bg: "#1a2c3a", text: "#67e8f9" },
+  { bg: "#2c1a3a", text: "#c4b5fd" },
+  { bg: "#3a3a1a", text: "#fde047" },
+  { bg: "#1a3a2c", text: "#6ee7b7" },
+];
 
 export function CeaVersionView({
-  view: _view,
+  view,
   projects,
-  onMilestoneClick: _onMilestoneClick,
+  onMilestoneClick,
 }: {
   view: View;
   projects: Project[];
@@ -115,36 +95,78 @@ export function CeaVersionView({
     other: false,
   });
 
-  const groups = useMemo<GroupDef[]>(() => {
-    const map = new Map<string, VersionRow>();
+  const { versionProjects, groupStats } = useMemo(() => {
+    const map = new Map<string, { milestones: Milestone[]; gId: string }>();
 
     for (const project of projects) {
       for (const ms of project.milestones) {
         const key = normKey(ms.iteration);
-        let row = map.get(key);
-        if (!row) {
-          row = {
-            key,
-            name: displayKey(key),
-            tag: GROUP_DEFS.find((g) => g.id === groupId(key))?.label || "其他",
-            milestones: [],
-          };
-          map.set(key, row);
+        const gId = groupId(key);
+        let entry = map.get(key);
+        if (!entry) {
+          entry = { milestones: [], gId };
+          map.set(key, entry);
         }
-        row.milestones.push({ ...ms, _sourceProject: project.name });
+        entry.milestones.push({
+          ...ms,
+          iteration: project.name,
+          remark: ms.remark || ms.iteration,
+          detailRemark: project.tag || "",
+        });
       }
     }
 
-    const allRows = [...map.values()].sort((a, b) => rawSort(a.key) - rawSort(b.key));
-    return GROUP_DEFS.map((gd) => ({
-      ...gd,
-      rows: allRows.filter((r) => groupId(r.key) === gd.id),
-    })).filter((g) => g.rows.length > 0);
-  }, [projects]);
+    const allKeys = [...map.keys()].sort((a, b) => rawSort(a) - rawSort(b));
+    let colorIdx = 0;
 
-  const totalVersions = useMemo(() => groups.reduce((s, g) => s + g.rows.length, 0), [groups]);
+    const allProjects = allKeys.map((key) => {
+      const entry = map.get(key)!;
+      const c = VERSION_COLORS[colorIdx % VERSION_COLORS.length];
+      colorIdx++;
+      return {
+        uuid: `cea_${key}`,
+        name: displayKey(key),
+        tag: GROUP_DEFS.find((g) => g.id === entry.gId)?.label || "其他",
+        detailRemark: "",
+        bgColor: c.bg,
+        textColor: c.text,
+        milestones: entry.milestones.sort((a, b) =>
+          (a.releaseDate || "9999").localeCompare(b.releaseDate || "9999"),
+        ),
+        viewId: "cea",
+      } as Project;
+    });
 
-  if (!totalVersions) {
+    const stats = GROUP_DEFS.map((gd) => {
+      const groupRows = allProjects.filter((p) => groupId(normKeyFromName(p.name)) === gd.id);
+      return {
+        id: gd.id,
+        label: gd.label,
+        icon: gd.icon,
+        count: groupRows.length,
+        msCount: groupRows.reduce((s, p) => s + p.milestones.length, 0),
+      };
+    }).filter((s) => s.count > 0);
+
+    const visible = allProjects.filter((p) => {
+      const key = normKeyFromName(p.name);
+      const gId = groupId(key);
+      return !collapsed[gId];
+    });
+
+    return { versionProjects: visible, groupStats: stats };
+  }, [projects, collapsed]);
+
+  const ceaView = useMemo<View>(
+    () => ({
+      ...view,
+      planItems: [],
+      connections: [],
+    }),
+    [view],
+  );
+
+  if (!versionProjects.length && !groupStats.length) {
     return (
       <div className="cea-version-empty">
         <p>当前视图没有里程碑数据。</p>
@@ -154,81 +176,46 @@ export function CeaVersionView({
 
   return (
     <section className="cea-version-view">
-      <div className="cea-version-toolbar">
-        <span className="cea-version-count">{totalVersions} 个版本 · {groups.length} 个分组</span>
+      <div className="cea-group-bar">
+        {groupStats.map((g) => {
+          const isCollapsed = collapsed[g.id];
+          const colors = GROUP_COLORS[g.id] || GROUP_COLORS.other;
+          return (
+            <button
+              key={g.id}
+              className={`cea-group-chip ${isCollapsed ? "collapsed" : ""}`}
+              style={{ background: colors.bg, color: colors.text }}
+              onClick={() => setCollapsed((p) => ({ ...p, [g.id]: !p[g.id] }))}
+            >
+              <span className="cea-group-chip-icon">{g.icon}</span>
+              <span>{g.label}</span>
+              <span className="cea-group-chip-count">{g.count} / {g.msCount}</span>
+              <span className={`cea-chip-chevron ${isCollapsed ? "rotated" : ""}`}>▾</span>
+            </button>
+          );
+        })}
       </div>
-      <div className="cea-version-table-wrap">
-        <table className="raw-table cea-version-table">
-          <thead>
-            <tr>
-              <th style={{ width: "22%" }}>版本</th>
-              <th style={{ width: "10%" }}>日期</th>
-              <th style={{ width: "14%" }}>来源项目</th>
-              <th style={{ width: "9%" }}>周次</th>
-              <th>备注</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groups.map((group) => {
-              const isCollapsed = collapsed[group.id];
-              const colors = GROUP_COLORS[group.id] || GROUP_COLORS.other;
-              const dates = group.rows.flatMap((r) => r.milestones.map((m) => m.releaseDate).filter(Boolean));
-              const minDate = dates.length ? dates.sort()[0] : "";
-              const maxDate = dates.length ? dates.sort()[dates.length - 1] : "";
-              const msCount = group.rows.reduce((s, r) => s + r.milestones.length, 0);
-
-              return (
-                <Fragment key={group.id}>
-                  <tr
-                    className="cea-group-header"
-                    style={{ background: colors.bg, color: colors.text }}
-                    onClick={() => setCollapsed((p) => ({ ...p, [group.id]: !p[group.id] }))}
-                  >
-                    <td colSpan={5}>
-                      <span className="cea-group-icon">{group.icon}</span>
-                      <span className="cea-group-label">{group.label}</span>
-                      <span className="cea-group-meta">
-                        {group.rows.length} 版本 · {msCount} 里程碑
-                        {minDate && ` · ${fmtDate(minDate)} ~ ${fmtDate(maxDate)}`}
-                      </span>
-                      <span className={`cea-chevron ${isCollapsed ? "collapsed" : ""}`}>▼</span>
-                    </td>
-                  </tr>
-                  {!isCollapsed && group.rows.map((row) =>
-                    row.milestones.length === 1 ? (
-                      <tr key={row.key} className="cea-version-row">
-                        <td>
-                          <span className={`grid-marker-shape ${shapeClass(row.milestones[0].shape)}`} style={{ background: row.milestones[0].color }} />
-                          <span className="cea-version-name">{row.name}</span>
-                        </td>
-                        <td>{fmtDate(row.milestones[0].releaseDate)}</td>
-                        <td>{row.milestones[0]._sourceProject}</td>
-                        <td className="mono">{row.milestones[0].remark || "—"}</td>
-                        <td>{row.milestones[0].detailRemark || "—"}</td>
-                      </tr>
-                    ) : (
-                      row.milestones.map((ms, i) => (
-                        <tr key={`${row.key}_${i}`} className="cea-version-row">
-                          <td>
-                            {i === 0 && <span className="cea-version-name cea-version-name-bold">{row.name}</span>}
-                            <span className={`grid-marker-shape ${shapeClass(ms.shape)}`} style={{ background: ms.color }} />
-                          </td>
-                          <td>{fmtDate(ms.releaseDate)}</td>
-                          <td>{ms._sourceProject}</td>
-                          <td className="mono">{ms.remark || "—"}</td>
-                          <td>{ms.detailRemark || "—"}</td>
-                        </tr>
-                      ))
-                    ),
-                  )}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <ProjectPlanCanvas
+        view={ceaView}
+        projects={versionProjects}
+        onProjectClick={() => {}}
+        onMilestoneClick={onMilestoneClick}
+        arrowMode={false}
+        arrowStart={null}
+        onArrowMilestone={() => {}}
+        onUpdateProject={() => {}}
+        onUpdateItem={() => {}}
+        onSelectItem={() => {}}
+        selectedItemId={null}
+        onConnectionClick={() => {}}
+        selectedConnectionId={null}
+        onColumnWidthChange={() => {}}
+        readOnly
+      />
     </section>
   );
 }
 
-
+function normKeyFromName(name: string): string {
+  return name.trim().replace(/\s+/g, "").toUpperCase();
+}
