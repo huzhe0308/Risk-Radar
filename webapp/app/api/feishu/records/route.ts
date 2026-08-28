@@ -95,4 +95,6 @@ export async function DELETE(request: Request): Promise<Response> {
   }
 
   await db.delete(syncRecords).where(eq(syncRecords.id, rowId));
+
+  return Response.json({ ok: true, id: rowId }, { headers: { "Cache-Control": "no-store" } });
 }
