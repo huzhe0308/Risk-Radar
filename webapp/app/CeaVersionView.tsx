@@ -9,8 +9,8 @@ function normKey(iteration: string): string {
 }
 
 function displayKey(key: string): string {
-  const ipd = key.match(/^IPD(\d+)\.(\d+)$/);
-  if (ipd) return `IPD ${ipd[1]}.${ipd[2]}`;
+  const ipd = key.match(/^IPD(\d+)\.(\d+)(?:\.(\d+))?$/);
+  if (ipd) return `IPD ${ipd[1]}.${ipd[2]}${ipd[3] ? `.${ipd[3]}` : ""}`;
   const cea = key.match(/^CEA(\d+)\.(\d+)(?:\.(\d+))?$/);
   if (cea) return `CEA ${cea[1]}.${cea[2]}${cea[3] ? `.${cea[3]}` : ""}`;
   if (key === "SWRELEASE") return "SW Release";
@@ -26,8 +26,8 @@ function displayKey(key: string): string {
 }
 
 function rawSort(key: string): number {
-  const ipd = key.match(/^IPD(\d+)\.(\d+)$/);
-  if (ipd) return Number(ipd[1]) * 100 + Number(ipd[2]);
+  const ipd = key.match(/^IPD(\d+)\.(\d+)(?:\.(\d+))?$/);
+  if (ipd) return Number(ipd[1]) * 100 + Number(ipd[2]) + (Number(ipd[3]) || 0) * 0.01;
   const cea = key.match(/^CEA(\d+)\.(\d+)(?:\.(\d+))?$/);
   if (cea) return 10000 + Number(cea[1]) * 100 + Number(cea[2]) * 10 + (Number(cea[3]) || 0);
   if (key === "SP") return 20000;
