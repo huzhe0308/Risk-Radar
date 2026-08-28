@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
+import { neon } from "@neondatabase/serverless";
 
 const STATIC_FILE_HEADER = "x-vinext-static-file";
 
@@ -8,13 +9,21 @@ const clientDir = path.join(process.cwd(), "dist", "client");
 
 let rscHandler: ((req: Request) => Promise<Response>) | null = null;
 let initPromise: Promise<void> | null = null;
+let neonSql: ReturnType<typeof neon> | null = null;
+
+function getSql() {
+  if (neonSql) return neonSql;
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) throw new Error("DATABASE_URL not set");
+  neonSql = neon(dbUrl);
+  return neonSql;
+}
 
 async function ensureHandler() {
   if (rscHandler) return;
   if (!initPromise) {
     initPromise = (async () => {
       const exists = fs.existsSync(rscEntryPath);
-      console.log("[api] Loading RSC handler from:", rscEntryPath, "exists:", exists);
       if (!exists) throw new Error("dist/server/index.js not found");
       const mod = await import(rscEntryPath);
       const entry = mod.default;
@@ -25,7 +34,6 @@ async function ensureHandler() {
       } else {
         throw new Error("RSC handler has unexpected shape: " + typeof entry);
       }
-      console.log("[api] RSC handler loaded successfully");
     })();
   }
   await initPromise;
@@ -39,9 +47,7 @@ async function buildWebRequest(req: any, precomputedBody?: Buffer): Promise<Requ
   const parsed = new URL(rawUrl, `${proto}://${host}`);
 
   let pathname = parsed.pathname;
-  if (pathname === "/api" || pathname === "/api/") {
-    pathname = "/";
-  }
+  if (pathname === "/api" || pathname === "/api/") pathname = "/";
   const finalUrl = pathname + parsed.search;
 
   const headers = new Headers();
@@ -54,8 +60,8 @@ async function buildWebRequest(req: any, precomputedBody?: Buffer): Promise<Requ
   const init: RequestInit = { method, headers };
   if (method !== "GET" && method !== "HEAD") {
     if (precomputedBody) {
-      const contentType = headers.get("content-type") || "application/json";
-      const blobType = contentType.includes("charset") ? contentType : `${contentType}; charset=utf-8`;
+      const ct = headers.get("content-type") || "application/json";
+      const blobType = ct.includes("charset") ? ct : `${ct}; charset=utf-8`;
       init.body = new Blob([new Uint8Array(precomputedBody)], { type: blobType });
     }
   }
@@ -124,9 +130,7 @@ async function readRawBody(req: any): Promise<Buffer> {
 async function handleFeishuWebhook(req: any, res: any, bodyBuffer: Buffer): Promise<boolean> {
   const rawUrl = req.url || "/";
   const parsed = new URL(rawUrl, "http://localhost");
-  const pathname = parsed.pathname;
-
-  if (pathname !== "/api/feishu/sync" || (req.method || "GET") !== "POST") {
+  if (parsed.pathname !== "/api/feishu/sync" || (req.method || "GET") !== "POST") {
     return false;
   }
 
@@ -157,32 +161,31 @@ async function handleFeishuWebhook(req: any, res: any, bodyBuffer: Buffer): Prom
     return true;
   }
 
-  const reqHeaders = new Headers();
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (value === undefined) continue;
-    if (Array.isArray(value)) for (const v of value) reqHeaders.append(key, v);
-    else reqHeaders.set(key, value as string);
-  }
-  reqHeaders.set("content-type", "application/json; charset=utf-8");
-
-  const webReq = new Request(`https://${req.headers["x-forwarded-host"] || req.headers["host"] || "localhost"}/api/feishu/sync`, {
-    method: "POST",
-    headers: reqHeaders,
-    body: JSON.stringify(body),
-  });
-
   try {
-    await ensureHandler();
-    if (!rscHandler) throw new Error("Handler initialization failed");
-    const response = await rscHandler(webReq);
-    await sendWebResponse(response, req, res);
-  } catch (error) {
-    console.error("[api] Webhook error:", error);
-    if (!res.headersSent) {
-      res.statusCode = 500;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: String(error) }));
+    let recordId = String(body.record_id || body.recordId || "");
+    if (!recordId) {
+      const fields = (body.fields as Record<string, unknown>) || {};
+      const fallback = fields["项目ID"] || fields["项目名称"] || fields["project_id"] || fields["name"];
+      recordId = fallback != null ? String(fallback).trim() : `auto_${Date.now()}`;
     }
+
+    const sql = getSql();
+    await sql`INSERT INTO sync_records (record_id, action, raw_payload, processed)
+              VALUES (${recordId}, ${String(body.action || "")}, ${JSON.stringify(body)}::jsonb, true)
+              ON CONFLICT (record_id) DO UPDATE SET
+              raw_payload = EXCLUDED.raw_payload,
+              received_at = NOW(),
+              action = EXCLUDED.action,
+              processed = true`;
+
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ ok: true, recordId, type: body.type, action: body.action }));
+  } catch (err) {
+    console.error("[webhook] Error:", err);
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }));
   }
   return true;
 }
@@ -195,8 +198,7 @@ export default async function apiHandler(req: any, res: any) {
     if (method !== "GET" && method !== "HEAD") {
       bodyBuffer = await readRawBody(req);
 
-      const parsed = new URL(req.url || "/", "http://localhost");
-      if (parsed.pathname === "/api/feishu/sync" && method === "POST") {
+      if (new URL(req.url || "/", "http://localhost").pathname === "/api/feishu/sync") {
         const handled = await handleFeishuWebhook(req, res, bodyBuffer);
         if (handled) return;
       }
@@ -212,7 +214,7 @@ export default async function apiHandler(req: any, res: any) {
     if (!res.headersSent) {
       res.statusCode = 500;
       res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: "Internal Server Error", detail: String(error), stack: error instanceof Error ? error.stack?.split("\n").slice(0, 5).join(" | ") : undefined }));
+      res.end(JSON.stringify({ error: "Internal Server Error", detail: String(error) }));
     }
   }
 }
