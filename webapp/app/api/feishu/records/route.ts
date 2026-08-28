@@ -1,20 +1,25 @@
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../../db";
-import { syncRecords } from "../../../../db/schema";
+import { syncRecords, projects, milestones } from "../../../../db/schema";
 
 export const runtime = "edge";
 
-export async function GET(request: Request): Promise<Response> {
+function checkToken(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
-
   const expectedToken = process.env.FEISHU_WEBHOOK_TOKEN;
   if (!expectedToken) {
-    return Response.json({ error: "Webhook token not configured." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    return { error: Response.json({ error: "Webhook token not configured." }, { status: 503, headers: { "Cache-Control": "no-store" } }) };
   }
   if (token !== expectedToken) {
-    return Response.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+    return { error: Response.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } }) };
   }
+  return { error: null };
+}
+
+export async function GET(request: Request): Promise<Response> {
+  const auth = checkToken(request);
+  if (auth.error) return auth.error;
 
   let db;
   try {
@@ -64,4 +69,34 @@ export async function GET(request: Request): Promise<Response> {
     fieldNames: Array.from(fieldNamesSet).sort(),
     count: records.length,
   }, { headers: { "Cache-Control": "no-store" } });
+}
+
+export async function DELETE(request: Request): Promise<Response> {
+  const auth = checkToken(request);
+  if (auth.error) return auth.error;
+
+  let body: { recordId?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "Invalid JSON body." }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const recordId = body.recordId;
+  if (!recordId) {
+    return Response.json({ error: "Missing recordId." }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+
+  let db;
+  try {
+    db = getDb();
+  } catch (err) {
+    return Response.json({ error: err instanceof Error ? err.message : "Database unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
+
+  await db.delete(syncRecords).where(eq(syncRecords.recordId, recordId));
+  await db.delete(projects).where(eq(projects.feishuRecordId, recordId));
+  await db.delete(milestones).where(eq(milestones.feishuRecordId, recordId));
+
+  return Response.json({ ok: true, recordId }, { headers: { "Cache-Control": "no-store" } });
 }
