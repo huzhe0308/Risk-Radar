@@ -113,14 +113,7 @@ export default function FeishuTableView({ token }: { token: string }) {
       })
     : records;
 
-  const latestPerRecordId = new Map<string, SyncRecord>();
-  for (const r of filteredRecords) {
-    const existing = latestPerRecordId.get(r.recordId);
-    if (!existing || new Date(r.receivedAt) > new Date(existing.receivedAt)) {
-      latestPerRecordId.set(r.recordId, r);
-    }
-  }
-  const tableRows = Array.from(latestPerRecordId.values()).filter((r) => r.action !== "delete");
+  const tableRows = filteredRecords.filter((r) => r.action !== "delete");
 
   return (
     <div className="feishu-table-view">
