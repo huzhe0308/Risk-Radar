@@ -185,6 +185,36 @@ export function ProjectPlanCanvas({
   const items = view.planItems || [];
   const changedProjects = useMemo(() => new Set(highlightedProjectNames), [highlightedProjectNames]);
   const changedMilestones = useMemo(() => new Set(highlightedMilestoneKeys), [highlightedMilestoneKeys]);
+
+  const milestoneVOffsets = useMemo(() => {
+    const offsets = new Map<string, number>();
+    const minSpacing = Math.max(weekWidth * 0.8, 14);
+    for (let rowIndex = 0; rowIndex < projects.length; rowIndex++) {
+      const milestones = projects[rowIndex].milestones;
+      const positioned = milestones
+        .map((ms) => ({ id: ms.id, x: positionFor(ms, weeks, weekWidth) }))
+        .filter((p): p is { id: string; x: number } => p.x != null)
+        .sort((a, b) => a.x - b.x);
+      let groupStart = 0;
+      for (let i = 1; i <= positioned.length; i++) {
+        const isLast = i === positioned.length;
+        const overlaps = !isLast && positioned[i].x - positioned[i - 1].x < minSpacing;
+        if (!overlaps) {
+          const groupSize = i - groupStart;
+          if (groupSize > 1) {
+            const step = 20;
+            for (let j = 0; j < groupSize; j++) {
+              const mid = (groupSize - 1) / 2;
+              offsets.set(positioned[groupStart + j].id, Math.round((j - mid) * step));
+            }
+          }
+          groupStart = i;
+        }
+      }
+    }
+    return offsets;
+  }, [projects, weeks, weekWidth]);
+
   const renderedArrows = useMemo(() => view.connections.flatMap((connection) => {
     const fromRow = projects.findIndex((project) => project.name === connection.fromProject);
     const toRow = projects.findIndex((project) => project.name === connection.toProject);
@@ -193,10 +223,12 @@ export function ProjectPlanCanvas({
     const x1 = from ? positionFor(from, weeks, weekWidth) : null;
     const x2 = to ? positionFor(to, weeks, weekWidth) : null;
     if (fromRow < 0 || toRow < 0 || x1 == null || x2 == null) return [];
-    const y1 = rowTop(fromRow) + 20;
-    const y2 = rowTop(toRow) + 20;
+    const y1Off = milestoneVOffsets.get(connection.fromMsId) || 0;
+    const y2Off = milestoneVOffsets.get(connection.toMsId) || 0;
+    const y1 = rowTop(fromRow) + 20 + y1Off;
+    const y2 = rowTop(toRow) + 20 + y2Off;
     return [{ id: connection.id, d: `M ${x1} ${y1} L ${x2} ${y2}`, color: connectionColor || connection.color || "#d8ff3e", dashed: connection.lineType.includes("dash") }];
-  }), [view.connections, projects, weeks, weekWidth, rowTop, connectionColor]);
+  }), [view.connections, projects, weeks, weekWidth, rowTop, connectionColor, milestoneVOffsets]);
 
   const startRowResize = (event: React.PointerEvent, project: Project) => {
     event.preventDefault();
@@ -325,7 +357,8 @@ export function ProjectPlanCanvas({
               const x = positionFor(milestone, weeks, weekWidth);
               if (x == null) return null;
               const isArrowStart = arrowStart?.projectId === project.uuid && arrowStart.milestoneId === milestone.id;
-              return <button className={`project-plan-milestone ${arrowMode ? "arrow-target" : ""} ${isArrowStart ? "arrow-start" : ""} ${readOnly ? "read-only" : ""}`} key={milestone.id} style={{ left: x, top: rowTop(rowIndex) + 14, color: milestone.textColor || "#d8ff3e" }} onClick={(event) => { event.stopPropagation(); if (readOnly) return; if (arrowMode) onArrowMilestone(project.uuid, milestone.id); else onMilestoneClick(project.uuid, milestone.id); }}><b className={`grid-marker-shape shape-${milestone.shape || "diamond"}`} style={{ "--marker-color": milestone.color } as React.CSSProperties} /><span>{milestone.iteration}</span>{milestone.remark && <small>{milestone.remark}</small>}</button>;
+              const vOff = milestoneVOffsets.get(milestone.id) || 0;
+              return <button className={`project-plan-milestone ${arrowMode ? "arrow-target" : ""} ${isArrowStart ? "arrow-start" : ""} ${readOnly ? "read-only" : ""}`} key={milestone.id} style={{ left: x, top: rowTop(rowIndex) + 14 + vOff, color: milestone.textColor || "#d8ff3e" }} onClick={(event) => { event.stopPropagation(); if (readOnly) return; if (arrowMode) onArrowMilestone(project.uuid, milestone.id); else onMilestoneClick(project.uuid, milestone.id); }}><b className={`grid-marker-shape shape-${milestone.shape || "diamond"}`} style={{ "--marker-color": milestone.color } as React.CSSProperties} /><span>{milestone.iteration}</span>{milestone.remark && <small>{milestone.remark}</small>}</button>;
             })}
             {projects.flatMap((project, rowIndex) => project.milestones.map((milestone) => ({ project, milestone, rowIndex }))).map(({ project, milestone, rowIndex }) => {
               const x = positionFor(milestone, weeks, weekWidth);
