@@ -82,7 +82,7 @@ export async function POST(request: Request): Promise<Response> {
     if (existing.length > 0) {
       await db
         .update(syncRecords)
-        .set({ payloadHash, processed: true, error: null, receivedAt: new Date() })
+        .set({ payloadHash, processed: true, error: null, receivedAt: new Date(), rawPayload: body, action: payload.action })
         .where(eq(syncRecords.recordId, payload.recordId));
     } else {
       await db.insert(syncRecords).values({
