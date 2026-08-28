@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Milestone, Project, View } from "./types";
+import type { Connection, Milestone, Project, View } from "./types";
 import { ProjectPlanCanvas } from "./ProjectPlanCanvas";
 
 function normKey(iteration: string): string {
@@ -95,8 +95,9 @@ export function CeaVersionView({
     other: false,
   });
 
-  const { versionProjects, groupStats } = useMemo(() => {
+  const { versionProjects, groupStats, remappedConnections } = useMemo(() => {
     const map = new Map<string, { milestones: Milestone[]; gId: string }>();
+    const msIdToVersionName = new Map<string, string>();
 
     for (const project of projects) {
       for (const ms of project.milestones) {
@@ -113,6 +114,7 @@ export function CeaVersionView({
           remark: ms.remark || ms.iteration,
           detailRemark: project.tag || "",
         });
+        msIdToVersionName.set(ms.id, displayKey(key));
       }
     }
 
@@ -123,9 +125,10 @@ export function CeaVersionView({
       const entry = map.get(key)!;
       const c = VERSION_COLORS[colorIdx % VERSION_COLORS.length];
       colorIdx++;
+      const name = displayKey(key);
       return {
         uuid: `cea_${key}`,
-        name: displayKey(key),
+        name,
         tag: GROUP_DEFS.find((g) => g.id === entry.gId)?.label || "其他",
         detailRemark: "",
         bgColor: c.bg,
@@ -138,7 +141,7 @@ export function CeaVersionView({
     });
 
     const stats = GROUP_DEFS.map((gd) => {
-      const groupRows = allProjects.filter((p) => groupId(normKeyFromName(p.name)) === gd.id);
+      const groupRows = allProjects.filter((p) => groupId(normKey(p.name)) === gd.id);
       return {
         id: gd.id,
         label: gd.label,
@@ -149,21 +152,29 @@ export function CeaVersionView({
     }).filter((s) => s.count > 0);
 
     const visible = allProjects.filter((p) => {
-      const key = normKeyFromName(p.name);
+      const key = normKey(p.name);
       const gId = groupId(key);
       return !collapsed[gId];
     });
 
-    return { versionProjects: visible, groupStats: stats };
-  }, [projects, collapsed]);
+    const visibleNames = new Set(visible.map((p) => p.name));
+    const remapped: Connection[] = (view.connections || [])
+      .map((conn) => {
+        const fromName = msIdToVersionName.get(conn.fromMsId) || conn.fromProject;
+        const toName = msIdToVersionName.get(conn.toMsId) || conn.toProject;
+        return { ...conn, fromProject: fromName, toProject: toName };
+      })
+      .filter((conn) => visibleNames.has(conn.fromProject) && visibleNames.has(conn.toProject));
+
+    return { versionProjects: visible, groupStats: stats, remappedConnections: remapped };
+  }, [projects, view.connections, collapsed]);
 
   const ceaView = useMemo<View>(
     () => ({
       ...view,
-      planItems: [],
-      connections: [],
+      connections: remappedConnections,
     }),
-    [view],
+    [view, remappedConnections],
   );
 
   if (!versionProjects.length && !groupStats.length) {
@@ -214,8 +225,4 @@ export function CeaVersionView({
       />
     </section>
   );
-}
-
-function normKeyFromName(name: string): string {
-  return name.trim().replace(/\s+/g, "").toUpperCase();
 }
