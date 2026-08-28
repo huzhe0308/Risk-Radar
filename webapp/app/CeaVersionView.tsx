@@ -128,27 +128,56 @@ export function CeaVersionView({
         .sort()[0];
     };
 
-    const allProjects = GROUP_DEFS.flatMap((gd) => {
-      const groupKeys = [...map.keys()].filter((k) => groupId(k) === gd.id);
-      groupKeys.sort((a, b) => earliestDate(a).localeCompare(earliestDate(b)));
-      return groupKeys.map((key) => {
-        const entry = map.get(key)!;
-        const c = VERSION_COLORS[colorIdx % VERSION_COLORS.length];
-        colorIdx++;
-        const name = displayKey(key);
-        return {
-          uuid: `cea_${key}`,
-          name,
-          tag: gd.label,
-          detailRemark: "",
-          bgColor: c.bg,
-          textColor: c.text,
-          milestones: entry.milestones.sort((a, b) =>
-            (a.releaseDate || "9999").localeCompare(b.releaseDate || "9999"),
-          ),
-          viewId: "cea",
-        } as Project;
-      });
+    const connPairs: Array<[string, string]> = (view.connections || []).map((conn) => {
+      const fromKey = normKey(projects.flatMap((p) => p.milestones).find((m) => m.id === conn.fromMsId)?.iteration || "");
+      const toKey = normKey(projects.flatMap((p) => p.milestones).find((m) => m.id === conn.toMsId)?.iteration || "");
+      return [fromKey, toKey];
+    }).filter(([a, b]) => a && b);
+
+    const allKeys = [...map.keys()].sort((a, b) => earliestDate(a).localeCompare(earliestDate(b)));
+
+    const placed = new Set<string>();
+    const ordered: string[] = [];
+    const queue = [...allKeys];
+
+    while (queue.length) {
+      const key = queue.shift()!;
+      if (placed.has(key)) continue;
+      ordered.push(key);
+      placed.add(key);
+
+      const deps = connPairs
+        .filter(([from, to]) => from === key || to === key)
+        .map(([from, to]) => (from === key ? to : from));
+
+      for (const dep of deps) {
+        const idx = queue.indexOf(dep);
+        if (idx !== -1 && !placed.has(dep)) {
+          ordered.push(dep);
+          placed.add(dep);
+          queue.splice(idx, 1);
+        }
+      }
+    }
+
+    const allProjects = ordered.map((key) => {
+      const entry = map.get(key)!;
+      const gId = entry.gId;
+      const c = VERSION_COLORS[colorIdx % VERSION_COLORS.length];
+      colorIdx++;
+      const name = displayKey(key);
+      return {
+        uuid: `cea_${key}`,
+        name,
+        tag: GROUP_DEFS.find((g) => g.id === gId)?.label || "其他",
+        detailRemark: "",
+        bgColor: c.bg,
+        textColor: c.text,
+        milestones: entry.milestones.sort((a, b) =>
+          (a.releaseDate || "9999").localeCompare(b.releaseDate || "9999"),
+        ),
+        viewId: "cea",
+      } as Project;
     });
 
     const stats = GROUP_DEFS.map((gd) => {
