@@ -46,6 +46,7 @@ export default function FeishuTableView({ token }: { token: string }) {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "log">("table");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,17 +78,32 @@ export default function FeishuTableView({ token }: { token: string }) {
       })
     : records;
 
+  const latestPerRecordId = new Map<string, SyncRecord>();
+  for (const r of filteredRecords) {
+    const existing = latestPerRecordId.get(r.recordId);
+    if (!existing || new Date(r.receivedAt) > new Date(existing.receivedAt)) {
+      latestPerRecordId.set(r.recordId, r);
+    }
+  }
+  const tableRows = Array.from(latestPerRecordId.values()).filter((r) => r.action !== "delete");
+
   return (
     <div className="feishu-table-view">
       <div className="feishu-table-toolbar">
+        <div className="feishu-table-mode-switch">
+          <button className={viewMode === "table" ? "active" : ""} onClick={() => setViewMode("table")}>表格视图</button>
+          <button className={viewMode === "log" ? "active" : ""} onClick={() => setViewMode("log")}>同步日志</button>
+        </div>
         <input
           className="feishu-table-search"
           type="text"
-          placeholder="搜索记录…"
+          placeholder="搜索…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <span className="feishu-table-count">{filteredRecords.length} 条记录</span>
+        <span className="feishu-table-count">
+          {viewMode === "table" ? `${tableRows.length} 条数据` : `${filteredRecords.length} 条日志`}
+        </span>
         <button className="button button-outline" onClick={() => void load()} disabled={loading}>
           {loading ? "刷新中…" : "刷新"}
         </button>
@@ -102,7 +118,61 @@ export default function FeishuTableView({ token }: { token: string }) {
         </div>
       )}
 
-      {filteredRecords.length > 0 && (
+      {viewMode === "table" && tableRows.length > 0 && (
+        <div className="feishu-table-scroll">
+          <table className="raw-table feishu-records-table feishu-clean-table">
+            <thead>
+              <tr>
+                {fieldNames.map((fn) => (
+                  <th key={fn}>{fn}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((r) => {
+                const fields = extractFields(r.rawPayload);
+                const isExpanded = expandedId === r.id;
+                return (
+                  <>
+                    <tr
+                      key={r.id}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                    >
+                      {fieldNames.map((fn) => (
+                        <td key={fn}>{formatValue(fields[fn])}</td>
+                      ))}
+                    </tr>
+                    {isExpanded && (
+                      <tr key={`${r.id}-detail`} className="feishu-detail-row">
+                        <td colSpan={fieldNames.length}>
+                          <div className="feishu-detail-content">
+                            <div className="feishu-detail-meta">
+                              <span>记录 ID: {r.recordId}</span>
+                              <span>接收时间: {new Date(r.receivedAt).toLocaleString("zh-CN")}</span>
+                              <span>动作: {r.action}</span>
+                              <span>状态: {r.processed ? "成功" : "失败"}</span>
+                            </div>
+                            <h4>原始 JSON 数据</h4>
+                            <pre className="feishu-raw-json">{JSON.stringify(r.rawPayload, null, 2)}</pre>
+                            {r.error && (
+                              <div className="feishu-detail-error">
+                                <strong>错误信息:</strong>{r.error}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {viewMode === "log" && filteredRecords.length > 0 && (
         <div className="feishu-table-scroll">
           <table className="raw-table feishu-records-table">
             <thead>
@@ -136,9 +206,9 @@ export default function FeishuTableView({ token }: { token: string }) {
                       ))}
                       <td>
                         {r.processed ? (
-                          <span className="feishu-status-ok">✓ 成功</span>
+                          <span className="feishu-status-ok">成功</span>
                         ) : (
-                          <span className="feishu-status-fail" title={r.error || ""}>✗ 失败</span>
+                          <span className="feishu-status-fail" title={r.error || ""}>失败</span>
                         )}
                       </td>
                     </tr>
@@ -150,7 +220,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                             <pre className="feishu-raw-json">{JSON.stringify(r.rawPayload, null, 2)}</pre>
                             {r.error && (
                               <div className="feishu-detail-error">
-                                <strong>错误信息：</strong>{r.error}
+                                <strong>错误信息:</strong>{r.error}
                               </div>
                             )}
                           </div>
