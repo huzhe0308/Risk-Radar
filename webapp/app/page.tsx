@@ -219,6 +219,7 @@ export default function Home() {
   const activeProject = activeView?.projects.find((project) => project.uuid === selectedProjectId);
   const activeMilestoneProject = selectedMilestone
     ? activeView?.projects.find((project) => project.uuid === selectedMilestone.projectId)
+      || activeView?.projects.find((project) => project.milestones.some((m) => m.id === selectedMilestone.milestoneId))
     : undefined;
   const activeMilestone = activeMilestoneProject?.milestones.find((milestone) => milestone.id === selectedMilestone?.milestoneId);
   const selectedPlanItem = activeView?.planItems?.find((item) => item.id === selectedPlanItemId);
@@ -349,7 +350,7 @@ export default function Home() {
 
   const saveMilestone = (patch: Partial<Milestone>) => {
     if (!selectedMilestone || !activeMilestone) return;
-    updateMilestone(selectedMilestone.projectId, selectedMilestone.milestoneId, (milestone) => ({ ...milestone, ...patch }));
+    updateMilestone(activeMilestoneProject?.uuid || selectedMilestone.projectId, selectedMilestone.milestoneId, (milestone) => ({ ...milestone, ...patch }));
   };
 
   const deleteMilestone = () => {
@@ -358,7 +359,7 @@ export default function Home() {
     setData(updateActiveView(data, (view) => ({
       ...view,
       projects: view.projects.map((project) => {
-        if (project.uuid !== selectedMilestone.projectId) return project;
+        if (project.uuid !== (activeMilestoneProject?.uuid || selectedMilestone.projectId)) return project;
         return { ...project, milestones: project.milestones.filter((milestone) => milestone.id !== selectedMilestone.milestoneId) };
       }),
     })));
@@ -735,11 +736,20 @@ export default function Home() {
           {workspaceMode === "overview" ? (
             <ManagementDashboard view={activeView} onLocate={locateFromDashboard} />
           ) : workspaceMode === "cea" ? (
-            <CeaVersionView
-              view={activeView}
-              projects={visibleProjects}
-              onMilestoneClick={(projectId, milestoneId) => { setSelectedProjectId(""); setSelectedMilestone({ projectId, milestoneId }); }}
-            />
+            <>
+              <div className="toolbar">
+                <div className="search-field"><Icon>⌕</Icon><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目、里程碑或备注…" /></div>
+                <div className="toolbar-spacer" />
+                <div className="column-width-control"><button onClick={() => updateColumnWidth(-1)}>−</button><input type="number" min="6" max="300" value={activeView.columnWidth || 20} onChange={(event) => { const v = Number(event.target.value); if (!isNaN(v)) updateColumnWidth(v - (activeView.columnWidth || 20)); }} /><span>px / 周</span><button onClick={() => updateColumnWidth(1)}>＋</button></div>
+              </div>
+              <div className="filter-summary"><span>CEA 版本视图</span><div className="date-controls"><label>开始 <input type="date" value={activeView.startDate} onChange={(event) => updateViewDate("startDate", event.target.value)} /></label><label>结束 <input type="date" value={activeView.endDate} onChange={(event) => updateViewDate("endDate", event.target.value)} /></label></div></div>
+              <CeaVersionView
+                view={activeView}
+                projects={visibleProjects}
+                onMilestoneClick={(projectId, milestoneId) => { setSelectedProjectId(""); setSelectedMilestone({ projectId, milestoneId }); }}
+                onColumnWidthChange={(delta) => updateColumnWidth(delta)}
+              />
+            </>
           ) : workspaceMode === "feishu-table" ? (
             <FeishuTableView token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} />
           ) : <>
