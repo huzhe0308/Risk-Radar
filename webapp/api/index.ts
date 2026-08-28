@@ -170,13 +170,9 @@ async function handleFeishuWebhook(req: any, res: any, bodyBuffer: Buffer): Prom
     }
 
     const sql = getSql();
+    await sql`DROP INDEX IF EXISTS sync_records_record_id_idx`;
     await sql`INSERT INTO sync_records (record_id, action, raw_payload, processed)
-              VALUES (${recordId}, ${String(body.action || "")}, ${JSON.stringify(body)}::jsonb, true)
-              ON CONFLICT (record_id) DO UPDATE SET
-              raw_payload = EXCLUDED.raw_payload,
-              received_at = NOW(),
-              action = EXCLUDED.action,
-              processed = true`;
+              VALUES (${recordId}, ${String(body.action || "")}, ${JSON.stringify(body)}::jsonb, true)`;
 
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
