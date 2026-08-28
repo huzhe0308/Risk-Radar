@@ -31,7 +31,7 @@ async function ensureHandler() {
   await initPromise;
 }
 
-async function buildWebRequest(req: any): Promise<Request> {
+async function buildWebRequest(req: any, precomputedBody?: Buffer): Promise<Request> {
   const proto = req.headers["x-forwarded-proto"]?.split(",")[0]?.trim() || "https";
   const host = req.headers["x-forwarded-host"] || req.headers["host"] || "localhost";
 
@@ -53,14 +53,11 @@ async function buildWebRequest(req: any): Promise<Request> {
   const method = req.method || "GET";
   const init: RequestInit = { method, headers };
   if (method !== "GET" && method !== "HEAD") {
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) {
-      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    if (precomputedBody) {
+      const contentType = headers.get("content-type") || "application/json";
+      const blobType = contentType.includes("charset") ? contentType : `${contentType}; charset=utf-8`;
+      init.body = new Blob([new Uint8Array(precomputedBody)], { type: blobType });
     }
-    const bodyBuffer = Buffer.concat(chunks);
-    const contentType = headers.get("content-type") || "application/json";
-    const blobType = contentType.includes("charset") ? contentType : `${contentType}; charset=utf-8`;
-    init.body = new Blob([new Uint8Array(bodyBuffer)], { type: blobType });
   }
   return new Request(new URL(finalUrl, `${proto}://${host}`), init);
 }
@@ -116,11 +113,90 @@ async function sendWebResponse(response: Response, req: any, res: any) {
   res.end();
 }
 
-export default async function apiHandler(req: any, res: any) {
+async function readRawBody(req: any): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+async function handleFeishuWebhook(req: any, res: any, bodyBuffer: Buffer): Promise<boolean> {
+  const rawUrl = req.url || "/";
+  const parsed = new URL(rawUrl, "http://localhost");
+  const pathname = parsed.pathname;
+
+  if (pathname !== "/api/feishu/sync" || (req.method || "GET") !== "POST") {
+    return false;
+  }
+
+  const expectedToken = process.env.FEISHU_WEBHOOK_TOKEN;
+  if (!expectedToken) {
+    res.statusCode = 503;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ error: "Webhook token not configured." }));
+    return true;
+  }
+
+  const token = req.headers["x-webhook-token"];
+  if (token !== expectedToken) {
+    res.statusCode = 401;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ error: "Unauthorized" }));
+    return true;
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    const utf8Text = bodyBuffer.toString("utf8");
+    body = JSON.parse(utf8Text);
+  } catch {
+    res.statusCode = 400;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ error: "Invalid JSON body." }));
+    return true;
+  }
+
+  const webReq = new Request(`https://${req.headers["x-forwarded-host"] || req.headers["host"] || "localhost"}/api/feishu/sync`, {
+    method: "POST",
+    headers: { "content-type": "application/json; charset=utf-8" },
+    body: JSON.stringify(body),
+  });
+
   try {
     await ensureHandler();
     if (!rscHandler) throw new Error("Handler initialization failed");
-    const webReq = await buildWebRequest(req);
+    const response = await rscHandler(webReq);
+    await sendWebResponse(response, req, res);
+  } catch (error) {
+    console.error("[api] Webhook error:", error);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ error: String(error) }));
+    }
+  }
+  return true;
+}
+
+export default async function apiHandler(req: any, res: any) {
+  try {
+    const method = req.method || "GET";
+    let bodyBuffer: Buffer | undefined;
+
+    if (method !== "GET" && method !== "HEAD") {
+      bodyBuffer = await readRawBody(req);
+
+      const parsed = new URL(req.url || "/", "http://localhost");
+      if (parsed.pathname === "/api/feishu/sync" && method === "POST") {
+        const handled = await handleFeishuWebhook(req, res, bodyBuffer);
+        if (handled) return;
+      }
+    }
+
+    await ensureHandler();
+    if (!rscHandler) throw new Error("Handler initialization failed");
+    const webReq = await buildWebRequest(req, bodyBuffer);
     const response = await rscHandler(webReq);
     await sendWebResponse(response, req, res);
   } catch (error) {
