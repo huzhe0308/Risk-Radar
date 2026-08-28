@@ -187,6 +187,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                           <div className="feishu-detail-content">
                             <div className="feishu-detail-meta">
                               <span>记录 ID: {r.recordId}</span>
+                              {r.tableId && <span>子表 ID: {r.tableId}</span>}
                               <span>接收时间: {new Date(r.receivedAt).toLocaleString("zh-CN")}</span>
                               <span>动作: {r.action}</span>
                               <span>状态: {r.processed ? "成功" : "失败"}</span>
@@ -218,6 +219,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                 <th>接收时间</th>
                 <th>动作</th>
                 <th>记录 ID</th>
+                <th>子表 ID</th>
                 {fieldNames.map((fn) => (
                   <th key={fn}>{fn}</th>
                 ))}
@@ -240,6 +242,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                       <td className="feishu-cell-time">{new Date(r.receivedAt).toLocaleString("zh-CN")}</td>
                       <td><span className="feishu-action-badge">{r.action || "—"}</span></td>
                       <td className="feishu-cell-id" title={r.recordId}>{r.recordId.length > 50 ? r.recordId.slice(0, 50) + "…" : r.recordId}</td>
+                      <td className="feishu-cell-id" title={r.tableId || ""}>{r.tableId ? (r.tableId.length > 20 ? r.tableId.slice(0, 20) + "…" : r.tableId) : "—"}</td>
                       {fieldNames.map((fn) => (
                         <td key={fn}>{formatValue(fields[fn])}</td>
                       ))}
@@ -262,7 +265,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                     </tr>
                     {isExpanded && (
                       <tr key={`${r.id}-detail`} className="feishu-detail-row">
-                        <td colSpan={fieldNames.length + 5}>
+                        <td colSpan={fieldNames.length + 6}>
                           <div className="feishu-detail-content">
                             <h4>原始 JSON 数据</h4>
                             <pre className="feishu-raw-json">{JSON.stringify(r.rawPayload, null, 2)}</pre>
