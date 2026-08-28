@@ -30,13 +30,24 @@ function extractFields(rawPayload: unknown): Record<string, unknown> {
   return rest;
 }
 
+function stripBraces(s: string): string {
+  let v = s.trim();
+  while (v.startsWith("{{") && v.endsWith("}}")) {
+    v = v.slice(2, -2).trim();
+  }
+  while (v.startsWith("{") && v.endsWith("}") && v.length > 2) {
+    v = v.slice(1, -1).trim();
+  }
+  return v;
+}
+
 function formatValue(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "boolean") return value ? "是" : "否";
   if (typeof value === "number") return String(value);
-  if (Array.isArray(value)) return value.map((v) => typeof v === "object" ? JSON.stringify(v) : String(v)).join(", ");
+  if (Array.isArray(value)) return value.map((v) => typeof v === "object" ? JSON.stringify(v) : stripBraces(String(v))).join(", ");
   if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
+  return stripBraces(String(value));
 }
 
 export default function FeishuTableView({ token }: { token: string }) {
