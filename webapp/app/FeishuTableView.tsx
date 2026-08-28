@@ -82,7 +82,7 @@ export default function FeishuTableView({ token }: { token: string }) {
     void load();
   }, [load]);
 
-  const handleDelete = async (recordId: string, recordDbId: number) => {
+  const handleDelete = async (recordDbId: number) => {
     if (!window.confirm("确认删除该记录？此操作不可撤销。")) return;
     setDeletingId(recordDbId);
     try {
@@ -91,7 +91,7 @@ export default function FeishuTableView({ token }: { token: string }) {
       const response = await fetch(`/api/feishu/records?${params}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recordId }),
+        body: JSON.stringify({ id: recordDbId }),
       });
       if (!response.ok) {
         const payload = await response.json();
@@ -175,7 +175,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                         <button
                           className="feishu-delete-btn"
                           disabled={deletingId === r.id}
-                          onClick={() => void handleDelete(r.recordId, r.id)}
+                          onClick={() => void handleDelete(r.id)}
                         >
                           {deletingId === r.id ? "删除中…" : "删除"}
                         </button>
@@ -254,7 +254,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                         <button
                           className="feishu-delete-btn"
                           disabled={deletingId === r.id}
-                          onClick={() => void handleDelete(r.recordId, r.id)}
+                          onClick={() => void handleDelete(r.id)}
                         >
                           {deletingId === r.id ? "…" : "删除"}
                         </button>
