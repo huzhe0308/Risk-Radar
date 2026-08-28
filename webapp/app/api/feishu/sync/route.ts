@@ -55,21 +55,6 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: err instanceof Error ? err.message : "Database unavailable." }, 503);
   }
 
-  const existing = await db
-    .select()
-    .from(syncRecords)
-    .where(eq(syncRecords.recordId, payload.recordId))
-    .limit(1);
-
-  if (existing.length > 0 && existing[0].payloadHash === payloadHash && existing[0].processed) {
-    return json({
-      ok: true,
-      skipped: true,
-      reason: "duplicate",
-      recordId: payload.recordId,
-    });
-  }
-
   try {
     if (payload.action === "delete") {
       await handleDelete(db, payload);
@@ -79,21 +64,14 @@ export async function POST(request: Request): Promise<Response> {
       await upsertMilestone(db, payload);
     }
 
-    if (existing.length > 0) {
-      await db
-        .update(syncRecords)
-        .set({ payloadHash, processed: true, error: null, receivedAt: new Date(), rawPayload: body, action: payload.action })
-        .where(eq(syncRecords.recordId, payload.recordId));
-    } else {
-      await db.insert(syncRecords).values({
-        recordId: payload.recordId,
-        tableId: payload.tableId || null,
-        action: payload.action,
-        payloadHash,
-        rawPayload: body,
-        processed: true,
-      });
-    }
+    await db.insert(syncRecords).values({
+      recordId: payload.recordId,
+      tableId: payload.tableId || null,
+      action: payload.action,
+      payloadHash,
+      rawPayload: body,
+      processed: true,
+    });
 
     return json({
       ok: true,
@@ -104,22 +82,15 @@ export async function POST(request: Request): Promise<Response> {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
 
-    if (existing.length > 0) {
-      await db
-        .update(syncRecords)
-        .set({ payloadHash, processed: false, error: message })
-        .where(eq(syncRecords.recordId, payload.recordId));
-    } else {
-      await db.insert(syncRecords).values({
-        recordId: payload.recordId,
-        tableId: payload.tableId || null,
-        action: payload.action,
-        payloadHash,
-        rawPayload: body,
-        processed: false,
-        error: message,
-      });
-    }
+    await db.insert(syncRecords).values({
+      recordId: payload.recordId,
+      tableId: payload.tableId || null,
+      action: payload.action,
+      payloadHash,
+      rawPayload: body,
+      processed: false,
+      error: message,
+    });
 
     return json({ error: message, recordId: payload.recordId }, 500);
   }
