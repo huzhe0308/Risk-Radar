@@ -142,28 +142,31 @@ export function CeaVersionView({
       if (fromKey && toKey) connPairs.push([fromKey, toKey]);
     }
 
-    const allKeys = [...map.keys()].sort((a, b) => earliestDate(a).localeCompare(earliestDate(b)));
+    const dateSorted = [...map.keys()].sort((a, b) => earliestDate(a).localeCompare(earliestDate(b)));
+
+    const adj = new Map<string, Set<string>>();
+    for (const [from, to] of connPairs) {
+      if (!adj.has(from)) adj.set(from, new Set());
+      if (!adj.has(to)) adj.set(to, new Set());
+      adj.get(from)!.add(to);
+      adj.get(to)!.add(from);
+    }
 
     const placed = new Set<string>();
     const ordered: string[] = [];
-    const queue = [...allKeys];
 
-    while (queue.length) {
-      const key = queue.shift()!;
-      if (placed.has(key)) continue;
-      ordered.push(key);
-      placed.add(key);
-
-      const deps = connPairs
-        .filter(([from, to]) => from === key || to === key)
-        .map(([from, to]) => (from === key ? to : from));
-
-      for (const dep of deps) {
-        const idx = queue.indexOf(dep);
-        if (idx !== -1 && !placed.has(dep)) {
-          ordered.push(dep);
-          placed.add(dep);
-          queue.splice(idx, 1);
+    for (const startKey of dateSorted) {
+      if (placed.has(startKey)) continue;
+      const bfsQueue: string[] = [startKey];
+      while (bfsQueue.length) {
+        const key = bfsQueue.shift()!;
+        if (placed.has(key)) continue;
+        ordered.push(key);
+        placed.add(key);
+        const neighbors = [...(adj.get(key) || [])]
+          .sort((a, b) => earliestDate(a).localeCompare(earliestDate(b)));
+        for (const n of neighbors) {
+          if (!placed.has(n)) bfsQueue.push(n);
         }
       }
     }
