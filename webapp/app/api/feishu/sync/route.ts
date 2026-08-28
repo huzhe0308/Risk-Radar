@@ -42,7 +42,9 @@ export async function POST(request: Request): Promise<Response> {
 
   const payload = normalizePayload(body);
   if (!payload.recordId) {
-    return json({ error: "Missing record_id in payload." }, 400);
+    const fields = payload.fields as Record<string, unknown>;
+    const fallbackRaw = fields["项目ID"] || fields["项目名称"] || fields["project_id"] || fields["name"];
+    payload.recordId = fallbackRaw != null ? String(fallbackRaw).trim() : `auto_${Date.now()}`;
   }
 
   const payloadHash = await sha256(JSON.stringify(body));
