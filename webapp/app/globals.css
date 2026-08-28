@@ -2141,24 +2141,14 @@ tbody tr:hover { background: #f7fbfb; }
 .cea-version-empty { padding: 40px 20px; text-align: center; color: #64748b; }
 .cea-version-empty p { font-size: 13px; margin-bottom: 8px; }
 .cea-version-empty small { font-size: 10px; color: #475569; }
-.cea-version-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid rgba(148,163,184,0.1); }
-.cea-version-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.cea-version-table thead th { position: sticky; top: 0; background: rgba(15,23,42,0.9); color: #94a3b8; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(148,163,184,0.15); backdrop-filter: blur(8px); }
-.cea-version-table td { padding: 8px 14px; border-bottom: 1px solid rgba(148,163,184,0.06); color: #e2e8f0; vertical-align: middle; }
-.cea-version-table .mono { font-family: "SF Mono","Fira Code",monospace; font-size: 11px; color: #94a3b8; }
-.cea-group-header { cursor: pointer; user-select: none; transition: filter .15s; }
-.cea-group-header:hover { filter: brightness(1.15); }
-.cea-group-header td { padding: 12px 16px; font-size: 13px; }
-.cea-group-icon { margin-right: 8px; font-size: 14px; }
-.cea-group-label { font-weight: 700; margin-right: 10px; }
-.cea-group-meta { font-size: 10px; opacity: 0.7; }
-.cea-chevron { float: right; font-size: 10px; transition: transform .2s; }
-.cea-chevron.collapsed { transform: rotate(-90deg); }
-.cea-version-row { transition: background .12s; }
-.cea-version-row:hover { background: rgba(148,163,184,0.06); }
-.cea-version-name { margin-left: 6px; font-weight: 600; color: #e2e8f0; }
-.cea-version-name-bold { font-weight: 700; }
-.cea-version-table .grid-marker-shape { width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 4px; }
+.cea-group-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.cea-group-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.15); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; opacity: 0.55; }
+.cea-group-chip:hover { opacity: 0.85; }
+.cea-group-chip:not(.collapsed) { opacity: 1; }
+.cea-group-chip-icon { font-size: 13px; }
+.cea-group-chip-count { font-size: 10px; opacity: 0.6; }
+.cea-chip-chevron { font-size: 9px; transition: transform .2s; }
+.cea-chip-chevron.rotated { transform: rotate(-90deg); }
 
 /* Feishu Webhook Sync Dialog */
 .feishu-import-dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px); display: flex; flex-direction: column; overflow: hidden; }
