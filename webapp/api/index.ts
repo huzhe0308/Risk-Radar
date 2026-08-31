@@ -127,10 +127,31 @@ async function readRawBody(req: any): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, X-Webhook-Token",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function setCors(res: any) {
+  for (const [k, v] of Object.entries(CORS_HEADERS)) res.setHeader(k, v);
+}
+
 async function handleFeishuWebhook(req: any, res: any, bodyBuffer: Buffer): Promise<boolean> {
   const rawUrl = req.url || "/";
   const parsed = new URL(rawUrl, "http://localhost");
-  if (parsed.pathname !== "/api/feishu/sync" || (req.method || "GET") !== "POST") {
+  if (parsed.pathname !== "/api/feishu/sync") {
+    return false;
+  }
+
+  if ((req.method || "GET") === "OPTIONS") {
+    res.statusCode = 204;
+    setCors(res);
+    res.end();
+    return true;
+  }
+
+  if ((req.method || "GET") !== "POST") {
     return false;
   }
 
@@ -138,6 +159,7 @@ async function handleFeishuWebhook(req: any, res: any, bodyBuffer: Buffer): Prom
   if (!expectedToken) {
     res.statusCode = 503;
     res.setHeader("Content-Type", "application/json");
+    setCors(res);
     res.end(JSON.stringify({ error: "Webhook token not configured." }));
     return true;
   }
@@ -146,6 +168,7 @@ async function handleFeishuWebhook(req: any, res: any, bodyBuffer: Buffer): Prom
   if (token !== expectedToken) {
     res.statusCode = 401;
     res.setHeader("Content-Type", "application/json");
+    setCors(res);
     res.end(JSON.stringify({ error: "Unauthorized" }));
     return true;
   }
@@ -157,6 +180,7 @@ async function handleFeishuWebhook(req: any, res: any, bodyBuffer: Buffer): Prom
   } catch {
     res.statusCode = 400;
     res.setHeader("Content-Type", "application/json");
+    setCors(res);
     res.end(JSON.stringify({ error: "Invalid JSON body." }));
     return true;
   }
@@ -177,11 +201,13 @@ async function handleFeishuWebhook(req: any, res: any, bodyBuffer: Buffer): Prom
 
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
+    setCors(res);
     res.end(JSON.stringify({ ok: true, recordId, type: body.type, action: body.action }));
   } catch (err) {
     console.error("[webhook] Error:", err);
     res.statusCode = 500;
     res.setHeader("Content-Type", "application/json");
+    setCors(res);
     res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }));
   }
   return true;
@@ -190,9 +216,15 @@ async function handleFeishuWebhook(req: any, res: any, bodyBuffer: Buffer): Prom
 export default async function apiHandler(req: any, res: any) {
   try {
     const method = req.method || "GET";
+
+    if (new URL(req.url || "/", "http://localhost").pathname === "/api/feishu/sync" && method === "OPTIONS") {
+      const handled = await handleFeishuWebhook(req, res, Buffer.alloc(0));
+      if (handled) return;
+    }
+
     let bodyBuffer: Buffer | undefined;
 
-    if (method !== "GET" && method !== "HEAD") {
+    if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
       bodyBuffer = await readRawBody(req);
 
       if (new URL(req.url || "/", "http://localhost").pathname === "/api/feishu/sync") {

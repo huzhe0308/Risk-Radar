@@ -18,8 +18,18 @@ async function sha256(text: string): Promise<string> {
     .join("");
 }
 
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, X-Webhook-Token",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 function json(body: unknown, status = 200): Response {
-  return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
+  return Response.json(body, { status, headers: { "Cache-Control": "no-store", ...CORS_HEADERS } });
+}
+
+export async function OPTIONS(): Promise<Response> {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
 
 export async function POST(request: Request): Promise<Response> {
