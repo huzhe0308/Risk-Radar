@@ -2205,6 +2205,16 @@ tbody tr:hover { background: #f7fbfb; }
 .feishu-table-filter { height: 34px; padding: 0 10px; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; background: rgba(15, 23, 42, 0.04); color: #1e293b; font-size: 12px; outline: 0; cursor: pointer; max-width: 220px; }
 .feishu-table-filter:focus { border-color: rgba(6, 182, 212, 0.4); }
 .feishu-source-col { font-family: "SF Mono", monospace; color: #94a3b8; font-size: 11px; white-space: nowrap; }
+.feishu-back-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; background: transparent; color: #64748b; font-size: 12px; cursor: pointer; transition: all .15s; }
+.feishu-back-btn:hover { color: #334155; background: rgba(148, 163, 184, 0.08); }
+.feishu-table-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; padding: 4px 0; }
+.feishu-table-card { display: flex; align-items: flex-start; gap: 12px; padding: 16px; border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; background: rgba(15, 23, 42, 0.02); cursor: pointer; transition: all .2s; text-align: left; }
+.feishu-table-card:hover { border-color: rgba(6, 182, 212, 0.4); background: rgba(6, 182, 212, 0.04); transform: translateY(-1px); }
+.feishu-table-card-icon { color: #0f766e; flex-shrink: 0; padding-top: 2px; }
+.feishu-table-card-info { flex: 1; min-width: 0; }
+.feishu-table-card-name { font-size: 14px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feishu-table-card-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #64748b; margin-top: 4px; flex-wrap: wrap; }
+.feishu-table-card-id { font-family: "SF Mono", monospace; font-size: 10px; color: #94a3b8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .feishu-table-count { font-size: 11px; color: #64748b; flex: 1; }
 .feishu-table-error { color: #dc2626; font-size: 12px; padding: 8px 12px; background: rgba(220, 38, 38, 0.06); border-radius: 8px; }
 .feishu-table-empty { text-align: center; padding: 60px 20px; color: #64748b; }
