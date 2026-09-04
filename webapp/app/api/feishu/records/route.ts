@@ -64,9 +64,19 @@ export async function GET(request: Request): Promise<Response> {
     }
   }
 
+  const tablesMap = new Map<string, number>();
+  for (const r of records) {
+    const key = r.tableId || "(未知表格)";
+    tablesMap.set(key, (tablesMap.get(key) || 0) + 1);
+  }
+  const tables = Array.from(tablesMap.entries())
+    .map(([tableId, count]) => ({ tableId, count }))
+    .sort((a, b) => b.count - a.count);
+
   return Response.json({
     records,
     fieldNames: Array.from(fieldNamesSet).sort(),
+    tables,
     count: records.length,
   }, { headers: { "Cache-Control": "no-store" } });
 }
