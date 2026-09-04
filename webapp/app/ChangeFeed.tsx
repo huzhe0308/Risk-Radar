@@ -128,6 +128,20 @@ export function ChangeFeed({ token }: { token: string }) {
           const action = r.action || "变更";
           const name = fmtVal(fields["项目"] || fields["项目名称"] || fields["项目ID"] || fields["name"]) || "未命名";
 
+          const prevRecord = records
+            .filter((x) => x.recordId === r.recordId && x.id < r.id)
+            .sort((a, b) => b.id - a.id)[0] || null;
+          const prevFields = prevRecord ? getFields(prevRecord.rawPayload) : {};
+          const allKeys = [...new Set([...Object.keys(prevFields), ...Object.keys(fields)])];
+          const changedFields = allKeys
+            .map((key) => {
+              const oldVal = fmtVal(prevFields[key]);
+              const newVal = fmtVal(fields[key]);
+              if (oldVal === newVal) return null;
+              return { key, oldVal, newVal, type: !oldVal && newVal ? "added" : oldVal && !newVal ? "removed" : "changed" };
+            })
+            .filter((x): x is { key: string; oldVal: string; newVal: string; type: string } => x !== null);
+
           return (
             <div
               key={r.id}
@@ -154,16 +168,32 @@ export function ChangeFeed({ token }: { token: string }) {
                 {isUnread && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#06b6d4", boxShadow: "0 0 6px #06b6d4", flexShrink: 0 }} />}
               </div>
 
-              {/* Row 2: field values */}
-              <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {fieldEntries.slice(0, 4).map(([key, val]) => (
-                  <span key={key} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: "rgba(15,23,42,0.5)", color: "#cbd5e1" }}>
-                    <span style={{ color: "#94a3b8", fontWeight: 600 }}>{key}: </span>
-                    {fmtVal(val)}
-                  </span>
-                ))}
-                {fieldEntries.length > 4 && <span style={{ fontSize: 10, color: "#64748b", padding: "3px 4px" }}>还有 {fieldEntries.length - 4} 项…</span>}
-              </div>
+              {/* Row 2: changed fields with before → after */}
+              {changedFields.length > 0 ? (
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                  {changedFields.slice(0, 4).map((d) => (
+                    <div key={d.key} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, background: "rgba(15,23,42,0.5)" }}>
+                      <span style={{ color: "#94a3b8", fontWeight: 600 }}>{d.key}: </span>
+                      {d.type === "added" ? (
+                        <span style={{ color: "#34d399" }}>+ {d.newVal}</span>
+                      ) : d.type === "removed" ? (
+                        <span style={{ color: "#f87171" }}>- {d.oldVal}</span>
+                      ) : (
+                        <span>
+                          <span style={{ color: "#f87171", textDecoration: "line-through", opacity: 0.7 }}>{d.oldVal}</span>
+                          <span style={{ color: "#64748b", margin: "0 4px" }}>→</span>
+                          <span style={{ color: "#34d399" }}>{d.newVal}</span>
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {changedFields.length > 4 && <span style={{ fontSize: 10, color: "#64748b", padding: "2px 4px" }}>还有 {changedFields.length - 4} 项变更…</span>}
+                </div>
+              ) : (
+                <div style={{ marginTop: 8, fontSize: 11, color: "#64748b", fontStyle: "italic" }}>
+                  {prevRecord ? "字段无变化" : "首次推送，共 " + fieldEntries.length + " 个字段"}
+                </div>
+              )}
 
               {/* Expanded detail */}
               {isExpanded && (
@@ -172,23 +202,30 @@ export function ChangeFeed({ token }: { token: string }) {
                     <span style={{ background: "rgba(148,163,184,0.08)", padding: "3px 8px", borderRadius: 4 }}>记录ID: {r.recordId}</span>
                     {r.tableId && <span style={{ background: "rgba(148,163,184,0.08)", padding: "3px 8px", borderRadius: 4 }}>子表: {r.tableId}</span>}
                     <span style={{ background: "rgba(148,163,184,0.08)", padding: "3px 8px", borderRadius: 4 }}>{new Date(r.receivedAt).toLocaleString("zh-CN")}</span>
+                    {prevRecord && <span style={{ background: "rgba(148,163,184,0.08)", padding: "3px 8px", borderRadius: 4 }}>对比: {new Date(prevRecord.receivedAt).toLocaleString("zh-CN")}</span>}
                   </div>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                    <thead>
-                      <tr>
-                        <th style={{ textAlign: "left", padding: "6px 10px", color: "#64748b", borderBottom: "1px solid rgba(148,163,184,0.1)", fontSize: 11 }}>字段</th>
-                        <th style={{ textAlign: "left", padding: "6px 10px", color: "#64748b", borderBottom: "1px solid rgba(148,163,184,0.1)", fontSize: 11 }}>值</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fieldEntries.map(([key, val]) => (
-                        <tr key={key}>
-                          <td style={{ padding: "6px 10px", borderBottom: "1px solid rgba(148,163,184,0.05)", color: "#94a3b8", fontWeight: 600 }}>{key}</td>
-                          <td style={{ padding: "6px 10px", borderBottom: "1px solid rgba(148,163,184,0.05)", color: "#e2e8f0" }}>{fmtVal(val)}</td>
+                  {changedFields.length > 0 ? (
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: "left", padding: "6px 10px", color: "#64748b", borderBottom: "1px solid rgba(148,163,184,0.1)", fontSize: 11 }}>字段</th>
+                          <th style={{ textAlign: "left", padding: "6px 10px", color: "#64748b", borderBottom: "1px solid rgba(148,163,184,0.1)", fontSize: 11 }}>旧值</th>
+                          <th style={{ textAlign: "left", padding: "6px 10px", color: "#64748b", borderBottom: "1px solid rgba(148,163,184,0.1)", fontSize: 11 }}>新值</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {changedFields.map((d) => (
+                          <tr key={d.key} style={{ background: d.type === "added" ? "rgba(52,211,153,0.04)" : d.type === "removed" ? "rgba(248,113,113,0.04)" : "rgba(59,130,246,0.04)" }}>
+                            <td style={{ padding: "6px 10px", borderBottom: "1px solid rgba(148,163,184,0.05)", color: "#94a3b8", fontWeight: 600 }}>{d.key}</td>
+                            <td style={{ padding: "6px 10px", borderBottom: "1px solid rgba(148,163,184,0.05)", color: "#f87171" }}>{d.oldVal || "—"}</td>
+                            <td style={{ padding: "6px 10px", borderBottom: "1px solid rgba(148,163,184,0.05)", color: "#34d399" }}>{d.newVal || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p style={{ fontSize: 12, color: "#64748b" }}>无字段级变更</p>
+                  )}
                   <details style={{ marginTop: 10 }}>
                     <summary style={{ cursor: "pointer", fontSize: 11, color: "#475569" }}>查看原始 JSON</summary>
                     <pre style={{ background: "rgba(15,23,42,0.92)", color: "#67e8f9", padding: "10px 14px", borderRadius: 8, fontSize: 11, overflow: "auto", maxHeight: 300 }}>{JSON.stringify(r.rawPayload, null, 2)}</pre>
