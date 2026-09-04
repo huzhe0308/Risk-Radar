@@ -19,6 +19,7 @@ import { CHANGE_PREVIEW_KEY, loadPlanChangePreview, type PlanChangePreview } fro
 import { ExcelAnalysisEmbedded } from "./ExcelAnalysisEmbedded";
 import { CeaVersionView } from "./CeaVersionView";
 import FeishuTableView from "./FeishuTableView";
+import { ChangeFeed } from "./ChangeFeed";
 
 const STORAGE_KEY = "time-plan-viewer-v4";
 
@@ -87,7 +88,7 @@ export default function Home() {
   const [arrowDashed, setArrowDashed] = useState(false);
   const [arrowColor, setArrowColor] = useState("#d8ff3e");
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
-  const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline" | "cea" | "feishu-table">("overview");
+  const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline" | "cea" | "feishu-table" | "change-feed">("overview");
   const inputRef = useRef<HTMLInputElement>(null);
   const changePreviewRef = useRef(false);
 
@@ -717,7 +718,7 @@ export default function Home() {
             <div>
               <div className="breadcrumb">计划视图 <span>/</span> {activeView.name}</div>
               <h1>{data.title}</h1>
-              <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
+              <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : workspaceMode === "change-feed" ? "实时监控飞书多维表格的数据变更，展示字段级差异对比。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
             </div>
             <div className="plan-heading-actions">
               <div className="workspace-mode-switch" aria-label="工作区模式">
@@ -725,6 +726,7 @@ export default function Home() {
                 <button className={workspaceMode === "timeline" ? "active" : ""} onClick={() => setWorkspaceMode("timeline")}><Icon>▤</Icon>时间线</button>
                 <button className={workspaceMode === "cea" ? "active" : ""} onClick={() => { setWorkspaceMode("cea"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>⊟</Icon>CEA 版本</button>
                 <button className={workspaceMode === "feishu-table" ? "active" : ""} onClick={() => { setWorkspaceMode("feishu-table"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>⌁</Icon>飞书表格</button>
+                <button className={workspaceMode === "change-feed" ? "active" : ""} onClick={() => { setWorkspaceMode("change-feed"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>◉</Icon>变更提醒</button>
               </div>
               {workspaceMode === "timeline" && <>
                 <button className="button button-outline" onClick={addProjectRow}><Icon>＋</Icon>新增行</button>
@@ -752,6 +754,8 @@ export default function Home() {
             </>
           ) : workspaceMode === "feishu-table" ? (
             <FeishuTableView token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} />
+          ) : workspaceMode === "change-feed" ? (
+            <ChangeFeed token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} />
           ) : <>
           <div className="toolbar">
             <div className="search-field"><Icon>⌕</Icon><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目、里程碑或备注…" /><kbd>⌘ K</kbd></div>
