@@ -51,13 +51,18 @@ function formatValue(value: unknown): string {
   return stripBraces(String(value));
 }
 
+function shortTableId(id: string | null): string {
+  if (!id) return "未知表格";
+  if (id.length <= 16) return id;
+  return id.slice(0, 8) + "…" + id.slice(-4);
+}
+
 export default function FeishuTableView({ token }: { token: string }) {
   const [records, setRecords] = useState<SyncRecord[]>([]);
-  const [fieldNames, setFieldNames] = useState<string[]>([]);
   const [tables, setTables] = useState<{ tableId: string; count: number }[]>([]);
-  const [tableFilter, setTableFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "log">("table");
@@ -73,7 +78,6 @@ export default function FeishuTableView({ token }: { token: string }) {
       const payload: RecordsResponse = await response.json();
       if (!response.ok) throw new Error((payload as unknown as { error?: string }).error || "加载失败");
       setRecords(payload.records || []);
-      setFieldNames(payload.fieldNames || []);
       setTables(payload.tables || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
@@ -109,56 +113,113 @@ export default function FeishuTableView({ token }: { token: string }) {
     }
   };
 
-  const filteredRecords = search
-    ? records.filter((r) => {
+  const tableRecords = selectedTable
+    ? records.filter((r) => (r.tableId || "(未知表格)") === selectedTable)
+    : [];
+
+  const filteredRecords = search && selectedTable
+    ? tableRecords.filter((r) => {
         const fields = extractFields(r.rawPayload);
         const haystack = [r.recordId, r.action, ...Object.values(fields)].map(formatValue).join(" ").toLowerCase();
         return haystack.includes(search.toLowerCase());
       })
-    : records;
+    : tableRecords;
 
-  const tableFilteredRecords = tableFilter === "all"
-    ? filteredRecords
-    : filteredRecords.filter((r) => (r.tableId || "(未知表格)") === tableFilter);
-
-  const visibleFieldNames = tableFilter === "all"
-    ? fieldNames
-    : Array.from(
+  const visibleFieldNames = selectedTable
+    ? Array.from(
         new Set(
-          tableFilteredRecords.flatMap((r) => {
+          tableRecords.flatMap((r) => {
             const fields = extractFields(r.rawPayload);
             return Object.keys(fields);
           })
         )
-      ).sort();
+      ).sort()
+    : [];
 
-  const tableRows = tableFilteredRecords.filter((r) => r.action !== "delete");
+  const tableRows = filteredRecords.filter((r) => r.action !== "delete");
 
-  function shortTableId(id: string | null): string {
-    if (!id) return "—";
-    if (id.length <= 16) return id;
-    return id.slice(0, 8) + "…" + id.slice(-4);
+  function lastSyncTime(tid: string): string {
+    const rec = records.find((r) => (r.tableId || "(未知表格)") === tid);
+    return rec ? new Date(rec.receivedAt).toLocaleString("zh-CN") : "—";
   }
 
+  function tableDisplayName(tid: string): string {
+    const sample = records.find((r) => (r.tableId || "(未知表格)") === tid);
+    if (sample) {
+      const payload = sample.rawPayload as Record<string, unknown> | null;
+      if (payload) {
+        const nameFromPayload =
+          payload.table_name || payload.tableName || payload["表格名称"] || payload["数据表名称"];
+        if (nameFromPayload && typeof nameFromPayload === "string") return nameFromPayload;
+      }
+    }
+    return shortTableId(tid);
+  }
+
+  /* ---------- Table selection page ---------- */
+  if (!selectedTable) {
+    return (
+      <div className="feishu-table-view">
+        <div className="feishu-table-toolbar">
+          <span className="feishu-table-count">{tables.length} 个表格 · {records.length} 条记录</span>
+          <button className="button button-outline" onClick={() => void load()} disabled={loading}>
+            {loading ? "刷新中…" : "刷新"}
+          </button>
+        </div>
+
+        {error && <p className="feishu-table-error">{error}</p>}
+
+        {!loading && records.length === 0 && !error && (
+          <div className="feishu-table-empty">
+            <p>暂无飞书同步记录。</p>
+            <p className="feishu-table-empty-hint">请在飞书多维表格中配置自动化推送，数据变更后会自动同步到这里。</p>
+          </div>
+        )}
+
+        <div className="feishu-table-card-grid">
+          {tables.map((t) => (
+            <button
+              key={t.tableId}
+              className="feishu-table-card"
+              onClick={() => { setSelectedTable(t.tableId); setSearch(""); setExpandedId(null); setViewMode("table"); }}
+            >
+              <div className="feishu-table-card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <line x1="3" y1="9" x2="21" y2="9" />
+                  <line x1="9" y1="21" x2="9" y2="9" />
+                </svg>
+              </div>
+              <div className="feishu-table-card-info">
+                <div className="feishu-table-card-name" title={t.tableId}>{tableDisplayName(t.tableId)}</div>
+                <div className="feishu-table-card-meta">
+                  <span>{t.count} 条记录</span>
+                  <span>·</span>
+                  <span>最近同步 {lastSyncTime(t.tableId)}</span>
+                </div>
+                <div className="feishu-table-card-id" title={t.tableId}>{t.tableId === "(未知表格)" ? "" : t.tableId}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- Table data page ---------- */
   return (
     <div className="feishu-table-view">
       <div className="feishu-table-toolbar">
+        <button className="feishu-back-btn" onClick={() => setSelectedTable(null)}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          返回表格列表
+        </button>
         <div className="feishu-table-mode-switch">
           <button className={viewMode === "table" ? "active" : ""} onClick={() => setViewMode("table")}>表格视图</button>
           <button className={viewMode === "log" ? "active" : ""} onClick={() => setViewMode("log")}>同步日志</button>
         </div>
-        <select
-          className="feishu-table-filter"
-          value={tableFilter}
-          onChange={(e) => setTableFilter(e.target.value)}
-        >
-          <option value="all">全部表格 ({records.length})</option>
-          {tables.map((t) => (
-            <option key={t.tableId} value={t.tableId}>
-              {shortTableId(t.tableId)} ({t.count})
-            </option>
-          ))}
-        </select>
         <input
           className="feishu-table-search"
           type="text"
@@ -167,7 +228,7 @@ export default function FeishuTableView({ token }: { token: string }) {
           onChange={(e) => setSearch(e.target.value)}
         />
         <span className="feishu-table-count">
-          {viewMode === "table" ? `${tableRows.length} 条数据` : `${tableFilteredRecords.length} 条日志`}
+          {viewMode === "table" ? `${tableRows.length} 条数据` : `${filteredRecords.length} 条日志`}
         </span>
         <button className="button button-outline" onClick={() => void load()} disabled={loading}>
           {loading ? "刷新中…" : "刷新"}
@@ -176,10 +237,9 @@ export default function FeishuTableView({ token }: { token: string }) {
 
       {error && <p className="feishu-table-error">{error}</p>}
 
-      {!loading && tableFilteredRecords.length === 0 && !error && (
+      {!loading && filteredRecords.length === 0 && !error && (
         <div className="feishu-table-empty">
-          <p>暂无飞书同步记录。</p>
-          <p className="feishu-table-empty-hint">请在飞书多维表格中配置自动化推送，数据变更后会自动同步到这里。</p>
+          <p>该表格暂无记录。</p>
         </div>
       )}
 
@@ -188,7 +248,6 @@ export default function FeishuTableView({ token }: { token: string }) {
           <table className="raw-table feishu-records-table feishu-clean-table">
             <thead>
               <tr>
-                <th className="feishu-source-col">来源表格</th>
                 {visibleFieldNames.map((fn) => (
                   <th key={fn}>{fn}</th>
                 ))}
@@ -206,7 +265,6 @@ export default function FeishuTableView({ token }: { token: string }) {
                       style={{ cursor: "pointer" }}
                       onClick={() => setExpandedId(isExpanded ? null : r.id)}
                     >
-                      <td className="feishu-source-col" title={r.tableId || ""}>{shortTableId(r.tableId)}</td>
                       {visibleFieldNames.map((fn) => (
                         <td key={fn}>{formatValue(fields[fn])}</td>
                       ))}
@@ -222,7 +280,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                     </tr>
                     {isExpanded && (
                       <tr key={`${r.id}-detail`} className="feishu-detail-row">
-                        <td colSpan={visibleFieldNames.length + 2}>
+                        <td colSpan={visibleFieldNames.length + 1}>
                           <div className="feishu-detail-content">
                             <div className="feishu-detail-meta">
                               <span>记录 ID: {r.recordId}</span>
@@ -250,7 +308,7 @@ export default function FeishuTableView({ token }: { token: string }) {
         </div>
       )}
 
-      {viewMode === "log" && tableFilteredRecords.length > 0 && (
+      {viewMode === "log" && filteredRecords.length > 0 && (
         <div className="feishu-table-scroll">
           <table className="raw-table feishu-records-table feishu-log-table">
             <thead>
@@ -258,7 +316,6 @@ export default function FeishuTableView({ token }: { token: string }) {
                 <th>接收时间</th>
                 <th>动作</th>
                 <th>记录 ID</th>
-                <th>来源表格</th>
                 {visibleFieldNames.map((fn) => (
                   <th key={fn}>{fn}</th>
                 ))}
@@ -267,7 +324,7 @@ export default function FeishuTableView({ token }: { token: string }) {
               </tr>
             </thead>
             <tbody>
-              {tableFilteredRecords.map((r) => {
+              {filteredRecords.map((r) => {
                 const fields = extractFields(r.rawPayload);
                 const isExpanded = expandedId === r.id;
                 return (
@@ -281,7 +338,6 @@ export default function FeishuTableView({ token }: { token: string }) {
                       <td className="feishu-cell-time">{new Date(r.receivedAt).toLocaleString("zh-CN")}</td>
                       <td><span className="feishu-action-badge">{r.action || "—"}</span></td>
                       <td className="feishu-cell-id" title={r.recordId}>{r.recordId.length > 50 ? r.recordId.slice(0, 50) + "…" : r.recordId}</td>
-                      <td className="feishu-source-col" title={r.tableId || ""}>{shortTableId(r.tableId)}</td>
                       {visibleFieldNames.map((fn) => (
                         <td key={fn}>{formatValue(fields[fn])}</td>
                       ))}
@@ -304,7 +360,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                     </tr>
                     {isExpanded && (
                       <tr key={`${r.id}-detail`} className="feishu-detail-row">
-                        <td colSpan={visibleFieldNames.length + 7}>
+                        <td colSpan={visibleFieldNames.length + 6}>
                           <div className="feishu-detail-content">
                             <h4>原始 JSON 数据</h4>
                             <pre className="feishu-raw-json">{JSON.stringify(r.rawPayload, null, 2)}</pre>
