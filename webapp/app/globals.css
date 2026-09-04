@@ -2233,3 +2233,65 @@ tbody tr:hover { background: #f7fbfb; }
 .feishu-delete-btn { padding: 4px 12px; border: 1px solid rgba(220, 38, 38, 0.3); border-radius: 6px; background: rgba(220, 38, 38, 0.06); color: #dc2626; font-size: 11px; cursor: pointer; transition: all .15s; }
 .feishu-delete-btn:hover:not(:disabled) { background: rgba(220, 38, 38, 0.12); border-color: rgba(220, 38, 38, 0.5); }
 .feishu-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.change-feed { display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 240px); }
+.change-feed-loading { padding: 60px 20px; text-align: center; color: #64748b; font-size: 14px; }
+.change-feed-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.change-feed-title { display: flex; align-items: center; gap: 8px; }
+.change-feed-title h3 { margin: 0; font-size: 18px; font-weight: 700; color: #f1f5f9; }
+.change-feed-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 700; box-shadow: 0 0 8px rgba(220, 38, 38, 0.4); }
+.change-feed-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.change-feed-filter { height: 30px; padding: 0 8px; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; background: rgba(15, 23, 42, 0.6); color: #cbd5e1; font-size: 12px; outline: 0; }
+.change-feed-auto { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #94a3b8; cursor: pointer; }
+.change-feed-auto input { width: 14px; height: 14px; }
+.change-feed-mark-read { padding: 4px 12px; border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 6px; background: rgba(6, 182, 212, 0.06); color: #06b6d4; font-size: 11px; cursor: pointer; transition: all .15s; }
+.change-feed-mark-read:hover { background: rgba(6, 182, 212, 0.12); }
+.change-feed-refresh { padding: 4px 12px; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; background: rgba(15, 23, 42, 0.6); color: #cbd5e1; font-size: 11px; cursor: pointer; transition: all .15s; }
+.change-feed-refresh:hover { background: rgba(148, 163, 184, 0.08); }
+.change-feed-error { padding: 8px 12px; background: rgba(220, 38, 38, 0.08); border-radius: 8px; color: #f87171; font-size: 12px; }
+.change-feed-empty { text-align: center; padding: 60px 20px; color: #64748b; }
+.change-feed-empty p { margin: 4px 0; font-size: 14px; }
+.change-feed-empty small { font-size: 11px; color: #94a3b8; }
+.change-feed-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+.change-feed-item { border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 10px; background: rgba(30, 41, 59, 0.5); cursor: pointer; transition: all .15s; overflow: hidden; }
+.change-feed-item:hover { border-color: rgba(6, 182, 212, 0.2); background: rgba(30, 41, 59, 0.7); }
+.change-feed-item.unread { border-left: 3px solid #06b6d4; background: rgba(6, 182, 212, 0.04); }
+.change-feed-item.expanded { border-color: rgba(6, 182, 212, 0.3); }
+.change-feed-item-main { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; }
+.change-feed-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; box-shadow: 0 0 6px currentColor; }
+.change-feed-item-content { flex: 1; min-width: 0; }
+.change-feed-item-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.change-feed-action { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(148, 163, 184, 0.1); }
+.change-feed-name { font-size: 14px; font-weight: 600; color: #f1f5f9; }
+.change-feed-table { font-size: 10px; font-family: "SF Mono", monospace; color: #64748b; background: rgba(148, 163, 184, 0.08); padding: 2px 6px; border-radius: 4px; }
+.change-feed-time { font-size: 11px; color: #64748b; margin-left: auto; white-space: nowrap; }
+.change-feed-diffs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.change-feed-diff { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(15, 23, 42, 0.5); }
+.change-feed-diff-field { color: #94a3b8; font-weight: 600; }
+.change-feed-diff-values { display: inline-flex; align-items: center; gap: 4px; }
+.change-feed-diff-old { color: #f87171; text-decoration: line-through; opacity: 0.7; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.change-feed-diff-new { color: #34d399; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.change-feed-diff-arrow { color: #64748b; font-size: 10px; }
+.change-feed-diff-added .change-feed-diff-new { color: #34d399; }
+.change-feed-diff-removed .change-feed-diff-old { color: #f87171; opacity: 1; text-decoration: none; }
+.change-feed-diff-more { font-size: 10px; color: #64748b; padding: 3px 4px; }
+.change-feed-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #06b6d4; box-shadow: 0 0 6px #06b6d4; flex-shrink: 0; margin-top: 6px; }
+.change-feed-item-detail { padding: 0 14px 14px 32px; }
+.change-feed-detail-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; font-size: 10px; color: #475569; }
+.change-feed-detail-meta span { background: rgba(148, 163, 184, 0.08); padding: 3px 8px; border-radius: 4px; }
+.change-feed-diff-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.change-feed-diff-table th { text-align: left; padding: 6px 10px; color: #64748b; font-weight: 600; border-bottom: 1px solid rgba(148, 163, 184, 0.1); font-size: 11px; }
+.change-feed-diff-table td { padding: 6px 10px; border-bottom: 1px solid rgba(148, 163, 184, 0.05); color: #cbd5e1; }
+.diff-row-added { background: rgba(52, 211, 153, 0.04); }
+.diff-row-removed { background: rgba(248, 113, 113, 0.04); }
+.diff-cell-field { font-weight: 600; color: #94a3b8; }
+.diff-cell-old { color: #f87171; }
+.diff-cell-new { color: #34d399; }
+.diff-type-badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+.diff-type-added { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+.diff-type-removed { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+.diff-type-changed { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.change-feed-no-diff { font-size: 12px; color: #64748b; padding: 8px 0; }
+.change-feed-raw-json { margin-top: 8px; }
+.change-feed-raw-json summary { cursor: pointer; font-size: 11px; color: #475569; padding: 4px 0; }
+.change-feed-raw-json pre { background: rgba(15, 23, 42, 0.92); color: #67e8f9; padding: 10px 14px; border-radius: 8px; font-size: 11px; font-family: "SF Mono", "Fira Code", monospace; overflow-x: auto; max-height: 300px; overflow-y: auto; margin: 0; }
