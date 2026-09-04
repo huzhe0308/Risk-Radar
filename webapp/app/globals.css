@@ -2275,6 +2275,8 @@ tbody tr:hover { background: #f7fbfb; }
 .change-feed-diff-added .change-feed-diff-new { color: #34d399; }
 .change-feed-diff-removed .change-feed-diff-old { color: #f87171; opacity: 1; text-decoration: none; }
 .change-feed-diff-more { font-size: 10px; color: #64748b; padding: 3px 4px; }
+.change-feed-diff-info { color: #64748b; font-style: italic; }
+.change-feed-diff-info { background: rgba(148, 163, 184, 0.06); }
 .change-feed-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #06b6d4; box-shadow: 0 0 6px #06b6d4; flex-shrink: 0; margin-top: 6px; }
 .change-feed-item-detail { padding: 0 14px 14px 32px; }
 .change-feed-detail-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; font-size: 10px; color: #475569; }
