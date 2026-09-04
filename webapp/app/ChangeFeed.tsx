@@ -20,12 +20,21 @@ type RecordsResponse = {
 };
 
 function extractFields(rawPayload: unknown): Record<string, unknown> {
-  if (!rawPayload || typeof rawPayload !== "object") return {};
-  const payload = rawPayload as Record<string, unknown>;
-  if (payload.fields && typeof payload.fields === "object" && !Array.isArray(payload.fields)) {
-    return payload.fields as Record<string, unknown>;
+  if (!rawPayload) return {};
+  let payload = rawPayload;
+  if (typeof payload === "string") {
+    try { payload = JSON.parse(payload); } catch { return {}; }
   }
-  const { record_id, recordId, table_id, tableId, action, event_type, type_event, type, record_type, fields, ...rest } = payload;
+  if (typeof payload !== "object" || payload === null) return {};
+  const obj = payload as Record<string, unknown>;
+  let fields = obj.fields;
+  if (typeof fields === "string") {
+    try { fields = JSON.parse(fields); } catch { fields = undefined; }
+  }
+  if (fields && typeof fields === "object" && !Array.isArray(fields)) {
+    return fields as Record<string, unknown>;
+  }
+  const { record_id, recordId, table_id, tableId, action, event_type, type_event, type, record_type, fields: _f, ...rest } = obj;
   return rest;
 }
 
@@ -265,7 +274,7 @@ export function ChangeFeed({ token }: { token: string }) {
                     {record.tableId && <span className="change-feed-table">{record.tableId.slice(0, 10)}</span>}
                     <span className="change-feed-time">{fmtTime(record.receivedAt)}</span>
                   </div>
-                  {keyDiffs.length > 0 && (
+                  {keyDiffs.length > 0 ? (
                     <div className="change-feed-diffs">
                       {keyDiffs.map((d, i) => (
                         <span key={i} className={`change-feed-diff change-feed-diff-${d.type}`}>
@@ -284,6 +293,12 @@ export function ChangeFeed({ token }: { token: string }) {
                         </span>
                       ))}
                       {extraDiffs > 0 && <span className="change-feed-diff-more">还有 {extraDiffs} 项变更…</span>}
+                    </div>
+                  ) : (
+                    <div className="change-feed-diffs">
+                      <span className="change-feed-diff change-feed-diff-info">
+                        {prevRecord ? "字段无变化" : "首次推送 · 全部字段为新增"}
+                      </span>
                     </div>
                   )}
                 </div>
