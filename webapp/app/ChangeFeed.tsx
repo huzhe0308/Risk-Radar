@@ -23,6 +23,11 @@ function resolveTableKey(r: SyncRecord): string {
   return "(未知表格)";
 }
 
+function businessKey(fields: Record<string, unknown>): string {
+  return fmtVal(fields["项目ID"] || fields["项目id"] || fields["project_id"] || fields["projectId"] || fields["uuid"]
+    || fields["项目名称"] || fields["项目名"] || fields["name"] || fields["title"] || fields["里程碑名称"] || fields["milestone_name"] || fields["remark"]);
+}
+
 function safeParse(val: unknown): Record<string, unknown> {
   let obj = val;
   if (typeof obj === "string") {
@@ -137,18 +142,27 @@ export function ChangeFeed({ token }: { token: string }) {
           const name = fmtVal(fields["项目"] || fields["项目名称"] || fields["项目ID"] || fields["name"]) || "未命名";
 
           const curTableKey = resolveTableKey(r);
-          const prevRecord = records
-            .filter((x) => x.recordId === r.recordId && resolveTableKey(x) === curTableKey && x.id < r.id)
-            .sort((a, b) => b.id - a.id)[0] || null;
+          const curBizKey = businessKey(fields);
+          const isCreate = action.includes("create") || action.includes("新增");
+          const isDelete = action.includes("delete") || action.includes("删除");
+          const prevRecord = (!isCreate && !isDelete && curBizKey)
+            ? records
+                .filter((x) => resolveTableKey(x) === curTableKey && x.id < r.id)
+                .map((x) => ({ rec: x, fields: getFields(x.rawPayload) }))
+                .filter((x) => businessKey(x.fields) === curBizKey)
+                .sort((a, b) => b.rec.id - a.rec.id)[0]?.rec || null
+            : null;
           const prevFields = prevRecord ? getFields(prevRecord.rawPayload) : {};
-          const changedFields = Object.keys(fields)
-            .map((key) => {
-              const oldVal = fmtVal(prevFields[key]);
-              const newVal = fmtVal(fields[key]);
-              if (oldVal === newVal) return null;
-              return { key, oldVal, newVal, type: !oldVal && newVal ? "added" : "changed" };
-            })
-            .filter((x): x is { key: string; oldVal: string; newVal: string; type: string } => x !== null);
+          const changedFields = prevRecord
+            ? Object.keys(fields)
+                .map((key) => {
+                  const oldVal = fmtVal(prevFields[key]);
+                  const newVal = fmtVal(fields[key]);
+                  if (oldVal === newVal) return null;
+                  return { key, oldVal, newVal, type: !oldVal && newVal ? "added" : "changed" };
+                })
+                .filter((x): x is { key: string; oldVal: string; newVal: string; type: string } => x !== null)
+            : [];
 
           return (
             <div
@@ -197,7 +211,7 @@ export function ChangeFeed({ token }: { token: string }) {
                 </div>
               ) : (
                 <div style={{ marginTop: 8, fontSize: 11, color: "#64748b", fontStyle: "italic" }}>
-                  {prevRecord ? "字段无变化" : "首次推送，共 " + fieldEntries.length + " 个字段"}
+                  {isCreate ? "新增记录" : isDelete ? "删除记录" : prevRecord ? "字段无变化" : "首次推送，共 " + fieldEntries.length + " 个字段"}
                 </div>
               )}
 
