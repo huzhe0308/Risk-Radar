@@ -143,9 +143,7 @@ export function ChangeFeed({ token }: { token: string }) {
 
           const curTableKey = resolveTableKey(r);
           const curBizKey = businessKey(fields);
-          const isCreate = action.includes("create") || action.includes("新增");
-          const isDelete = action.includes("delete") || action.includes("删除");
-          const prevRecord = (!isCreate && !isDelete && curBizKey)
+          const prevRecord = curBizKey
             ? records
                 .filter((x) => resolveTableKey(x) === curTableKey && x.id < r.id)
                 .map((x) => ({ rec: x, fields: getFields(x.rawPayload) }))
@@ -211,7 +209,7 @@ export function ChangeFeed({ token }: { token: string }) {
                 </div>
               ) : (
                 <div style={{ marginTop: 8, fontSize: 11, color: "#64748b", fontStyle: "italic" }}>
-                  {isCreate ? "新增记录" : isDelete ? "删除记录" : prevRecord ? "字段无变化" : "首次推送，共 " + fieldEntries.length + " 个字段"}
+                  {prevRecord ? "字段无变化" : "首次推送，共 " + fieldEntries.length + " 个字段"}
                 </div>
               )}
 
