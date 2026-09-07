@@ -4,6 +4,12 @@ import { syncRecords, projects, milestones } from "../../../../db/schema";
 
 export const runtime = "edge";
 
+function toString(v: unknown): string {
+  if (v == null) return "";
+  if (Array.isArray(v)) return v.map(String).join(", ");
+  return String(v).trim();
+}
+
 function checkToken(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
@@ -66,7 +72,13 @@ export async function GET(request: Request): Promise<Response> {
 
   const tablesMap = new Map<string, number>();
   for (const r of records) {
-    const key = r.tableId || "(未知表格)";
+    let key = r.tableId || "";
+    if (!key) {
+      const payload = r.rawPayload as Record<string, unknown> | null;
+      const rawType = payload ? toString(payload.type || payload.record_type) : "";
+      key = rawType && !["project", "milestone"].includes(rawType.toLowerCase()) ? rawType : "";
+    }
+    if (!key) key = "(未知表格)";
     tablesMap.set(key, (tablesMap.get(key) || 0) + 1);
   }
   const tables = Array.from(tablesMap.entries())
