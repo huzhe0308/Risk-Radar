@@ -132,13 +132,12 @@ export function ChangeFeed({ token }: { token: string }) {
             .filter((x) => x.recordId === r.recordId && x.id < r.id)
             .sort((a, b) => b.id - a.id)[0] || null;
           const prevFields = prevRecord ? getFields(prevRecord.rawPayload) : {};
-          const allKeys = [...new Set([...Object.keys(prevFields), ...Object.keys(fields)])];
-          const changedFields = allKeys
+          const changedFields = Object.keys(fields)
             .map((key) => {
               const oldVal = fmtVal(prevFields[key]);
               const newVal = fmtVal(fields[key]);
               if (oldVal === newVal) return null;
-              return { key, oldVal, newVal, type: !oldVal && newVal ? "added" : oldVal && !newVal ? "removed" : "changed" };
+              return { key, oldVal, newVal, type: !oldVal && newVal ? "added" : "changed" };
             })
             .filter((x): x is { key: string; oldVal: string; newVal: string; type: string } => x !== null);
 
@@ -176,8 +175,6 @@ export function ChangeFeed({ token }: { token: string }) {
                       <span style={{ color: "#94a3b8", fontWeight: 600 }}>{d.key}: </span>
                       {d.type === "added" ? (
                         <span style={{ color: "#34d399" }}>+ {d.newVal}</span>
-                      ) : d.type === "removed" ? (
-                        <span style={{ color: "#f87171" }}>- {d.oldVal}</span>
                       ) : (
                         <span>
                           <span style={{ color: "#f87171", textDecoration: "line-through", opacity: 0.7 }}>{d.oldVal}</span>
