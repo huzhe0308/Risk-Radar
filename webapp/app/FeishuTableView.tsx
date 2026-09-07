@@ -82,6 +82,8 @@ export default function FeishuTableView({ token }: { token: string }) {
   const [selectedTids, setSelectedTids] = useState<Set<string>>(new Set());
   const [tableOrder, setTableOrder] = useState<string[] | null>(null);
   const [batchDeleting, setBatchDeleting] = useState(false);
+  const [importingExcel, setImportingExcel] = useState(false);
+  const excelInputRef = useRef<HTMLInputElement>(null);
   const dragTid = useRef<string | null>(null);
   const dragOverTid = useRef<string | null>(null);
 
@@ -127,6 +129,51 @@ export default function FeishuTableView({ token }: { token: string }) {
       setError(err instanceof Error ? err.message : "删除失败");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleExcelImport = async (file: File) => {
+    setImportingExcel(true);
+    setError("");
+    try {
+      const buffer = await file.arrayBuffer();
+      if (!window.XLSX) throw new Error("Excel engine unavailable");
+      const workbook = window.XLSX.read(buffer, { type: "array", cellDates: true });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!firstSheet) throw new Error("Excel 文件中没有工作表");
+
+      const jsonRows = window.XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, { defval: "" });
+      if (jsonRows.length === 0) throw new Error("工作表中没有数据行");
+
+      const tableName = file.name.replace(/\.xlsx?$/i, "");
+      const headers = jsonRows.length > 0 ? Object.keys(jsonRows[0]) : [];
+
+      const rows = jsonRows.map((row, idx) => {
+        const fields: Record<string, unknown> = {};
+        for (const header of headers) {
+          fields[header] = row[header];
+        }
+        const recordId = String(fields["项目ID"] || fields["项目id"] || fields["record_id"] || fields["recordId"] || `${tableName}_${idx + 1}`);
+        return { recordId, fields };
+      });
+
+      const params = new URLSearchParams();
+      if (token) params.set("token", token);
+      const response = await fetch(`/api/feishu/import-excel?${params}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableName, rows }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "导入失败");
+
+      await load();
+      window.alert(`导入成功：${result.inserted} 条记录已存入表格「${tableName}」${result.failed > 0 ? `，${result.failed} 条失败` : ""}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "导入失败");
+    } finally {
+      setImportingExcel(false);
+      if (excelInputRef.current) excelInputRef.current.value = "";
     }
   };
 
@@ -250,6 +297,10 @@ export default function FeishuTableView({ token }: { token: string }) {
       <div className="feishu-table-view">
         <div className="feishu-table-toolbar">
           <span className="feishu-table-count">{tables.length} 个表格 · {records.length} 条记录</span>
+          <label className="button button-primary feishu-import-btn">
+            {importingExcel ? "导入中…" : "导入 Excel"}
+            <input ref={excelInputRef} type="file" accept=".xlsx,.xls" hidden onChange={(event) => event.target.files?.[0] && void handleExcelImport(event.target.files[0])} />
+          </label>
           {selectMode ? (
             <>
               <span className="feishu-select-info">已选 {selectedTids.size} 个</span>
