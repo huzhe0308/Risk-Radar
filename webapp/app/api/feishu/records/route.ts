@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../../../db";
 import { syncRecords, projects, milestones } from "../../../../db/schema";
 
@@ -97,16 +97,11 @@ export async function DELETE(request: Request): Promise<Response> {
   const auth = checkToken(request);
   if (auth.error) return auth.error;
 
-  let body: { id?: number; recordId?: string };
+  let body: { id?: number; recordId?: string; tableKey?: string; ids?: number[] };
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid JSON body." }, { status: 400, headers: { "Cache-Control": "no-store" } });
-  }
-
-  const rowId = body.id;
-  if (!rowId) {
-    return Response.json({ error: "Missing id." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
   let db;
@@ -114,6 +109,36 @@ export async function DELETE(request: Request): Promise<Response> {
     db = getDb();
   } catch (err) {
     return Response.json({ error: err instanceof Error ? err.message : "Database unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (body.ids && Array.isArray(body.ids) && body.ids.length > 0) {
+    await db.delete(syncRecords).where(inArray(syncRecords.id, body.ids));
+    return Response.json({ ok: true, deleted: body.ids.length }, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (body.tableKey) {
+    const allRows = await db.select().from(syncRecords);
+    const idsToDelete = allRows
+      .filter((r) => {
+        let key = r.tableId || "";
+        if (!key) {
+          const payload = r.rawPayload as Record<string, unknown> | null;
+          const rawType = payload ? toString(payload.type || payload.record_type) : "";
+          key = rawType && !["project", "milestone"].includes(rawType.toLowerCase()) ? rawType : "";
+        }
+        if (!key) key = "(项目表)";
+        return key === body.tableKey;
+      })
+      .map((r) => r.id);
+    if (idsToDelete.length > 0) {
+      await db.delete(syncRecords).where(inArray(syncRecords.id, idsToDelete));
+    }
+    return Response.json({ ok: true, deleted: idsToDelete.length }, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  const rowId = body.id;
+  if (!rowId) {
+    return Response.json({ error: "Missing id." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
   await db.delete(syncRecords).where(eq(syncRecords.id, rowId));
