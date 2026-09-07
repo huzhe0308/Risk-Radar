@@ -789,7 +789,7 @@ export default function Home() {
               />
             </>
           ) : workspaceMode === "feishu-table" ? (
-            <FeishuTableView token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} />
+            <FeishuTableView token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} onFeishuImport={() => { setFeishuStatus(""); setShowFeishuImport(true); }} />
           ) : workspaceMode === "change-feed" ? (
             <ChangeFeed token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} />
           ) : <>
