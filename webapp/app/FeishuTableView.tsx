@@ -133,7 +133,14 @@ export default function FeishuTableView({ token }: { token: string }) {
             return Object.keys(fields);
           })
         )
-      ).sort()
+      )
+      .filter((fn) =>
+        tableRecords.some((r) => {
+          const fields = extractFields(r.rawPayload);
+          return formatValue(fields[fn]) !== "";
+        })
+      )
+      .sort()
     : [];
 
   const tableRows = filteredRecords.filter((r) => r.action !== "delete");
