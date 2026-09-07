@@ -151,6 +151,7 @@ export default function FeishuTableView({ token }: { token: string }) {
   }
 
   function tableDisplayName(tid: string): string {
+    if (tid === "(未知表格)") return "未知表格";
     const sample = records.find((r) => (r.tableId || "(未知表格)") === tid);
     if (sample) {
       const payload = sample.rawPayload as Record<string, unknown> | null;
@@ -160,7 +161,7 @@ export default function FeishuTableView({ token }: { token: string }) {
         if (nameFromPayload && typeof nameFromPayload === "string") return nameFromPayload;
       }
     }
-    return shortTableId(tid);
+    return tid.length <= 16 ? tid : tid.slice(0, 8) + "…" + tid.slice(-4);
   }
 
   /* ---------- Table selection page ---------- */
