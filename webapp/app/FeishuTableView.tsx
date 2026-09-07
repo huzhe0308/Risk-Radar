@@ -67,7 +67,7 @@ function resolveTableKey(r: SyncRecord): string {
   return "(项目表)";
 }
 
-export default function FeishuTableView({ token }: { token: string }) {
+export default function FeishuTableView({ token, onFeishuImport }: { token: string; onFeishuImport?: () => void }) {
   const [records, setRecords] = useState<SyncRecord[]>([]);
   const [tables, setTables] = useState<{ tableId: string; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -301,6 +301,9 @@ export default function FeishuTableView({ token }: { token: string }) {
             {importingExcel ? "导入中…" : "导入 Excel"}
             <input ref={excelInputRef} type="file" accept=".xlsx,.xls" hidden onChange={(event) => event.target.files?.[0] && void handleExcelImport(event.target.files[0])} />
           </label>
+          {onFeishuImport && (
+            <button className="button" onClick={onFeishuImport}>⌁ 获取多维表格</button>
+          )}
           {selectMode ? (
             <>
               <span className="feishu-select-info">已选 {selectedTids.size} 个</span>
