@@ -15,6 +15,14 @@ type SyncRecord = {
 
 const READ_KEY = "feishu-change-feed-read-id";
 
+function resolveTableKey(r: SyncRecord): string {
+  if (r.tableId) return r.tableId;
+  const obj = safeParse(r.rawPayload);
+  const rawType = fmtVal(obj.type || obj.record_type);
+  if (rawType && !["project", "milestone"].includes(rawType.toLowerCase())) return rawType;
+  return "(未知表格)";
+}
+
 function safeParse(val: unknown): Record<string, unknown> {
   let obj = val;
   if (typeof obj === "string") {
@@ -128,8 +136,9 @@ export function ChangeFeed({ token }: { token: string }) {
           const action = r.action || "变更";
           const name = fmtVal(fields["项目"] || fields["项目名称"] || fields["项目ID"] || fields["name"]) || "未命名";
 
+          const curTableKey = resolveTableKey(r);
           const prevRecord = records
-            .filter((x) => x.recordId === r.recordId && x.id < r.id)
+            .filter((x) => x.recordId === r.recordId && resolveTableKey(x) === curTableKey && x.id < r.id)
             .sort((a, b) => b.id - a.id)[0] || null;
           const prevFields = prevRecord ? getFields(prevRecord.rawPayload) : {};
           const changedFields = Object.keys(fields)
