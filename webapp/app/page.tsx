@@ -695,18 +695,29 @@ export default function Home() {
           <div className="sidebar-head">
             <div>
               <span className="eyebrow">WORKSPACE</span>
-              <h2>计划视图</h2>
+              <h2>功能区</h2>
             </div>
             <button className="round-button" title="添加视图" onClick={() => setShowViewDialog(true)}>＋</button>
           </div>
           <div className="view-list">
             {data.views.map((view) => (
-              <button key={view.id} className={`view-item ${view.id === activeView.id ? "active" : ""}`} onClick={() => { setData({ ...data, activeViewId: view.id }); setSelectedProjectId(""); setSelectedMilestone(null); setShowAddMilestonePicker(false); setSelectedPlanItemId(null); setArrowMode(false); setArrowStart(null); setSelectedConnectionId(null); }}>
+              <button key={view.id} className={`view-item ${view.id === activeView.id && (workspaceMode === "timeline" || workspaceMode === "overview" || workspaceMode === "cea") ? "active" : ""}`} onClick={() => { setData({ ...data, activeViewId: view.id }); setWorkspaceMode("timeline"); setSelectedProjectId(""); setSelectedMilestone(null); setShowAddMilestonePicker(false); setSelectedPlanItemId(null); setArrowMode(false); setArrowStart(null); setSelectedConnectionId(null); }}>
                 <span className="view-icon">{view.type === "whiteboard" ? "⌘" : "▤"}</span>
                 <span className="view-copy"><strong>{view.name}</strong>{changePreview && changedViewNames.has(view.name) && <small className="view-change-indicator">● 有变更</small>}</span>
-                {view.id === activeView.id && <span className="active-dot" />}
+                {view.id === activeView.id && (workspaceMode === "timeline" || workspaceMode === "overview" || workspaceMode === "cea") && <span className="active-dot" />}
               </button>
             ))}
+            <div className="sidebar-divider" />
+            <button className={`view-item ${workspaceMode === "feishu-table" ? "active" : ""}`} onClick={() => { setWorkspaceMode("feishu-table"); setSelectedProjectId(""); setSelectedMilestone(null); }}>
+              <span className="view-icon">⌁</span>
+              <span className="view-copy"><strong>飞书表格</strong></span>
+              {workspaceMode === "feishu-table" && <span className="active-dot" />}
+            </button>
+            <button className={`view-item ${workspaceMode === "change-feed" ? "active" : ""}`} onClick={() => { setWorkspaceMode("change-feed"); setSelectedProjectId(""); setSelectedMilestone(null); }}>
+              <span className="view-icon">◉</span>
+              <span className="view-copy"><strong>变更提醒</strong></span>
+              {workspaceMode === "change-feed" && <span className="active-dot" />}
+            </button>
           </div>
           <div className="sidebar-foot">
             <p>{changePreview ? "变更预览不会覆盖当前计划" : "本地自动保存已开启"}</p>
@@ -716,7 +727,7 @@ export default function Home() {
         <section className="content">
           <div className="page-heading">
             <div>
-              <div className="breadcrumb">计划视图 <span>/</span> {activeView.name}</div>
+              <div className="breadcrumb">{workspaceMode === "feishu-table" ? "功能区 / 飞书表格" : workspaceMode === "change-feed" ? "功能区 / 变更提醒" : `功能区 / ${activeView.name}`}</div>
               <h1>{data.title}</h1>
               <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : workspaceMode === "change-feed" ? "实时监控飞书多维表格的数据变更，展示字段级差异对比。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
             </div>
@@ -725,8 +736,6 @@ export default function Home() {
                 <button className={workspaceMode === "overview" ? "active" : ""} onClick={() => { setWorkspaceMode("overview"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>◫</Icon>管理概览</button>
                 <button className={workspaceMode === "timeline" ? "active" : ""} onClick={() => setWorkspaceMode("timeline")}><Icon>▤</Icon>时间线</button>
                 <button className={workspaceMode === "cea" ? "active" : ""} onClick={() => { setWorkspaceMode("cea"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>⊟</Icon>CEA 版本</button>
-                <button className={workspaceMode === "feishu-table" ? "active" : ""} onClick={() => { setWorkspaceMode("feishu-table"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>⌁</Icon>飞书表格</button>
-                <button className={workspaceMode === "change-feed" ? "active" : ""} onClick={() => { setWorkspaceMode("change-feed"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>◉</Icon>变更提醒</button>
               </div>
               {workspaceMode === "timeline" && <>
                 <button className="button button-outline" onClick={addProjectRow}><Icon>＋</Icon>新增行</button>
