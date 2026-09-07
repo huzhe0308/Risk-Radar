@@ -78,7 +78,7 @@ export async function GET(request: Request): Promise<Response> {
       const rawType = payload ? toString(payload.type || payload.record_type) : "";
       key = rawType && !["project", "milestone"].includes(rawType.toLowerCase()) ? rawType : "";
     }
-    if (!key) key = "(未知表格)";
+    if (!key) key = "(项目表)";
     tablesMap.set(key, (tablesMap.get(key) || 0) + 1);
   }
   const tables = Array.from(tablesMap.entries())
