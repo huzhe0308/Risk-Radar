@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 type SyncRecord = {
   id: number;
@@ -77,6 +77,13 @@ export default function FeishuTableView({ token }: { token: string }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "log">("table");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [menuOpenTid, setMenuOpenTid] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedTids, setSelectedTids] = useState<Set<string>>(new Set());
+  const [tableOrder, setTableOrder] = useState<string[] | null>(null);
+  const [batchDeleting, setBatchDeleting] = useState(false);
+  const dragTid = useRef<string | null>(null);
+  const dragOverTid = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -165,12 +172,103 @@ export default function FeishuTableView({ token }: { token: string }) {
     return tid;
   }
 
+  const orderedTables = tableOrder
+    ? tableOrder.map((tid) => tables.find((t) => t.tableId === tid)).filter(Boolean) as { tableId: string; count: number }[]
+    : tables;
+
+  async function deleteTableRecords(tid: string) {
+    setBatchDeleting(true);
+    try {
+      const params = new URLSearchParams();
+      if (token) params.set("token", token);
+      const response = await fetch(`/api/feishu/records?${params}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableKey: tid }),
+      });
+      if (!response.ok) throw new Error("删除失败");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除失败");
+    } finally {
+      setBatchDeleting(false);
+    }
+  }
+
+  async function deleteSelectedTables() {
+    const tids = Array.from(selectedTids);
+    if (tids.length === 0) return;
+    if (!window.confirm(`确认删除选中的 ${tids.length} 个表格的所有记录？此操作不可撤销。`)) return;
+    setBatchDeleting(true);
+    try {
+      for (const tid of tids) {
+        await deleteTableRecords(tid);
+      }
+      setSelectedTids(new Set());
+      setSelectMode(false);
+    } finally {
+      setBatchDeleting(false);
+    }
+  }
+
+  function toggleSelect(tid: string) {
+    setSelectedTids((prev) => {
+      const next = new Set(prev);
+      if (next.has(tid)) next.delete(tid);
+      else next.add(tid);
+      return next;
+    });
+  }
+
+  function handleDragStart(tid: string) {
+    dragTid.current = tid;
+  }
+
+  function handleDragOver(e: React.DragEvent, tid: string) {
+    e.preventDefault();
+    dragOverTid.current = tid;
+  }
+
+  function handleDrop(tid: string) {
+    const from = dragTid.current;
+    if (!from || from === tid) return;
+    const currentOrder = tableOrder || tables.map((t) => t.tableId);
+    const fromIdx = currentOrder.indexOf(from);
+    const toIdx = currentOrder.indexOf(tid);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const newOrder = [...currentOrder];
+    newOrder.splice(fromIdx, 1);
+    newOrder.splice(toIdx, 0, from);
+    setTableOrder(newOrder);
+    dragTid.current = null;
+    dragOverTid.current = null;
+  }
+
   /* ---------- Table selection page ---------- */
   if (!selectedTable) {
     return (
       <div className="feishu-table-view">
         <div className="feishu-table-toolbar">
           <span className="feishu-table-count">{tables.length} 个表格 · {records.length} 条记录</span>
+          {selectMode ? (
+            <>
+              <span className="feishu-select-info">已选 {selectedTids.size} 个</span>
+              <button
+                className="button button-outline"
+                disabled={selectedTids.size === 0 || batchDeleting}
+                onClick={() => void deleteSelectedTables()}
+              >
+                {batchDeleting ? "删除中…" : "删除选中"}
+              </button>
+              <button className="button button-outline" onClick={() => { setSelectMode(false); setSelectedTids(new Set()); }}>
+                取消
+              </button>
+            </>
+          ) : (
+            <button className="button button-outline" onClick={() => setSelectMode(true)} disabled={tables.length === 0}>
+              多选
+            </button>
+          )}
           <button className="button button-outline" onClick={() => void load()} disabled={loading}>
             {loading ? "刷新中…" : "刷新"}
           </button>
@@ -186,12 +284,69 @@ export default function FeishuTableView({ token }: { token: string }) {
         )}
 
         <div className="feishu-table-card-grid">
-          {tables.map((t) => (
-            <button
+          {orderedTables.map((t) => (
+            <div
               key={t.tableId}
-              className="feishu-table-card"
-              onClick={() => { setSelectedTable(t.tableId); setSearch(""); setExpandedId(null); setViewMode("table"); }}
+              className={`feishu-table-card ${selectMode && selectedTids.has(t.tableId) ? "selected" : ""}`}
+              draggable={!selectMode}
+              onDragStart={() => handleDragStart(t.tableId)}
+              onDragOver={(e) => handleDragOver(e, t.tableId)}
+              onDrop={() => handleDrop(t.tableId)}
+              onClick={() => {
+                if (selectMode) {
+                  toggleSelect(t.tableId);
+                } else {
+                  setSelectedTable(t.tableId);
+                  setSearch("");
+                  setExpandedId(null);
+                  setViewMode("table");
+                }
+              }}
             >
+              {!selectMode && (
+                <button
+                  className="feishu-card-menu-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpenTid(menuOpenTid === t.tableId ? null : t.tableId);
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="5" cy="12" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="19" cy="12" r="2" />
+                  </svg>
+                </button>
+              )}
+              {selectMode && (
+                <div className={`feishu-card-checkbox ${selectedTids.has(t.tableId) ? "checked" : ""}`} />
+              )}
+              {menuOpenTid === t.tableId && (
+                <div className="feishu-card-menu" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="feishu-card-menu-item"
+                    onClick={() => {
+                      setMenuOpenTid(null);
+                      setSelectMode(true);
+                      setSelectedTids(new Set([t.tableId]));
+                    }}
+                  >
+                    多选删除
+                  </button>
+                  <button
+                    className="feishu-card-menu-item feishu-card-menu-danger"
+                    disabled={batchDeleting}
+                    onClick={() => {
+                      setMenuOpenTid(null);
+                      if (window.confirm(`确认删除表格「${tableDisplayName(t.tableId)}」的所有记录？此操作不可撤销。`)) {
+                        void deleteTableRecords(t.tableId);
+                      }
+                    }}
+                  >
+                    {batchDeleting ? "删除中…" : "删除此表格"}
+                  </button>
+                </div>
+              )}
               <div className="feishu-table-card-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -208,7 +363,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                 </div>
                 <div className="feishu-table-card-id" title={t.tableId}>{t.tableId === "(项目表)" ? "" : t.tableId}</div>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </div>
