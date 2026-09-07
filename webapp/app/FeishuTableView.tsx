@@ -57,6 +57,16 @@ function shortTableId(id: string | null): string {
   return id.slice(0, 8) + "…" + id.slice(-4);
 }
 
+function resolveTableKey(r: SyncRecord): string {
+  if (r.tableId) return r.tableId;
+  const payload = r.rawPayload as Record<string, unknown> | null;
+  if (payload) {
+    const rawType = formatValue(payload.type || payload.record_type);
+    if (rawType && !["project", "milestone"].includes(rawType.toLowerCase())) return rawType;
+  }
+  return "(未知表格)";
+}
+
 export default function FeishuTableView({ token }: { token: string }) {
   const [records, setRecords] = useState<SyncRecord[]>([]);
   const [tables, setTables] = useState<{ tableId: string; count: number }[]>([]);
@@ -114,7 +124,7 @@ export default function FeishuTableView({ token }: { token: string }) {
   };
 
   const tableRecords = selectedTable
-    ? records.filter((r) => (r.tableId || "(未知表格)") === selectedTable)
+    ? records.filter((r) => resolveTableKey(r) === selectedTable)
     : [];
 
   const filteredRecords = search && selectedTable
@@ -146,22 +156,13 @@ export default function FeishuTableView({ token }: { token: string }) {
   const tableRows = filteredRecords.filter((r) => r.action !== "delete");
 
   function lastSyncTime(tid: string): string {
-    const rec = records.find((r) => (r.tableId || "(未知表格)") === tid);
+    const rec = records.find((r) => resolveTableKey(r) === tid);
     return rec ? new Date(rec.receivedAt).toLocaleString("zh-CN") : "—";
   }
 
   function tableDisplayName(tid: string): string {
     if (tid === "(未知表格)") return "未知表格";
-    const sample = records.find((r) => (r.tableId || "(未知表格)") === tid);
-    if (sample) {
-      const payload = sample.rawPayload as Record<string, unknown> | null;
-      if (payload) {
-        const nameFromPayload =
-          payload.table_name || payload.tableName || payload["表格名称"] || payload["数据表名称"];
-        if (nameFromPayload && typeof nameFromPayload === "string") return nameFromPayload;
-      }
-    }
-    return tid.length <= 16 ? tid : tid.slice(0, 8) + "…" + tid.slice(-4);
+    return tid;
   }
 
   /* ---------- Table selection page ---------- */
