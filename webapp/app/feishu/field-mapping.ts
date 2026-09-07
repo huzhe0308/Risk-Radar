@@ -100,7 +100,10 @@ function toInt(value: unknown): number | undefined {
 
 export function normalizePayload(raw: Record<string, unknown>): NormalizedPayload {
   const recordId = toString(raw.record_id || raw.recordId || raw.recordId_ || raw["记录ID"]);
-  const tableId = toString(raw.table_id || raw.tableId || raw.tableId_ || raw["数据表ID"]);
+  const declaredType = toString(raw.type || raw.record_type || raw["记录类型"]).toLowerCase();
+  const tableIdFromField = toString(raw.table_id || raw.tableId || raw.tableId_ || raw["数据表ID"]);
+  const tableId = tableIdFromField
+    || (declaredType && !["project", "milestone"].includes(declaredType) ? declaredType : "");
   const actionRaw = toString(raw.action || raw.event_type || raw.type_event || raw["事件类型"]).toLowerCase();
   const action: NormalizedPayload["action"] = actionRaw.includes("delete") ? "delete" : actionRaw.includes("create") ? "create" : "update";
 
@@ -116,9 +119,10 @@ export function normalizePayload(raw: Record<string, unknown>): NormalizedPayloa
   delete fields.action;
   delete fields.event_type;
   delete fields.type_event;
+  delete fields.type;
+  delete fields.record_type;
   delete fields.fields;
 
-  const declaredType = toString(raw.type || raw.record_type || raw["记录类型"]).toLowerCase();
   const type: RecordType = declaredType.includes("milestone")
     ? "milestone"
     : declaredType.includes("project")
