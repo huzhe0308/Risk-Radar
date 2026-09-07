@@ -670,16 +670,6 @@ export default function Home() {
           <strong>Fusa Risk Radar</strong>
         </div>
         <div className="top-actions">
-          <label className="button button-primary">
-            <Icon>↥</Icon>{importing ? "导入中…" : "导入 Excel"}
-            <input ref={inputRef} type="file" accept=".xlsx,.xls" hidden onChange={(event) => event.target.files?.[0] && void handleImport(event.target.files[0])} />
-          </label>
-          <button className="button" onClick={() => { setFeishuStatus(""); setShowFeishuImport(true); }}><Icon>⌁</Icon>获取多维表格</button>
-          <button className="button" onClick={() => exportWorkbook(data)}><Icon>↧</Icon>导出 Excel</button>
-          <button className="button button-quiet" onClick={() => window.print()}><Icon>▣</Icon>打印 / PDF</button>
-          <button className="icon-button" title="导出 PNG" onClick={exportPng}>▧</button>
-          <button className="icon-button" title="导出 HTML" onClick={exportHtml}>⤴</button>
-          <button className="button button-outline" onClick={() => setShowExcelAnalysis(true)}><Icon>▥</Icon>Excel 分析</button>
           <div className="avatar">U</div>
         </div>
       </header>
@@ -723,6 +713,20 @@ export default function Home() {
                         <span className="view-copy"><strong>CEA 项目</strong></span>
                         {isCeaActive && <span className="active-dot" />}
                       </button>
+                      {ceaExpanded && (
+                        <div className="sidebar-actions">
+                          <label className="sidebar-action-btn sidebar-action-primary">
+                            <Icon>↥</Icon>{importing ? "导入中…" : "导入 Excel"}
+                            <input ref={inputRef} type="file" accept=".xlsx,.xls" hidden onChange={(event) => event.target.files?.[0] && void handleImport(event.target.files[0])} />
+                          </label>
+                          <button className="sidebar-action-btn" onClick={() => { setFeishuStatus(""); setShowFeishuImport(true); }}><Icon>⌁</Icon>获取多维表格</button>
+                          <button className="sidebar-action-btn" onClick={() => exportWorkbook(data)}><Icon>↧</Icon>导出 Excel</button>
+                          <button className="sidebar-action-btn" onClick={() => window.print()}><Icon>▣</Icon>打印 / PDF</button>
+                          <button className="sidebar-action-btn" onClick={exportPng}><Icon>▧</Icon>导出 PNG</button>
+                          <button className="sidebar-action-btn" onClick={exportHtml}><Icon>⤴</Icon>导出 HTML</button>
+                          <button className="sidebar-action-btn" onClick={() => setShowExcelAnalysis(true)}><Icon>▥</Icon>Excel 分析</button>
+                        </div>
+                      )}
                       {ceaExpanded && ceaViews.map((view) => (
                         <button key={view.id} className={`view-item view-sub-item ${view.id === activeView.id && (workspaceMode === "timeline" || workspaceMode === "overview" || workspaceMode === "cea") ? "active" : ""}`} onClick={() => { setData({ ...data, activeViewId: view.id }); setWorkspaceMode("timeline"); setSelectedProjectId(""); setSelectedMilestone(null); setShowAddMilestonePicker(false); setSelectedPlanItemId(null); setArrowMode(false); setArrowStart(null); setSelectedConnectionId(null); }}>
                           <span className="view-icon">{view.type === "whiteboard" ? "⌘" : "▤"}</span>
