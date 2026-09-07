@@ -89,6 +89,7 @@ export default function Home() {
   const [arrowColor, setArrowColor] = useState("#d8ff3e");
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline" | "cea" | "feishu-table" | "change-feed">("overview");
+  const [ceaExpanded, setCeaExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const changePreviewRef = useRef(false);
 
@@ -700,13 +701,40 @@ export default function Home() {
             <button className="round-button" title="添加视图" onClick={() => setShowViewDialog(true)}>＋</button>
           </div>
           <div className="view-list">
-            {data.views.map((view) => (
-              <button key={view.id} className={`view-item ${view.id === activeView.id && (workspaceMode === "timeline" || workspaceMode === "overview" || workspaceMode === "cea") ? "active" : ""}`} onClick={() => { setData({ ...data, activeViewId: view.id }); setWorkspaceMode("timeline"); setSelectedProjectId(""); setSelectedMilestone(null); setShowAddMilestonePicker(false); setSelectedPlanItemId(null); setArrowMode(false); setArrowStart(null); setSelectedConnectionId(null); }}>
-                <span className="view-icon">{view.type === "whiteboard" ? "⌘" : "▤"}</span>
-                <span className="view-copy"><strong>{view.name}</strong>{changePreview && changedViewNames.has(view.name) && <small className="view-change-indicator">● 有变更</small>}</span>
-                {view.id === activeView.id && (workspaceMode === "timeline" || workspaceMode === "overview" || workspaceMode === "cea") && <span className="active-dot" />}
-              </button>
-            ))}
+            {(() => {
+              const CEA_KEYWORDS = ["cea", "svw", "faw", "vwa", "platform"];
+              const isCeaView = (name: string) => CEA_KEYWORDS.some((kw) => name.toLowerCase().includes(kw));
+              const ceaViews = data.views.filter((v) => isCeaView(v.name));
+              const otherViews = data.views.filter((v) => !isCeaView(v.name));
+              const isCeaActive = ceaViews.some((v) => v.id === activeView.id) && (workspaceMode === "timeline" || workspaceMode === "overview" || workspaceMode === "cea");
+              return (
+                <>
+                  {otherViews.map((view) => (
+                    <button key={view.id} className={`view-item ${view.id === activeView.id && (workspaceMode === "timeline" || workspaceMode === "overview" || workspaceMode === "cea") ? "active" : ""}`} onClick={() => { setData({ ...data, activeViewId: view.id }); setWorkspaceMode("timeline"); setSelectedProjectId(""); setSelectedMilestone(null); setShowAddMilestonePicker(false); setSelectedPlanItemId(null); setArrowMode(false); setArrowStart(null); setSelectedConnectionId(null); }}>
+                      <span className="view-icon">{view.type === "whiteboard" ? "⌘" : "▤"}</span>
+                      <span className="view-copy"><strong>{view.name}</strong>{changePreview && changedViewNames.has(view.name) && <small className="view-change-indicator">● 有变更</small>}</span>
+                      {view.id === activeView.id && (workspaceMode === "timeline" || workspaceMode === "overview" || workspaceMode === "cea") && <span className="active-dot" />}
+                    </button>
+                  ))}
+                  {ceaViews.length > 0 && (
+                    <>
+                      <button className={`view-item ${isCeaActive ? "active" : ""}`} onClick={() => setCeaExpanded(!ceaExpanded)}>
+                        <span className="view-icon">{ceaExpanded ? "▾" : "▸"}</span>
+                        <span className="view-copy"><strong>CEA 项目</strong></span>
+                        {isCeaActive && <span className="active-dot" />}
+                      </button>
+                      {ceaExpanded && ceaViews.map((view) => (
+                        <button key={view.id} className={`view-item view-sub-item ${view.id === activeView.id && (workspaceMode === "timeline" || workspaceMode === "overview" || workspaceMode === "cea") ? "active" : ""}`} onClick={() => { setData({ ...data, activeViewId: view.id }); setWorkspaceMode("timeline"); setSelectedProjectId(""); setSelectedMilestone(null); setShowAddMilestonePicker(false); setSelectedPlanItemId(null); setArrowMode(false); setArrowStart(null); setSelectedConnectionId(null); }}>
+                          <span className="view-icon">{view.type === "whiteboard" ? "⌘" : "▤"}</span>
+                          <span className="view-copy"><strong>{view.name}</strong>{changePreview && changedViewNames.has(view.name) && <small className="view-change-indicator">● 有变更</small>}</span>
+                          {view.id === activeView.id && (workspaceMode === "timeline" || workspaceMode === "overview" || workspaceMode === "cea") && <span className="active-dot" />}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </>
+              );
+            })()}
             <div className="sidebar-divider" />
             <button className={`view-item ${workspaceMode === "feishu-table" ? "active" : ""}`} onClick={() => { setWorkspaceMode("feishu-table"); setSelectedProjectId(""); setSelectedMilestone(null); }}>
               <span className="view-icon">⌁</span>
