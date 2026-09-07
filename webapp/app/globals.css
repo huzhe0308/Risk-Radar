@@ -2211,8 +2211,22 @@ tbody tr:hover { background: #f7fbfb; }
 .feishu-back-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; background: transparent; color: #64748b; font-size: 12px; cursor: pointer; transition: all .15s; }
 .feishu-back-btn:hover { color: #334155; background: rgba(148, 163, 184, 0.08); }
 .feishu-table-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; padding: 4px 0; }
-.feishu-table-card { display: flex; align-items: flex-start; gap: 12px; padding: 16px; border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 12px; background: rgba(30, 41, 59, 0.8); cursor: pointer; transition: all .2s; text-align: left; }
+.feishu-table-card { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 16px; border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 12px; background: rgba(30, 41, 59, 0.8); cursor: pointer; transition: all .2s; text-align: left; }
 .feishu-table-card:hover { border-color: rgba(6, 182, 212, 0.5); background: rgba(6, 182, 212, 0.1); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(6, 182, 212, 0.12); }
+.feishu-table-card.selected { border-color: rgba(6, 182, 212, 0.6); background: rgba(6, 182, 212, 0.12); }
+.feishu-table-card[draggable="true"]:active { cursor: grabbing; }
+.feishu-card-menu-btn { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: #94a3b8; cursor: pointer; transition: all .15s; z-index: 2; }
+.feishu-card-menu-btn:hover { background: rgba(148, 163, 184, 0.15); color: #f1f5f9; }
+.feishu-card-menu { position: absolute; top: 36px; right: 8px; background: #1e293b; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); z-index: 10; overflow: hidden; min-width: 140px; }
+.feishu-card-menu-item { display: block; width: 100%; padding: 8px 14px; border: 0; background: transparent; color: #cbd5e1; font-size: 12px; cursor: pointer; text-align: left; transition: all .12s; }
+.feishu-card-menu-item:hover { background: rgba(148, 163, 184, 0.12); color: #f1f5f9; }
+.feishu-card-menu-item:disabled { opacity: 0.5; cursor: not-allowed; }
+.feishu-card-menu-danger { color: #f87171; }
+.feishu-card-menu-danger:hover { background: rgba(220, 38, 38, 0.12); color: #fca5a5; }
+.feishu-card-checkbox { width: 20px; height: 20px; border: 2px solid rgba(148, 163, 184, 0.4); border-radius: 6px; flex-shrink: 0; margin-right: 4px; transition: all .15s; }
+.feishu-card-checkbox.checked { background: #06b6d4; border-color: #06b6d4; }
+.feishu-card-checkbox.checked::after { content: "✓"; display: flex; align-items: center; justify-content: center; height: 100%; color: #fff; font-size: 13px; font-weight: 700; }
+.feishu-select-info { font-size: 12px; color: #67e8f9; font-weight: 600; }
 .feishu-table-card-icon { color: #22d3ee; flex-shrink: 0; padding-top: 2px; }
 .feishu-table-card-info { flex: 1; min-width: 0; }
 .feishu-table-card-name { font-size: 16px; font-weight: 700; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
