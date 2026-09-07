@@ -52,7 +52,7 @@ function formatValue(value: unknown): string {
 }
 
 function shortTableId(id: string | null): string {
-  if (!id) return "未知表格";
+  if (!id) return "项目表";
   if (id.length <= 16) return id;
   return id.slice(0, 8) + "…" + id.slice(-4);
 }
@@ -64,7 +64,7 @@ function resolveTableKey(r: SyncRecord): string {
     const rawType = formatValue(payload.type || payload.record_type);
     if (rawType && !["project", "milestone"].includes(rawType.toLowerCase())) return rawType;
   }
-  return "(未知表格)";
+  return "(项目表)";
 }
 
 export default function FeishuTableView({ token }: { token: string }) {
@@ -161,7 +161,7 @@ export default function FeishuTableView({ token }: { token: string }) {
   }
 
   function tableDisplayName(tid: string): string {
-    if (tid === "(未知表格)") return "未知表格";
+    if (tid === "(项目表)") return "项目表";
     return tid;
   }
 
@@ -206,7 +206,7 @@ export default function FeishuTableView({ token }: { token: string }) {
                   <span>·</span>
                   <span>最近同步 {lastSyncTime(t.tableId)}</span>
                 </div>
-                <div className="feishu-table-card-id" title={t.tableId}>{t.tableId === "(未知表格)" ? "" : t.tableId}</div>
+                <div className="feishu-table-card-id" title={t.tableId}>{t.tableId === "(项目表)" ? "" : t.tableId}</div>
               </div>
             </button>
           ))}
