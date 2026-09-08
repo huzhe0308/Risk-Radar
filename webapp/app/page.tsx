@@ -726,6 +726,11 @@ export default function Home() {
               );
             })()}
             <div className="sidebar-divider" />
+            <button className={`view-item ${showExcelAnalysis ? "active" : ""}`} onClick={() => setShowExcelAnalysis(true)}>
+              <span className="view-icon">▥</span>
+              <span className="view-copy"><strong>Excel 分析</strong></span>
+              {showExcelAnalysis && <span className="active-dot" />}
+            </button>
             <button className={`view-item ${workspaceMode === "feishu-table" ? "active" : ""}`} onClick={() => { setWorkspaceMode("feishu-table"); setSelectedProjectId(""); setSelectedMilestone(null); }}>
               <span className="view-icon">⌁</span>
               <span className="view-copy"><strong>飞书表格</strong></span>
@@ -765,7 +770,6 @@ export default function Home() {
                   <button className="button button-quiet" onClick={() => window.print()}><Icon>▣</Icon>打印 / PDF</button>
                   <button className="icon-button" title="导出 PNG" onClick={exportPng}>▧</button>
                   <button className="icon-button" title="导出 HTML" onClick={exportHtml}>⤴</button>
-                  <button className="button button-outline" onClick={() => setShowExcelAnalysis(true)}><Icon>▥</Icon>Excel 分析</button>
                 </div>
               )}
             </div>
