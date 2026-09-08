@@ -296,7 +296,7 @@ export default function Home() {
     return { projects: [...projects], milestones: [...milestones] };
   }, [activeView, changePreview]);
   if (!data || !activeView) {
-    return <main className="loading-screen"><div className="loading-mark"><span className="radar-dot" /><span className="radar-ring ring-outer" /><span className="radar-ring ring-inner" /><span className="radar-sweep" /></div><p>正在载入时间计划…</p></main>;
+    return <main className="loading-screen"><div className="loading-mark"><span className="radar-dot" /><span className="radar-ring ring-outer" /><span className="radar-ring ring-inner" /><span className="radar-sweep" /></div><p>Loading Risk Radar…</p></main>;
   }
 
   const handleImport = async (file: File) => {
