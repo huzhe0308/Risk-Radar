@@ -770,7 +770,6 @@ export default function Home() {
                     <Icon>↥</Icon>{importing ? "导入中…" : "导入 Excel"}
                     <input ref={inputRef} type="file" accept=".xlsx,.xls" hidden onChange={(event) => event.target.files?.[0] && void handleImport(event.target.files[0])} />
                   </label>
-                  <button className="button" onClick={() => { setFeishuStatus(""); setShowFeishuImport(true); }}><Icon>⌁</Icon>获取多维表格</button>
                   <button className="button" onClick={() => exportWorkbook(data)}><Icon>↧</Icon>导出 Excel</button>
                   <button className="button button-quiet" onClick={() => window.print()}><Icon>▣</Icon>打印 / PDF</button>
                   <button className="icon-button" title="导出 PNG" onClick={exportPng}>▧</button>
