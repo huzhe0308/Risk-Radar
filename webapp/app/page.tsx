@@ -755,6 +755,11 @@ export default function Home() {
               <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : workspaceMode === "change-feed" ? "实时监控飞书多维表格的数据变更，展示字段级差异对比。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
             </div>
             <div className="plan-heading-actions">
+              <div className="workspace-mode-switch" aria-label="工作区模式">
+                <button className={workspaceMode === "overview" ? "active" : ""} onClick={() => { setWorkspaceMode("overview"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>◫</Icon>管理概览</button>
+                <button className={workspaceMode === "timeline" ? "active" : ""} onClick={() => setWorkspaceMode("timeline")}><Icon>▤</Icon>时间线</button>
+                <button className={workspaceMode === "cea" ? "active" : ""} onClick={() => { setWorkspaceMode("cea"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>⊟</Icon>CEA 版本</button>
+              </div>
               {workspaceMode === "timeline" && <>
                 <button className="button button-outline" onClick={addProjectRow}><Icon>＋</Icon>新增行</button>
                 <button className="button button-outline" onClick={beginAddMilestone}><Icon>＋</Icon>新增里程碑</button>
