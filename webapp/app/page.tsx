@@ -92,6 +92,7 @@ export default function Home() {
   const [ceaExpanded, setCeaExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const changePreviewRef = useRef(false);
+  const dbSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -110,6 +111,24 @@ export default function Home() {
           }
           return;
         }
+      }
+      const dbToken = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "";
+      try {
+        const params = new URLSearchParams();
+        if (dbToken) params.set("token", dbToken);
+        const response = await fetch(`/api/app-state${params.toString() ? `?${params}` : ""}`, { cache: "no-store" });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.data && result.data.views?.length) {
+            if (alive) {
+              setData(migrateAppData(result.data));
+              window.localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data));
+            }
+            return;
+          }
+        }
+      } catch {
+        // DB unavailable, fall through to localStorage
       }
       const local = window.localStorage.getItem(STORAGE_KEY);
       if (local) {
@@ -181,7 +200,24 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (data && !changePreviewRef.current) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (data && !changePreviewRef.current) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      if (dbSaveTimer.current) clearTimeout(dbSaveTimer.current);
+      dbSaveTimer.current = setTimeout(async () => {
+        try {
+          const dbToken = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "";
+          const params = new URLSearchParams();
+          if (dbToken) params.set("token", dbToken);
+          await fetch(`/api/app-state${params.toString() ? `?${params}` : ""}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data }),
+          });
+        } catch {
+          // DB save failed silently, localStorage is the fallback
+        }
+      }, 2000);
+    }
   }, [data]);
 
   useEffect(() => {
