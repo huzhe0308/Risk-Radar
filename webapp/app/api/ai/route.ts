@@ -6,11 +6,13 @@ import { ProxyAgent, setGlobalDispatcher } from "undici";
 
 export const runtime = "nodejs";
 
-const PROXY_URL = "http://webproxy.cn.vwgroup.com:8080";
-try {
-  setGlobalDispatcher(new ProxyAgent(PROXY_URL));
-} catch {
-  // Proxy setup failed, continue without proxy
+const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.https_proxy || process.env.http_proxy;
+if (proxyUrl) {
+  try {
+    setGlobalDispatcher(new ProxyAgent(proxyUrl));
+  } catch {
+    // Proxy setup failed, continue without proxy
+  }
 }
 
 type BailianConfig = {
