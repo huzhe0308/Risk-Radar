@@ -2,18 +2,12 @@ import { load } from "js-yaml";
 import configSource from "../../../config/ai.yaml?raw";
 import { validateAiCommand } from "../../ai-actions";
 import type { View } from "../../types";
-import { ProxyAgent, setGlobalDispatcher } from "undici";
+import { ProxyAgent, fetch as undiciFetch } from "undici";
 
 export const runtime = "nodejs";
 
 const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.https_proxy || process.env.http_proxy;
-if (proxyUrl) {
-  try {
-    setGlobalDispatcher(new ProxyAgent(proxyUrl));
-  } catch {
-    // Proxy setup failed, continue without proxy
-  }
-}
+const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 
 type BailianConfig = {
   api_key?: string;
@@ -176,7 +170,7 @@ export async function POST(request: Request) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeout_ms);
   try {
-    const upstream = await fetch(endpoint, {
+    const upstream = await undiciFetch(endpoint, {
       method: "POST",
       headers: { Authorization: `Bearer ${config.api_key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -189,6 +183,7 @@ export async function POST(request: Request) {
         ],
       }),
       signal: controller.signal,
+      ...(dispatcher ? { dispatcher } : {}),
     });
     const payload = object(await upstream.json().catch(() => null));
     if (!upstream.ok) {
