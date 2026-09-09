@@ -81,7 +81,7 @@ export function AiChatPanel({ view, onApplyView }: { view: View; onApplyView: (v
       </button>
       {open && <aside className="ai-panel" aria-label="AI 计划助手">
         <div className="ai-panel-head">
-          <div><span className="eyebrow">AI ASSISTANT</span><strong>AI 计划助手</strong><small>当前视图：{view.name}</small></div>
+          <div><span className="eyebrow">BAILIAN ASSISTANT</span><strong>AI 计划助手</strong><small>当前视图：{view.name}</small></div>
           <button onClick={() => setOpen(false)} aria-label="关闭 AI 助手">×</button>
         </div>
         <div className="ai-messages" aria-live="polite">

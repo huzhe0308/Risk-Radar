@@ -92,7 +92,6 @@ export default function Home() {
   const [ceaExpanded, setCeaExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const changePreviewRef = useRef(false);
-  const dbSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -111,24 +110,6 @@ export default function Home() {
           }
           return;
         }
-      }
-      const dbToken = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "";
-      try {
-        const params = new URLSearchParams();
-        if (dbToken) params.set("token", dbToken);
-        const response = await fetch(`/api/app-state${params.toString() ? `?${params}` : ""}`, { cache: "no-store" });
-        if (response.ok) {
-          const result = await response.json();
-          if (result.data && result.data.views?.length) {
-            if (alive) {
-              setData(migrateAppData(result.data));
-              window.localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data));
-            }
-            return;
-          }
-        }
-      } catch {
-        // DB unavailable, fall through to localStorage
       }
       const local = window.localStorage.getItem(STORAGE_KEY);
       if (local) {
@@ -200,24 +181,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (data && !changePreviewRef.current) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      if (dbSaveTimer.current) clearTimeout(dbSaveTimer.current);
-      dbSaveTimer.current = setTimeout(async () => {
-        try {
-          const dbToken = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "";
-          const params = new URLSearchParams();
-          if (dbToken) params.set("token", dbToken);
-          await fetch(`/api/app-state${params.toString() ? `?${params}` : ""}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ data }),
-          });
-        } catch {
-          // DB save failed silently, localStorage is the fallback
-        }
-      }, 2000);
-    }
+    if (data && !changePreviewRef.current) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
 
   useEffect(() => {
@@ -296,7 +260,7 @@ export default function Home() {
     return { projects: [...projects], milestones: [...milestones] };
   }, [activeView, changePreview]);
   if (!data || !activeView) {
-    return <main className="loading-screen"><div className="loading-mark"><span className="radar-dot" /><span className="radar-ring ring-outer" /><span className="radar-ring ring-inner" /><span className="radar-sweep" /></div><p>Loading Risk Radar…</p></main>;
+    return <main className="loading-screen"><div className="loading-mark"><span className="radar-dot" /><span className="radar-ring ring-outer" /><span className="radar-ring ring-inner" /><span className="radar-sweep" /></div><p>正在载入时间计划…</p></main>;
   }
 
   const handleImport = async (file: File) => {
@@ -762,11 +726,6 @@ export default function Home() {
               );
             })()}
             <div className="sidebar-divider" />
-            <button className={`view-item ${showExcelAnalysis ? "active" : ""}`} onClick={() => setShowExcelAnalysis(true)}>
-              <span className="view-icon">▥</span>
-              <span className="view-copy"><strong>Excel 分析</strong></span>
-              {showExcelAnalysis && <span className="active-dot" />}
-            </button>
             <button className={`view-item ${workspaceMode === "feishu-table" ? "active" : ""}`} onClick={() => { setWorkspaceMode("feishu-table"); setSelectedProjectId(""); setSelectedMilestone(null); }}>
               <span className="view-icon">⌁</span>
               <span className="view-copy"><strong>飞书表格</strong></span>
@@ -791,11 +750,6 @@ export default function Home() {
               <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : workspaceMode === "change-feed" ? "实时监控飞书多维表格的数据变更，展示字段级差异对比。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
             </div>
             <div className="plan-heading-actions">
-              <div className="workspace-mode-switch" aria-label="工作区模式">
-                <button className={workspaceMode === "overview" ? "active" : ""} onClick={() => { setWorkspaceMode("overview"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>◫</Icon>管理概览</button>
-                <button className={workspaceMode === "timeline" ? "active" : ""} onClick={() => setWorkspaceMode("timeline")}><Icon>▤</Icon>时间线</button>
-                <button className={workspaceMode === "cea" ? "active" : ""} onClick={() => { setWorkspaceMode("cea"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>⊟</Icon>CEA 版本</button>
-              </div>
               {workspaceMode === "timeline" && <>
                 <button className="button button-outline" onClick={addProjectRow}><Icon>＋</Icon>新增行</button>
                 <button className="button button-outline" onClick={beginAddMilestone}><Icon>＋</Icon>新增里程碑</button>
@@ -806,10 +760,12 @@ export default function Home() {
                     <Icon>↥</Icon>{importing ? "导入中…" : "导入 Excel"}
                     <input ref={inputRef} type="file" accept=".xlsx,.xls" hidden onChange={(event) => event.target.files?.[0] && void handleImport(event.target.files[0])} />
                   </label>
+                  <button className="button" onClick={() => { setFeishuStatus(""); setShowFeishuImport(true); }}><Icon>⌁</Icon>获取多维表格</button>
                   <button className="button" onClick={() => exportWorkbook(data)}><Icon>↧</Icon>导出 Excel</button>
                   <button className="button button-quiet" onClick={() => window.print()}><Icon>▣</Icon>打印 / PDF</button>
                   <button className="icon-button" title="导出 PNG" onClick={exportPng}>▧</button>
                   <button className="icon-button" title="导出 HTML" onClick={exportHtml}>⤴</button>
+                  <button className="button button-outline" onClick={() => setShowExcelAnalysis(true)}><Icon>▥</Icon>Excel 分析</button>
                 </div>
               )}
             </div>

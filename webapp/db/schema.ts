@@ -47,9 +47,3 @@ export const milestones = pgTable("milestones", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
-
-export const appState = pgTable("app_state", {
-  id: text("id").primaryKey().default("default"),
-  data: jsonb("data").notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});

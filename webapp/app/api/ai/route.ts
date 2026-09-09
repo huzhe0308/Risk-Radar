@@ -64,8 +64,8 @@ function getConfig(): Required<BailianConfig> {
   const yaml = object(parsed?.bailian) as BailianConfig | null;
   const envKey = typeof process !== "undefined" ? process.env.DASHSCOPE_API_KEY : undefined;
   const apiKey = (envKey || yaml?.api_key || "").trim();
-  const baseUrl = (yaml?.base_url || "https://open.bigmodel.cn/api/paas/v4").trim().replace(/\/+$/, "");
-  const model = (yaml?.model || "GLM").trim();
+  const baseUrl = (yaml?.base_url || "https://dashscope.aliyuncs.com/compatible-mode/v1").trim().replace(/\/+$/, "");
+  const model = (yaml?.model || "qwen3.7-flash-2026-07-15").trim();
   const temperature = Math.max(0, Math.min(1, Number(yaml?.temperature ?? 0.1)));
   const timeoutMs = Math.max(5000, Math.min(120000, Number(yaml?.timeout_ms ?? 45000)));
   if (!apiKey) throw new Error("AI_NOT_CONFIGURED");
@@ -158,8 +158,8 @@ export async function POST(request: Request) {
     config = getConfig();
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
-    if (code === "AI_NOT_CONFIGURED") return jsonResponse({ error: "AI 尚未配置。请在 config/ai.yaml 中填写 API Key 并重启应用。" }, 503);
-    return jsonResponse({ error: "AI 配置无效，请检查 YAML 中的 base_url。" }, 500);
+    if (code === "AI_NOT_CONFIGURED") return jsonResponse({ error: "AI 尚未配置。请在 config/ai.yaml 中填写百炼 API Key 并重启应用。", code }, 503);
+    return jsonResponse({ error: "AI 配置无效，请检查 YAML 中的 base_url。", code }, 500);
   }
 
   const endpoint = config.base_url.endsWith("/chat/completions") ? config.base_url : `${config.base_url}/chat/completions`;
@@ -172,6 +172,8 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: config.model,
         temperature: config.temperature,
+        enable_thinking: true,
+        response_format: { type: "json_object" },
         messages: [
           { role: "system", content: managementMode ? MANAGEMENT_ANALYSIS_PROMPT : SYSTEM_PROMPT },
           ...(managementMode ? [] : cleanHistory(body.history)),
@@ -184,24 +186,24 @@ export async function POST(request: Request) {
     if (!upstream.ok) {
       const upstreamError = object(payload?.error);
       const detail = upstreamError?.message || payload?.message || `HTTP ${upstream.status}`;
-      return jsonResponse({ error: `AI 调用失败：${String(detail).slice(0, 500)}` }, 502);
+      return jsonResponse({ error: `百炼调用失败：${String(detail).slice(0, 500)}` }, 502);
     }
     const choices = Array.isArray(payload?.choices) ? payload.choices : [];
     const firstChoice = object(choices[0]);
     const upstreamMessage = object(firstChoice?.message);
     const content = upstreamMessage?.content;
-    if (typeof content !== "string") return jsonResponse({ error: "AI 返回了无法识别的结果。" }, 502);
+    if (typeof content !== "string") return jsonResponse({ error: "百炼返回了无法识别的结果。" }, 502);
     let command: unknown;
     try {
       command = JSON.parse(content);
     } catch {
-      return jsonResponse({ error: "模型未返回有效 JSON，请重试。" }, 502);
+      return jsonResponse({ error: "模型未返回有效 JSON，请重试或更换支持结构化输出的模型。" }, 502);
     }
     const { result } = validateAiCommand(command, body.view);
     return jsonResponse(result);
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") return jsonResponse({ error: "AI 响应超时，请稍后重试。" }, 504);
-    return jsonResponse({ error: `无法连接 AI 服务：${error instanceof Error ? error.message : "未知错误"}` }, 502);
+    if (error instanceof Error && error.name === "AbortError") return jsonResponse({ error: "百炼响应超时，请稍后重试。" }, 504);
+    return jsonResponse({ error: `无法连接百炼服务：${error instanceof Error ? error.message : "未知错误"}` }, 502);
   } finally {
     clearTimeout(timeout);
   }
