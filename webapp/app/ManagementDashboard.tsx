@@ -4,8 +4,7 @@ import { useMemo, useState } from "react";
 import type { View } from "./types";
 import { analyzePlan } from "./plan-insights";
 import type { PlanInsight, UpcomingMilestone } from "./plan-insights";
-
-type AiResponse = { reply?: string; error?: string };
+import { callAi } from "./ai-client";
 
 function severityLabel(insight: PlanInsight): string {
   if (insight.severity === "critical") return "高优先级";
@@ -35,18 +34,12 @@ export function ManagementDashboard({
     setLoading(true);
     setAiError("");
     try {
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode: "management_analysis",
-          message: `请生成当前计划的管理摘要。规则扫描结果：${analysis.localSummary}`,
-          view,
-          history: [],
-        }),
+      const payload = await callAi({
+        managementMode: true,
+        message: `请生成当前计划的管理摘要。规则扫描结果：${analysis.localSummary}`,
+        view,
+        history: [],
       });
-      const payload = await response.json() as AiResponse;
-      if (!response.ok) throw new Error(payload.error || "AI 管理摘要生成失败");
       setAiSummary(payload.reply || analysis.localSummary);
     } catch (error) {
       setAiError(error instanceof Error ? error.message : "AI 管理摘要生成失败");
