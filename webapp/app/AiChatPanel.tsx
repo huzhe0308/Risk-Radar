@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { applyAiActions } from "./ai-actions";
-import type { AiAction, AiCommandResult } from "./ai-actions";
+import { callAi } from "./ai-client";
+import type { AiAction } from "./ai-actions";
 import type { View } from "./types";
 
 type ChatMessage = {
@@ -41,18 +42,12 @@ export function AiChatPanel({ view, onApplyView }: { view: View; onApplyView: (v
     setInput("");
     setSending(true);
     try {
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: content, view, history }),
-      });
-      const payload = await response.json() as AiCommandResult & { error?: string };
-      if (!response.ok) throw new Error(payload.error || "AI 请求失败");
+      const payload = await callAi({ message: content, view, history });
       setMessages((current) => [...current, {
         id: id(),
         role: "assistant",
         content: payload.reply,
-        actions: payload.actions,
+        actions: payload.actions as AiAction[] | undefined,
         summaries: payload.summaries,
         warnings: payload.warnings,
       }]);
@@ -81,7 +76,7 @@ export function AiChatPanel({ view, onApplyView }: { view: View; onApplyView: (v
       </button>
       {open && <aside className="ai-panel" aria-label="AI 计划助手">
         <div className="ai-panel-head">
-          <div><span className="eyebrow">BAILIAN ASSISTANT</span><strong>AI 计划助手</strong><small>当前视图：{view.name}</small></div>
+          <div><span className="eyebrow">AI ASSISTANT</span><strong>AI 计划助手</strong><small>当前视图：{view.name}</small></div>
           <button onClick={() => setOpen(false)} aria-label="关闭 AI 助手">×</button>
         </div>
         <div className="ai-messages" aria-live="polite">
