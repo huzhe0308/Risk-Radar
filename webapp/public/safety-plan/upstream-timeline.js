@@ -281,11 +281,13 @@ function renderUpstreamTimeline() {
   html += '</tbody></table>';
 
   // Today line
-  var todayIdx = tlWeekIndex(new Date().toISOString().slice(0, 10));
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var todayIdx = tlWeekIndex(todayStr);
   if (todayIdx >= 0 && todayIdx < TL_WEEKS) {
-    var todayLeft = 200 + todayIdx * 18 + 9;
+    var todayDayOff = tlDayOffset(todayStr);
+    var todayLeft = 200 + (todayIdx + todayDayOff) * 18;
     html += '<div class="sptl-today-line" style="left:' + todayLeft + 'px"></div>';
-    html += '<div class="sptl-today-label" style="left:' + todayLeft + 'px">Today</div>';
+    html += '<div class="sptl-today-label" style="left:' + (todayLeft + 2) + 'px">Today</div>';
   }
 
   html += '</div></div></div>';
