@@ -248,7 +248,7 @@ export function SafetyPlanTimeline() {
   const upView = data?.upstreamPlan?.views?.[viewName] || null;
 
   const { projects, isPlatform } = useMemo(() => {
-    if (!upView) return { projects: [] as Project[], colors: new Map<string, string>(), isPlatform: false };
+    if (!upView) return { projects: [] as Project[], isPlatform: false };
     const platformLike = viewName === "CEA 2.X Platform" || viewName === "IPD &MS Match";
     const built = platformLike ? buildPlatformRows(upView) : buildVehicleRows(upView);
     return { ...built, isPlatform: platformLike };
