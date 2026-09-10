@@ -291,8 +291,8 @@ function renderUpstreamTimeline() {
 
   if (todayIdx >= 0 && todayIdx < TL_WEEKS) {
     var todayDayOff = tlDayOffset(todayStr);
-    var todayLeft = (todayIdx + todayDayOff) * 18;
-    html += '<div class="sptl-today-line" data-week-idx="' + todayIdx + '" data-day-off="' + todayDayOff + '" style="left:' + todayLeft + 'px"></div>';
+    var todayLeft = 200 + (todayIdx + todayDayOff) * 18;
+    html += '<div class="sptl-today-line" style="left:' + todayLeft + 'px"></div>';
     html += '<div class="sptl-today-label" style="left:' + (todayLeft + 2) + 'px">Today</div>';
   }
 
