@@ -21,6 +21,7 @@ import { CeaVersionView } from "./CeaVersionView";
 import FeishuTableView from "./FeishuTableView";
 import { ChangeFeed } from "./ChangeFeed";
 import { SafetyPlanPanel } from "./SafetyPlanPanel";
+import { SafetyPlanTimeline } from "./SafetyPlanTimeline";
 
 const STORAGE_KEY = "time-plan-viewer-v4";
 
@@ -815,7 +816,7 @@ export default function Home() {
           ) : workspaceMode === "change-feed" ? (
             <ChangeFeed token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} />
           ) : workspaceMode === "safety-plan" ? (
-            <SafetyPlanPanel initialTab="upstream" />
+            <SafetyPlanTimeline />
           ) : workspaceMode === "safety-components" ? (
             <SafetyPlanPanel initialTab="components" />
           ) : <>
