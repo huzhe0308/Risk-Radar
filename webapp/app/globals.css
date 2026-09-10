@@ -2333,7 +2333,7 @@ tbody tr:hover { background: #f7fbfb; }
 .safety-plan-wrapper {
   position: relative;
   width: 100%;
-  height: calc(100vh - 120px);
+  height: calc(100vh - 56px);
   min-height: 600px;
   overflow: hidden;
 }
