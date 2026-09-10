@@ -1996,10 +1996,26 @@ function renderAll() {
 // INIT
 // ============================================================
 async function init() {
+  var params = new URLSearchParams(window.location.search);
+  var singleTab = params.get('tab');
+  if (singleTab) {
+    document.getElementById('loading-overlay').classList.add('hidden');
+    document.querySelectorAll('.nav-btn').forEach(function(b) { b.style.display = 'none'; });
+    var headerEl = document.querySelector('header');
+    if (headerEl) headerEl.style.display = 'none';
+    var ok = await loadData();
+    if (ok) {
+      renderAll();
+      document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+      var target = document.getElementById('tab-' + singleTab);
+      if (target) target.classList.add('active');
+    }
+    return;
+  }
   initNav();
   initUpstreamSubTabs();
-  const ok = await loadData();
-  if (ok) {
+  const ok2 = await loadData();
+  if (ok2) {
     renderAll();
     document.getElementById('loading-overlay').classList.add('hidden');
     var hash = window.location.hash.replace('#', '');
