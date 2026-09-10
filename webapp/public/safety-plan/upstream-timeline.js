@@ -171,17 +171,7 @@ function renderUpstreamTimeline() {
 
   var totalMs = platRows.reduce(function(s,r){return s+r.milestones.length;},0) + hutRows.reduce(function(s,r){return s+r.milestones.length;},0);
 
-  // Stats
-  var stats = document.getElementById('upstream-stats');
-  if (stats) {
-    stats.innerHTML =
-      '<div class="stat-card blue"><div class="stat-value">17</div><div class="stat-label">Huts</div></div>' +
-      '<div class="stat-card red"><div class="stat-value">2</div><div class="stat-label">All-New</div></div>' +
-      '<div class="stat-card orange"><div class="stat-value">10</div><div class="stat-label">New Variant</div></div>' +
-      '<div class="stat-card green"><div class="stat-value">5</div><div class="stat-label">Carry-Over</div></div>' +
-      '<div class="stat-card purple"><div class="stat-value">8</div><div class="stat-label">SOP Nodes</div></div>' +
-      '<div class="stat-card blue"><div class="stat-value">' + totalMs + '</div><div class="stat-label">Milestones</div></div>';
-  }
+  // Stats (hidden — not displayed in timeline view)
 
   var badge = document.getElementById('upstream-badge');
   if (badge) badge.textContent = '59 projects · 156 weeks';
@@ -189,15 +179,6 @@ function renderUpstreamTimeline() {
   // Build HTML
   var html = '';
   html += '<div class="sptl-container">';
-  html += '<div class="sptl-title">CEA 2.X Safety Plan Timeline</div>';
-  html += '<div class="sptl-sub">17 Huts | 8 SOP Nodes | Weekly Calendar 2026-01-05 ~ 2028-12-25 | 156 weeks</div>';
-  html += '<div class="sptl-stats">';
-  html += '<div class="sptl-sc"><div class="sptl-n">17</div><div class="sptl-l">Huts</div></div>';
-  html += '<div class="sptl-sc" style="border-bottom-color:#e74c3c"><div class="sptl-n" style="color:#e74c3c">2</div><div class="sptl-l">All-New</div></div>';
-  html += '<div class="sptl-sc" style="border-bottom-color:#e67e22"><div class="sptl-n" style="color:#e67e22">10</div><div class="sptl-l">New Variant</div></div>';
-  html += '<div class="sptl-sc" style="border-bottom-color:#3498db"><div class="sptl-n" style="color:#3498db">5</div><div class="sptl-l">Carry-Over</div></div>';
-  html += '<div class="sptl-sc"><div class="sptl-n">8</div><div class="sptl-l">SOP Nodes</div></div>';
-  html += '</div>';
   html += '<div class="sptl-gbox"><div class="sptl-twrap">';
   html += '<table class="sptl-g">';
 
@@ -295,23 +276,7 @@ function renderUpstreamTimeline() {
   });
 
   // FuSa separator
-  html += '<tr class="sptl-fusa-sep"><td class="sptl-rn">=== FUSA ACTIVITY MAPPING (TO BE FILLED) ===</td>';
-  for (var w = 0; w < TL_WEEKS; w++) html += '<td></td>';
-  html += '</tr>';
-
-  // FuSa sections
-  TL_FUSA_SECTIONS.forEach(function(section) {
-    html += '<tr class="sptl-fusa-sep"><td class="sptl-rn">--- ' + section.section + ' ---</td>';
-    for (var w = 0; w < TL_WEEKS; w++) html += '<td></td>';
-    html += '</tr>';
-    section.items.forEach(function(item) {
-      html += '<tr class="sptl-fusa-row"><td class="sptl-rn" style="font-size:9px">';
-      html += item.name + '<span class="sptl-fph"> ' + item.desc + '</span>';
-      html += '</td>';
-      for (var w = 0; w < TL_WEEKS; w++) html += '<td></td>';
-      html += '</tr>';
-    });
-  });
+  // (removed — not displayed)
 
   html += '</tbody></table>';
 
