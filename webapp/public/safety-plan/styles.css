@@ -237,3 +237,32 @@ tr:hover td{background:var(--card2)}
 .lineage-dot.lineage-new{background:var(--red)}
 .lineage-dot.lineage-variant{background:var(--orange)}
 .lineage-dot.lineage-carryover{background:var(--blue)}
+
+/* Hut Overview */
+.hut-cls-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
+.hut-cls-allnew{background:rgba(244,67,54,.15);color:var(--red)}
+.hut-cls-newvar{background:rgba(255,152,0,.15);color:var(--orange)}
+.hut-cls-carryover{background:rgba(74,158,255,.15);color:var(--blue)}
+.hut-jv-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600}
+.hut-jv-svw{background:rgba(76,175,80,.15);color:var(--green)}
+.hut-jv-faw{background:rgba(74,158,255,.15);color:var(--blue)}
+.hut-jv-vwa{background:rgba(171,71,188,.15);color:var(--purple)}
+.hut-cea-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:rgba(38,198,218,.12);color:var(--cyan)}
+.hut-sop-group{border-left:4px solid var(--border2);padding-left:16px;margin-bottom:16px}
+.hut-sop-header{font-size:15px;font-weight:700;color:var(--blue);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.hut-sop-count{background:var(--blue);color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.hut-ms-table{font-size:11px;min-width:100%;border-collapse:collapse}
+.hut-ms-table th{background:var(--card2);padding:6px 4px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;min-width:50px;position:sticky;top:0;z-index:10}
+.hut-ms-table th:first-child{text-align:left;min-width:180px;position:sticky;left:0;z-index:15;background:var(--card2)}
+.hut-ms-table td{padding:4px 4px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--border)}
+.hut-ms-table td:first-child{text-align:left;font-weight:600;position:sticky;left:0;z-index:5;background:var(--card)}
+.hut-ms-date{display:inline-block;font-size:10px;font-weight:600;color:var(--text);background:rgba(74,158,255,.08);padding:2px 6px;border-radius:4px;border:1px solid rgba(74,158,255,.15)}
+.hut-ms-fusa-row td{background:rgba(255,213,79,.06)!important}
+.hut-ms-fusa-row td:first-child{background:rgba(255,213,79,.12)!important;color:var(--yellow);font-weight:700}
+.hut-ms-fusa-placeholder{color:var(--dim);font-style:italic;font-size:10px}
+.hut-layer-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-right:4px}
+.hut-layer-sys{background:rgba(74,158,255,.15);color:var(--blue)}
+.hut-layer-gx{background:rgba(76,175,80,.15);color:var(--green)}
+.hut-layer-sup{background:rgba(255,152,0,.15);color:var(--orange)}
+.hut-rule-card{background:rgba(255,213,79,.04);border:1px solid rgba(255,213,79,.2);border-radius:8px;padding:16px}
+.hut-tobefilled{color:var(--dim);font-style:italic;font-size:11px}
