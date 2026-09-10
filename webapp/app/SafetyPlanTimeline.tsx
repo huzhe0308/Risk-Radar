@@ -252,7 +252,6 @@ export function SafetyPlanTimeline() {
     const platformLike = viewName === "CEA 2.X Platform" || viewName === "IPD &MS Match";
     const built = platformLike ? buildPlatformRows(upView) : buildVehicleRows(upView);
     return { ...built, isPlatform: platformLike };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upView, viewName]);
 
   const range = useMemo(() => (upView ? viewRange(upView) : { start: "2026-01-05", end: "2029-01-01" }), [upView]);
@@ -290,7 +289,6 @@ export function SafetyPlanTimeline() {
   const legendColors = useMemo(() => {
     if (!isPlatform || !upView) return [];
     return upView.projects.map((p, i) => ({ name: p.name, color: TYPE_COLORS[i % TYPE_COLORS.length] }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upView, isPlatform]);
 
   if (error) return <div className="cea-version-empty"><p>{error}</p></div>;
