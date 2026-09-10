@@ -1051,94 +1051,9 @@ function attachEditableHandlers() {
 let upstreamActiveView = null;
 
 function renderUpstreamPlan() {
-  const up = DATA.upstreamPlan;
-  if (!up || !up.views) return;
-
-  const viewNames = Object.keys(up.views);
-
-  // Default to first view
-  if (!upstreamActiveView || !up.views[upstreamActiveView]) {
-    upstreamActiveView = viewNames[0];
+  if (typeof renderUpstreamTimeline === 'function') {
+    renderUpstreamTimeline();
   }
-
-  // Stats
-  const totalProjects = viewNames.reduce((s, v) => s + up.views[v].projects.length, 0);
-  const totalIterations = new Set();
-  const allDates = [];
-  viewNames.forEach(v => {
-    up.views[v].projects.forEach(p => {
-      Object.values(p.matrix).forEach(d => {
-        if (Array.isArray(d)) d.forEach(dd => allDates.push(dd));
-        else if (d) allDates.push(d);
-      });
-    });
-  });
-  allDates.sort();
-  const dateRange = allDates.length > 0 ? allDates[0] + ' ~ ' + allDates[allDates.length - 1] : '—';
-
-  document.getElementById('upstream-stats').innerHTML = `
-    <div class="stat-card blue"><div class="stat-value">${viewNames.length}</div><div class="stat-label">Plan Views</div></div>
-    <div class="stat-card green"><div class="stat-value">${totalProjects}</div><div class="stat-label">Total Projects</div></div>
-    <div class="stat-card purple"><div class="stat-value">${allDates.length}</div><div class="stat-label">Total Milestones</div></div>
-    <div class="stat-card orange"><div class="stat-value" style="font-size:14px">${dateRange}</div><div class="stat-label">Date Range</div></div>
-    <div class="stat-card blue"><div class="stat-value">${up.exportDate}</div><div class="stat-label">Source Export Date</div></div>
-  `;
-
-  // View tabs
-  let tabsHtml = '';
-  viewNames.forEach(v => {
-    const active = v === upstreamActiveView ? 'active' : '';
-    const count = up.views[v].projects.length;
-    tabsHtml += `<button class="upstream-view-tab ${active}" data-view="${v}">${v} <span class="badge">${count}</span></button>`;
-  });
-  document.getElementById('upstream-view-tabs').innerHTML = tabsHtml;
-
-  // Attach click handlers
-  document.querySelectorAll('.upstream-view-tab').forEach(btn => {
-    btn.onclick = function() {
-      upstreamActiveView = this.dataset.view;
-  renderUpstreamPlan();
-  if (typeof renderUpstreamTimeline === 'function') renderUpstreamTimeline();
-    };
-  });
-
-  // Render matrix
-  const view = up.views[upstreamActiveView];
-  const iterations = view.iterations;
-  const projects = view.projects;
-
-  document.getElementById('upstream-badge').textContent = upstreamActiveView + ' · ' + projects.length + ' projects · ' + iterations.length + ' iterations';
-
-  // Build matrix table: rows = milestone types (project names), cols = iterations
-  let html = '<thead><tr>';
-  html += '<th style="position:sticky;left:0;z-index:3;background:var(--card2);min-width:200px">Milestone</th>';
-  iterations.forEach(it => {
-    html += '<th class="upstream-iter-col">' + it + '</th>';
-  });
-  html += '</tr></thead><tbody>';
-
-  projects.forEach((proj, pi) => {
-    const isOdd = pi % 2 === 1;
-    html += '<tr class="' + (isOdd ? 'upstream-row-alt' : '') + '">';
-    html += '<td class="font-bold upstream-ms-name" style="position:sticky;left:0;z-index:2;background:var(--card)">' + proj.name + '</td>';
-    iterations.forEach(it => {
-      const val = proj.matrix[it];
-      let cellHtml = '';
-      if (val) {
-        if (Array.isArray(val)) {
-          cellHtml = val.map(d => '<div class="upstream-date">' + formatUpstreamDate(d) + '</div>').join('');
-        } else {
-          cellHtml = '<span class="upstream-date">' + formatUpstreamDate(val) + '</span>';
-        }
-      } else {
-        cellHtml = '<span class="upstream-empty">—</span>';
-      }
-      html += '<td class="upstream-cell">' + cellHtml + '</td>';
-    });
-    html += '</tr>';
-  });
-  html += '</tbody>';
-  document.getElementById('upstream-matrix-table').innerHTML = html;
 }
 
 function formatUpstreamDate(dateStr) {
@@ -2000,21 +1915,27 @@ async function init() {
   var params = new URLSearchParams(window.location.search);
   var singleTab = params.get('tab');
   if (singleTab) {
-    document.getElementById('loading-overlay').classList.add('hidden');
     document.querySelectorAll('.nav-btn').forEach(function(b) { b.style.display = 'none'; });
     var headerEl = document.querySelector('header');
     if (headerEl) headerEl.style.display = 'none';
     var ok = await loadData();
     if (ok) {
-      initUpstreamSubTabs();
-      renderAll();
       document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
       var target = document.getElementById('tab-' + singleTab);
       if (target) target.classList.add('active');
+      initUpstreamSubTabs();
+      renderAll();
       if (singleTab === 'upstream') {
-        var firstSub = document.querySelector('#usubtab-project .upstream-subtab');
-        if (firstSub) firstSub.click();
+        document.querySelectorAll('.upstream-subtab').forEach(function(b) { b.classList.remove('active'); });
+        document.querySelectorAll('.upstream-subtab-content').forEach(function(c) { c.classList.remove('active'); c.style.display = 'none'; });
+        var firstSub = document.querySelector('.upstream-subtab[data-usubtab="projectplan"]');
+        var firstContent = document.getElementById('usubtab-projectplan');
+        if (firstSub) firstSub.classList.add('active');
+        if (firstContent) { firstContent.classList.add('active'); firstContent.style.display = 'block'; }
       }
+      document.getElementById('loading-overlay').classList.add('hidden');
+    } else {
+      document.getElementById('loading-overlay').classList.add('hidden');
     }
     return;
   }
