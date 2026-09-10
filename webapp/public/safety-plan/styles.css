@@ -314,7 +314,7 @@ tr:hover td{background:var(--card2)}
 .sptl-l{font-size:8px;color:#7a7e8a;text-transform:uppercase;margin-top:1px}
 .sptl-gbox{background:#0f1117;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.3);overflow:hidden;position:relative}
 .sptl-twrap{overflow:auto;max-height:88vh;position:relative}
-table.sptl-g{border-collapse:separate;border-spacing:0;font-size:10px;table-layout:fixed}
+table.sptl-g{border-collapse:separate;border-spacing:0;font-size:10px;table-layout:fixed;width:3008px}
 table.sptl-g th{background:#161922;color:#e0e0e0;padding:3px 1px;text-align:center;font-weight:600;border-right:1px solid #2a2d37;position:sticky;top:0;z-index:10}
 table.sptl-g th.sptl-rn{width:200px;min-width:200px;text-align:left;font-size:11px;padding:5px 8px;position:sticky;left:0;z-index:15;background:#161922}
 table.sptl-g th.sptl-wk{font-size:7px;min-width:18px;width:18px;max-width:18px;overflow:hidden;color:#7a7e8a}
@@ -349,5 +349,5 @@ table.sptl-g tr.sptl-fusa-sep td.sptl-rn{background:rgba(255,213,79,.12)!importa
 table.sptl-g tr.sptl-fusa-row td:not(.sptl-rn){background:rgba(255,213,79,.03)!important}
 table.sptl-g tr.sptl-fusa-row td.sptl-rn{background:rgba(255,213,79,.06)!important;color:#ffd54f}
 .sptl-fph{color:#555;font-style:italic;font-size:7px}
-.sptl-today-line{position:absolute;top:0;bottom:0;width:1px;background:#ff5252;z-index:8;pointer-events:none;margin-left:200px}
-.sptl-today-label{position:absolute;top:0;font-size:8px;color:#ff5252;font-weight:700;z-index:9;white-space:nowrap;margin-left:200px}
+.sptl-today-line{position:absolute;top:0;bottom:0;width:1px;background:#ff5252;z-index:8;pointer-events:none}
+.sptl-today-label{position:absolute;top:0;font-size:8px;color:#ff5252;font-weight:700;z-index:9;white-space:nowrap}
