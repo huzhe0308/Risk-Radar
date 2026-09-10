@@ -1977,6 +1977,7 @@ function renderAll() {
   renderSysSub();
   renderCompSP();
   renderDashboard();
+  if (typeof renderHutOverview === 'function') renderHutOverview();
   attachEditableHandlers();
 }
 
