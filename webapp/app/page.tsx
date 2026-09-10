@@ -739,7 +739,7 @@ export default function Home() {
             </button>
             <div className="sidebar-divider" />
             <button className={`view-item ${workspaceMode === "safety-plan" ? "active" : ""}`} onClick={() => { setWorkspaceMode("safety-plan"); setSelectedProjectId(""); setSelectedMilestone(null); }}>
-              <span className="view-icon">(EIF)</span>
+              <span className="view-icon">⊞</span>
               <span className="view-copy"><strong>Safety Plan</strong></span>
               {workspaceMode === "safety-plan" && <span className="active-dot" />}
             </button>
@@ -753,8 +753,8 @@ export default function Home() {
           <div className="page-heading">
             <div>
               <div className="breadcrumb">{workspaceMode === "feishu-table" ? "功能区 / 飞书表格" : workspaceMode === "change-feed" ? "功能区 / 变更提醒" : workspaceMode === "safety-plan" ? "功能区 / Safety Plan" : `功能区 / ${activeView.name}`}</div>
-              <h1>{data.title}</h1>
-              <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : workspaceMode === "change-feed" ? "实时监控飞书多维表格的数据变更，展示字段级差异对比。" : workspaceMode === "safety-plan" ? "CEA 2.X 功能安全计划 Dashboard：交付物、PEP时间线、组件管理、车型谱系。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
+              <h1>{workspaceMode === "safety-plan" ? "Safety Plan Dashboard" : data.title}</h1>
+              <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : workspaceMode === "change-feed" ? "实时监控飞书多维表格的数据变更，展示字段级差异对比。" : workspaceMode === "safety-plan" ? "" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
             </div>
             <div className="plan-heading-actions">
               {workspaceMode === "timeline" && <>
