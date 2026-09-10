@@ -2005,10 +2005,15 @@ async function init() {
     if (headerEl) headerEl.style.display = 'none';
     var ok = await loadData();
     if (ok) {
+      initUpstreamSubTabs();
       renderAll();
       document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
       var target = document.getElementById('tab-' + singleTab);
       if (target) target.classList.add('active');
+      if (singleTab === 'upstream') {
+        var firstSub = document.querySelector('#usubtab-project .upstream-subtab');
+        if (firstSub) firstSub.click();
+      }
     }
     return;
   }
