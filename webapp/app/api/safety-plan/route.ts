@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
-import { getDb } from "../../../../db";
-import { appState } from "../../../../db/schema";
+import { getDb } from "../../../db";
+import { appState } from "../../../db/schema";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
