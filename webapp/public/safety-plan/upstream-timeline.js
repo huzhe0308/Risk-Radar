@@ -179,7 +179,22 @@ function renderUpstreamTimeline() {
   // Build HTML
   var html = '';
   html += '<div class="sptl-container">';
-  html += '<div class="sptl-gbox"><div class="sptl-twrap">';
+  html += '<div class="sptl-gbox"><div class="sptl-twrap" id="sptl-twrap">';
+
+  // Today line (placed before table so top:0 = table top)
+  var now = new Date();
+  var yyyy = now.getFullYear();
+  var mm = ('' + (now.getMonth() + 1)).padStart(2, '0');
+  var dd = ('' + now.getDate()).padStart(2, '0');
+  var todayStr = yyyy + '-' + mm + '-' + dd;
+  var todayIdx = tlWeekIndex(todayStr);
+  if (todayIdx >= 0 && todayIdx < TL_WEEKS) {
+    var todayDayOff = tlDayOffset(todayStr);
+    var todayLeft = 200 + (todayIdx + todayDayOff) * 18;
+    html += '<div class="sptl-today-line" style="left:' + todayLeft + 'px"></div>';
+    html += '<div class="sptl-today-label" style="left:' + (todayLeft + 4) + 'px">Today</div>';
+  }
+
   html += '<table class="sptl-g">';
 
   // Header
@@ -289,14 +304,17 @@ function renderUpstreamTimeline() {
 
   html += '</tbody></table>';
 
-  if (todayIdx >= 0 && todayIdx < TL_WEEKS) {
-    var todayDayOff = tlDayOffset(todayStr);
-    var todayLeft = 200 + (todayIdx + todayDayOff) * 18;
-    html += '<div class="sptl-today-line" style="left:' + todayLeft + 'px"></div>';
-    html += '<div class="sptl-today-label" style="left:' + (todayLeft + 2) + 'px">Today</div>';
-  }
-
+  html += '</div>';  // close sptl-twrap
+  html += '<div class="sptl-scroll-x" id="sptl-scrollx"><div class="sptl-scroll-x-inner"></div></div>';
   html += '</div></div></div>';
 
   container.innerHTML = html;
+
+  // Sync horizontal scroll between twrap and the sticky bottom scrollbar
+  var twrap = document.getElementById('sptl-twrap');
+  var scrollBar = document.getElementById('sptl-scrollx');
+  if (twrap && scrollBar) {
+    twrap.addEventListener('scroll', function() { scrollBar.scrollLeft = twrap.scrollLeft; });
+    scrollBar.addEventListener('scroll', function() { twrap.scrollLeft = scrollBar.scrollLeft; });
+  }
 }
