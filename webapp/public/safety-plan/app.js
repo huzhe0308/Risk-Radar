@@ -327,6 +327,17 @@ function initNav() {
   });
 }
 
+function switchTab(tabName) {
+  var btn = document.querySelector('.nav-btn[data-tab="' + tabName + '"]');
+  if (btn) btn.click();
+}
+
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'switch-tab' && e.data.tab) {
+    switchTab(e.data.tab);
+  }
+});
+
 // ============================================================
 // OVERVIEW TAB
 // ============================================================
@@ -1991,6 +2002,10 @@ async function init() {
   if (ok) {
     renderAll();
     document.getElementById('loading-overlay').classList.add('hidden');
+    var hash = window.location.hash.replace('#', '');
+    if (hash) {
+      switchTab(hash);
+    }
   } else {
     document.getElementById('loading-overlay').classList.add('hidden');
   }
