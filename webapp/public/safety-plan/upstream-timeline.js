@@ -232,7 +232,7 @@ function renderUpstreamTimeline() {
       ms.forEach(function(m) {
         var off = tlDayOffset(m.date);
         html += '<div class="sptl-ms" style="left:' + (off * 100) + '%">';
-        html += '<div class="sptl-tri" style="border-bottom-color:#002733"></div>';
+        html += '<div class="sptl-tri" style="border-bottom-color:#4a9eff"></div>';
         html += '<div class="sptl-dl">' + tlShortDate(m.date) + '</div>';
         html += '<div class="sptl-il">' + m.label + '</div>';
         html += '</div>';
