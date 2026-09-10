@@ -1,268 +1,193 @@
-:root{
-  --bg:#0f1117; --bg2:#161922; --card:#1a1d27; --card2:#20242f; --border:#2a2d37; --border2:#353944;
-  --text:#e0e0e0; --muted:#7a7e8a; --dim:#555862;
-  --blue:#4a9eff; --blue2:#2d6ec9; --green:#4caf50; --green2:#2e7d32; --orange:#ff9800; --orange2:#e65100;
-  --red:#f44336; --red2:#c62828; --purple:#ab47bc; --purple2:#6a1b9a; --cyan:#26c6da; --yellow:#ffd54f;
-  --pep29:#4a9eff; --pepCea:#4caf50; --ceaMilestone:#ab47bc; --freeze:#ff5252; --agt:#ffd54f; --sync:#26c6da;
+// ============================================================
+// HUT OVERVIEW TAB — fusa_plan_overview.html content
+// ============================================================
+function renderHutOverview() {
+  renderHutStats();
+  renderHutTable();
+  renderSopGroups();
+  renderHutMsTable();
+  renderHutLayerTable();
+  renderHutClsTable();
+  renderHutIpdMsTable();
+  renderHutPepCeaMsTable();
 }
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;font-size:14px;overflow-x:hidden}
-a{color:var(--blue);text-decoration:none}
 
-header{position:sticky;top:0;z-index:100;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;height:56px;gap:24px}
-header .logo{font-size:16px;font-weight:700;color:var(--text);white-space:nowrap}
-header .logo span{color:var(--blue)}
-nav{display:flex;gap:2px;flex:1}
-nav button{background:none;border:none;color:var(--muted);padding:8px 16px;cursor:pointer;font-size:13px;border-radius:6px;transition:all .2s;font-weight:500}
-nav button:hover{background:var(--card2);color:var(--text)}
-nav button.active{background:var(--blue);color:#fff}
-
-.header-actions{display:flex;gap:8px;align-items:center}
-.header-actions button{background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s}
-.header-actions button:hover{border-color:var(--blue);color:var(--blue)}
-.header-actions button.save-btn{background:var(--blue);border-color:var(--blue);color:#fff}
-.header-actions button.save-btn:hover{background:var(--blue2)}
-.header-actions button.danger{border-color:var(--red);color:var(--red)}
-.header-actions button.danger:hover{background:var(--red);color:#fff}
-.header-actions .dirty-indicator{font-size:11px;color:var(--orange);font-weight:600;padding:4px 8px;background:rgba(255,152,0,.1);border-radius:4px;display:none}
-.header-actions .dirty-indicator.show{display:inline-block}
-
-main{padding:24px;max-width:1800px;margin:0 auto}
-.tab-content{display:none}
-.tab-content.active{display:block;animation:fadeIn .3s}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
-.card-title{font-size:15px;font-weight:600;margin-bottom:16px;color:var(--text);display:flex;align-items:center;gap:8px}
-.card-title .badge{font-size:11px;padding:2px 8px;border-radius:4px;background:var(--card2);color:var(--muted);font-weight:400}
-
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:left;position:relative;overflow:hidden}
-.stat-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:12px 0 0 12px}
-.stat-card.blue::before{background:var(--blue)} .stat-card.green::before{background:var(--green)} .stat-card.purple::before{background:var(--purple)} .stat-card.orange::before{background:var(--orange)}
-.stat-value{font-size:28px;font-weight:700;color:var(--text)}
-.stat-label{font-size:12px;color:var(--muted);margin-top:4px}
-
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{background:var(--card2);padding:10px 12px;text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);position:sticky;top:0;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
-td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:top}
-tr:hover td{background:var(--card2)}
-.phase-row td{background:var(--card2)!important;font-weight:700;color:var(--blue);font-size:12px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px}
-.phase-row:hover td{background:var(--card2)!important}
-
-.badge-status{display:inline-block;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600}
-.badge-vfsm{background:rgba(74,158,255,.15);color:var(--blue)}
-.badge-domain{background:rgba(171,71,188,.15);color:var(--purple)}
-.badge-supplier{background:rgba(255,152,0,.15);color:var(--orange)}
-.badge-level{background:var(--card2);color:var(--muted);font-size:10px;padding:1px 6px;border-radius:3px}
-
-.timeline-container{overflow-x:auto;overflow-y:visible;padding-bottom:20px}
-.timeline{position:relative;min-width:2400px;padding:0 40px}
-.tl-axis{position:relative;height:32px;border-bottom:1px solid var(--border2);margin-bottom:0}
-
-.timeline-container{overflow-x:auto;overflow-y:visible;padding-bottom:20px}
-.timeline{position:relative;min-width:2400px;padding:0 40px}
-
-.filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
-.filters select,.filters input{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none}
-.filters select:focus,.filters input:focus{border-color:var(--blue)}
-.filters input{flex:1;min-width:200px}
-.filter-label{font-size:12px;color:var(--muted);font-weight:600}
-
-.mapping-container{overflow-x:auto}
-.mapping-table{width:100%;min-width:900px;border-collapse:collapse}
-.mapping-table th{background:var(--card2);padding:12px;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
-.mapping-table td{padding:10px 12px;border-bottom:1px solid var(--border)}
-.map-phase-cell{font-weight:700;font-size:12px}
-.map-week-cell{font-size:12px;color:var(--muted)}
-.map-pep-cell{font-size:12px;color:var(--green)}
-.map-bar{height:4px;border-radius:2px;margin-top:4px}
-
-.expandable{cursor:pointer}
-.expandable .arrow{display:inline-block;transition:transform .2s;margin-right:6px}
-.expandable.open .arrow{transform:rotate(90deg)}
-
-::-webkit-scrollbar{width:8px;height:8px}
-::-webkit-scrollbar-track{background:var(--bg2)}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:var(--muted)}
-
-.section-divider{height:1px;background:var(--border);margin:24px 0}
-.muted{color:var(--muted)}
-.green{color:var(--green)} .blue{color:var(--blue)} .purple{color:var(--purple)} .orange{color:var(--orange)} .red{color:var(--red)} .cyan{color:var(--cyan)}
-.tag{display:inline-block;padding:1px 8px;border-radius:3px;font-size:11px;margin:1px}
-.tag-bev{background:rgba(74,158,255,.12);color:var(--blue)}
-.tag-phev{background:rgba(255,152,0,.12);color:var(--orange)}
-.tag-erev{background:rgba(171,71,188,.12);color:var(--purple)}
-.flex{display:flex} .flex-col{flex-direction:column} .gap-8{gap:8px} .gap-12{gap:12px} .gap-16{gap:16px}
-.items-center{align-items:center} .justify-between{justify-content:space-between}
-.text-sm{font-size:12px} .text-xs{font-size:11px} .font-bold{font-weight:700}
-.mt-8{margin-top:8px} .mt-16{margin-top:16px} .mb-8{margin-bottom:8px} .mb-16{margin-bottom:16px}
-.w-full{width:100%}
-
-.progress-bar{height:8px;background:var(--card2);border-radius:4px;overflow:hidden}
-.progress-fill{height:100%;border-radius:4px;transition:width .5s}
-
-.fn-B1{background:rgba(255,152,0,.2);color:var(--orange)}
-.fn-C1{background:rgba(38,198,218,.2);color:var(--cyan)}
-.fn-C2{background:rgba(76,175,80,.2);color:var(--green)}
-.fn-D{background:rgba(74,158,255,.2);color:var(--blue)}
-
-/* Editable cells */
-.editable-cell{cursor:pointer;position:relative;border-radius:3px;padding:2px 4px;margin:-2px -4px;transition:background .15s}
-.editable-cell:hover{background:rgba(74,158,255,.1);outline:1px dashed rgba(74,158,255,.3)}
-.editable-cell.editing{background:var(--bg2);outline:2px solid var(--blue)}
-.editable-cell input,.editable-cell select,.editable-cell textarea{
-  background:var(--bg);border:1px solid var(--blue);color:var(--text);
-  padding:4px 6px;border-radius:4px;font-size:13px;width:100%;outline:none;font-family:inherit
+function renderHutStats() {
+  document.getElementById('hut-stats').innerHTML = `
+    <div class="stat-card blue"><div class="stat-value">17</div><div class="stat-label">Total Huts</div></div>
+    <div class="stat-card red"><div class="stat-value">2</div><div class="stat-label">All-New</div></div>
+    <div class="stat-card orange"><div class="stat-value">10</div><div class="stat-label">New Variant</div></div>
+    <div class="stat-card green"><div class="stat-value">5</div><div class="stat-label">Carry-Over</div></div>
+    <div class="stat-card purple"><div class="stat-value">8</div><div class="stat-label">SOP Nodes</div></div>
+  `;
 }
-.editable-cell textarea{resize:vertical;min-height:40px}
-.edit-save-btn,.edit-cancel-btn{
-  font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;border:1px solid;margin-left:4px
+
+var HUT_DATA = [
+  { sop: '2027-05', jv: 'SVW', hut: 'CMP21 CS A SUV MY27 VW316/9CS_B1 2ECV6H', cea: 'CEA 2.0', prev: 'CEA 1.3 to 1.4', cls: 'carryover', desc: '2026 first ALS1(1.3) to ALS2(1.4) to MY27 upgrade CEA2.0' },
+  { sop: '2027-05', jv: 'FAW', hut: 'CMP21 CN A NB PHEV VW311/1CN_P 2EFV6H', cea: 'CEA 2.0', prev: '-', cls: 'newvar', desc: 'New powertrain PHEV, CMP21 platform first PHEV' },
+  { sop: '2027-05', jv: 'FAW', hut: 'CMP21 CN A Main SUV BEV VW316/9CN_B 2EGV6H', cea: 'CEA 2.0', prev: '-', cls: 'newvar', desc: 'FAW CMP21 Main SUV, new JV variant' },
+  { sop: '2027-08', jv: 'FAW', hut: 'CMP21 CN A NB MY27 VW311/1CN_B1 2EF001', cea: 'CEA 2.1', prev: 'CEA 1.4', cls: 'carryover', desc: '2026 first (1.4) to MY27 upgrade CEA2.1' },
+  { sop: '2027-08', jv: 'SVW', hut: 'CMP21 CS A SUV PHEV VW316/9CS_P 2EPV6K', cea: 'CEA 2.2', prev: '-', cls: 'newvar', desc: 'New powertrain PHEV, SVW side' },
+  { sop: '2027-08', jv: 'SVW', hut: 'CSP31 CS B NB BEV VW423/1CS_B CS0V6K', cea: 'CEA 2.1', prev: '-', cls: 'allnew', desc: 'CSP31 platform first vehicle, all-new EE topology' },
+  { sop: '2027-09', jv: 'VWA', hut: 'MEB31 CM A SUVe MY28 VW316/8CM_B1 11H001', cea: 'CEA 2.0', prev: 'CEA 1.3 (from 1.0 ACOSe)', cls: 'carryover', desc: '2026 first ALS1(1.3) to MY28 upgrade CEA2.0' },
+  { sop: '2027-09', jv: 'FAW', hut: 'MEB31 CN ID4 PA MY28 VW316/6CN_B1 CN0001', cea: 'CEA 2.1', prev: 'CEA 1.3 (from 1.0 ACOSe)', cls: 'carryover', desc: '2026 first (1.3) to MY28 upgrade CEA2.1' },
+  { sop: '2027-09', jv: 'VWA', hut: 'MEB31 CM A COSe MY28 VW313/2CM_B1 11M001', cea: 'CEA 2.1', prev: 'CEA 1.3 to 1.4 (from 1.0 ACOSe)', cls: 'carryover', desc: '2026 first ALS1(1.3) to ALS2(1.4) to MY28 upgrade CEA2.1' },
+  { sop: '2027-10', jv: 'FAW', hut: 'CSP31 CN B SUV BEV 5S VW416/6CN_B CN5V6I', cea: 'CEA 2.1', prev: '-', cls: 'newvar', desc: 'CSP31 platform SUV 5-seat variant' },
+  { sop: '2027-10', jv: 'SVW', hut: 'CSP31 CS B NB EREV VW423/1CS_E CS0V6I', cea: 'CEA 2.2', prev: '-', cls: 'newvar', desc: 'New powertrain EREV, SVW NB' },
+  { sop: '2027-11', jv: 'FAW', hut: 'CSP31 CN B SUV EREV 5S VW416/6CN_E CN5001', cea: 'CEA 2.2', prev: '-', cls: 'newvar', desc: 'New PT EREV + FAW SUV 5S' },
+  { sop: '2028-01', jv: 'SVW', hut: 'CSP31 CS A+ SUV BEV VW326/6CS_B CS2V6E', cea: 'CEA 2.3', prev: '-', cls: 'allnew', desc: 'CSP31B platform A+ SUV first launch' },
+  { sop: '2028-03', jv: 'FAW', hut: 'CSP31 CN B NB BEV VW423/1CN_B CN4V6E', cea: 'CEA 2.3', prev: '-', cls: 'newvar', desc: 'FAW CS B NB BEV' },
+  { sop: '2028-03', jv: 'FAW', hut: 'CSP31 CN B NB EREV VW423/1CN_E CN4V6F', cea: 'CEA 2.4', prev: '-', cls: 'newvar', desc: 'FAW CS B NB + EREV' },
+  { sop: '2028-03', jv: 'SVW', hut: 'CSP31 CS A+ SUV EREV VW326/6CS_E CS2001', cea: 'CEA 2.3', prev: '-', cls: 'newvar', desc: 'A+ SUV + EREV variant' },
+  { sop: '2028-10', jv: 'FAW', hut: 'CSP31 CN B SUV EREV 6S VW416/5CN_E CN2V6I', cea: 'CEA 2.2', prev: '-', cls: 'newvar', desc: '5S to 6S body variant' }
+];
+
+function hutClsTag(cls) {
+  if (cls === 'allnew') return '<span class="hut-cls-tag hut-cls-allnew">ALL-NEW</span>';
+  if (cls === 'newvar') return '<span class="hut-cls-tag hut-cls-newvar">NEW VARIANT</span>';
+  return '<span class="hut-cls-tag hut-cls-carryover">CARRY-OVER</span>';
 }
-.edit-save-btn{background:var(--green);border-color:var(--green);color:#fff}
-.edit-cancel-btn{background:transparent;border-color:var(--muted);color:var(--muted)}
-.row-modified td{border-left:2px solid var(--orange)!important}
-.row-modified::before{content:''}
+function hutJvTag(jv) {
+  return '<span class="hut-jv-tag hut-jv-' + jv.toLowerCase() + '">' + jv + '</span>';
+}
 
-/* Toast */
-.toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transform:translateY(20px);transition:all .3s;box-shadow:0 4px 16px rgba(0,0,0,.4)}
-.toast.show{opacity:1;transform:translateY(0)}
-.toast.success{background:var(--green);color:#fff}
-.toast.error{background:var(--red);color:#fff}
-.toast.info{background:var(--blue);color:#fff}
+function renderHutTable() {
+  var html = '<thead><tr><th style="width:30px">#</th><th style="width:75px">SOP</th><th style="width:50px">JV</th><th>Hut Name</th><th style="width:80px">CEA 2.X</th><th style="width:100px">CEA 1.X Prev</th><th style="width:110px">Classification</th><th>Description</th></tr></thead><tbody>';
+  HUT_DATA.forEach(function(h, i) {
+    html += '<tr><td>' + (i+1) + '</td><td class="font-bold">' + h.sop + '</td><td>' + hutJvTag(h.jv) + '</td><td class="text-sm">' + h.hut + '</td><td><span class="hut-cea-tag">' + h.cea + '</span></td><td class="text-xs muted">' + h.prev + '</td><td>' + hutClsTag(h.cls) + '</td><td class="text-xs muted">' + h.desc + '</td></tr>';
+  });
+  html += '</tbody>';
+  document.getElementById('hut-table').innerHTML = html;
+}
 
-/* Loading */
-.loading-overlay{position:fixed;inset:0;background:rgba(15,17,23,.8);display:flex;align-items:center;justify-content:center;z-index:99999}
-.loading-overlay.hidden{display:none}
-.loading-spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+function renderSopGroups() {
+  var groups = {};
+  HUT_DATA.forEach(function(h) {
+    if (!groups[h.sop]) groups[h.sop] = [];
+    groups[h.sop].push(h);
+  });
+  var sopDates = Object.keys(groups).sort();
+  var html = '';
+  sopDates.forEach(function(sop, idx) {
+    var huts = groups[sop];
+    var color = idx % 3 === 0 ? 'var(--red)' : idx % 3 === 1 ? 'var(--orange)' : 'var(--blue)';
+    html += '<div class="hut-sop-group" style="border-left-color:' + color + '">';
+    html += '<div class="hut-sop-header">SOP ' + sop + ' <span class="hut-sop-count">' + huts.length + ' Hut' + (huts.length > 1 ? 's' : '') + '</span> <span style="color:var(--muted);font-size:12px;font-weight:400">Release Node ' + (idx+1) + '</span></div>';
+    html += '<table><thead><tr><th>JV</th><th>Hut</th><th>CEA</th><th>Classification</th></tr></thead><tbody>';
+    huts.forEach(function(h) {
+      html += '<tr><td>' + hutJvTag(h.jv) + '</td><td class="text-sm">' + h.hut.split(' VW')[0] + '</td><td><span class="hut-cea-tag">' + h.cea + '</span></td><td>' + hutClsTag(h.cls) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  });
+  document.getElementById('sop-groups').innerHTML = html;
+}
 
-/* Component Management */
-.comp-subtabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0}
-.comp-subtab{background:none;border:none;color:var(--muted);padding:8px 16px;cursor:pointer;font-size:13px;border-radius:6px 6px 0 0;font-weight:500;transition:all .2s;border-bottom:2px solid transparent}
-.comp-subtab:hover{background:var(--card2);color:var(--text)}
-.comp-subtab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
-.comp-subtab-content{margin-top:16px}
+var HUT_ITERATIONS = ['IPD3.0','IPD4.0','IPD5.0','IPD6.0','IPD7.0','CEA 2.0','CEA 2.0.5','CEA 2.1','CEA 2.1.5','CEA 2.2','CEA 2.2.5','CEA 2.3','CEA 2.3.5','CEA 2.4','CEA 2.4.5','CEA 2.5','CEA 2.5.5','CEA 2.6'];
+var HUT_MILESTONES = [
+  { name: 'IPD Kick Off', dates: ['02-09','04-13','06-08','08-03','10-19','11-30','02-15','03-29','05-10','06-21','08-02','09-13','10-25','01-03','02-14','03-27','05-08','06-19'] },
+  { name: 'HW Baseline Freeze', dates: ['03-06','05-01','06-26','08-07','10-23','12-04','02-19','04-02','05-14','06-25','08-06','09-17','10-29','01-07','02-18','03-31','05-12','06-23'] },
+  { name: 'Function Dadian JIRA L3&PRD Freeze', dates: ['03-13','05-08','07-03','08-28','11-06','12-18','03-05','04-16','05-28','07-09','08-21','10-01','11-12','01-21','03-03','04-14','05-26','07-07'] },
+  { name: 'Specs &DBC Requirement Freeze', dates: ['04-03','05-29','07-24','09-18','11-13','12-25','03-12','04-23','06-04','07-16','08-27','10-08','11-19','01-28','03-10','04-21','06-02','07-14'] },
+  { name: 'K-Matrix Release &SysRS Freeze', dates: ['04-24','06-19','08-14','10-09','11-27','01-15','03-26','05-07','06-18','07-30','09-10','10-22','12-03','02-11','03-24','05-05','06-16','07-28'] },
+  { name: 'DI Start', dates: ['06-05','07-31','09-25','11-13','12-25','03-12','04-23','06-04','07-16','08-27','10-08','11-19','01-28','03-10','04-21','06-02','07-14','08-25'] },
+  { name: 'PI HW TBT', dates: ['06-05','07-31','09-25','11-13','12-25','03-12','04-23','06-04','07-16','08-27','10-08','11-19','01-28','03-10','04-21','06-02','07-14','08-25'] },
+  { name: 'PI Start (1st SW Submit)', dates: ['06-19','08-14','10-09','11-27','01-15','03-26','05-07','06-18','07-30','09-09','10-22','12-03','02-11','03-24','05-05','06-16','07-28','09-08'] },
+  { name: 'IPD Platform Release Time', dates: ['07-31','09-24','11-20','01-15','03-12','05-07','06-18','07-30','09-10','10-22','12-03','01-14','03-24','05-05','06-16','07-28','09-08','10-20'] }
+];
 
-.comp-matrix-table{font-size:12px;min-width:100%}
-.comp-matrix-table th{font-size:10px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
-.comp-matrix-table td{padding:4px 6px;white-space:nowrap}
-.comp-matrix-table tbody tr:hover td{background:var(--card2)}
+function renderHutMsTable() {
+  var html = '<thead><tr><th>Milestone / FuSa Activity</th>';
+  HUT_ITERATIONS.forEach(function(it) {
+    html += '<th>' + it + '</th>';
+  });
+  html += '</tr></thead><tbody>';
+  HUT_MILESTONES.forEach(function(ms) {
+    html += '<tr><td><strong>' + ms.name + '</strong></td>';
+    ms.dates.forEach(function(d) {
+      html += '<td><span class="hut-ms-date">' + d + '</span></td>';
+    });
+    html += '</tr>';
+  });
+  html += '<tr class="hut-ms-fusa-row"><td><strong>FuSa Activity Mapping</strong></td><td colspan="' + HUT_ITERATIONS.length + '" class="hut-ms-fusa-placeholder">To be filled: which FuSa activities and deliverables should be completed at each iteration node (System-level / GX / Supplier)</td></tr>';
+  html += '</tbody>';
+  document.getElementById('hut-ms-table').innerHTML = html;
+}
 
-.veh-col{font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);min-width:28px;text-align:center;padding:4px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:28px}
-.veh-cell{text-align:center;font-size:11px;font-weight:600;min-width:28px;max-width:40px}
-.veh-S{background:rgba(76,175,80,.2);color:var(--green)}
-.veh-O{background:rgba(255,152,0,.2);color:var(--orange)}
-.veh-slash{background:var(--card2);color:var(--dim)}
-.veh-text{background:rgba(38,198,218,.15);color:var(--cyan);font-size:9px}
-.veh-empty{background:transparent;color:var(--dim)}
+var HUT_LAYERS = [
+  { layer: 'System-Level', badge: 'sys', owner: 'System/Subsystem FSE\\nSafety managed by FSM', scope: 'ISO 26262 Part 3 + Part 4 (system-level), 14 deliverables (Item Def to HARA to FSC/TSC to Safety Analysis to Integration to Validation to Safety Case)' },
+  { layer: 'GX Embedded', badge: 'gx', owner: 'GX Team (In-house)', scope: 'ISO 26262 Part 2 + Part 4 + Part 5 + Part 6 + Part 7 + Part 8, receives FSR then follows V-model, produces GX Safety Case' },
+  { layer: 'Supplier', badge: 'sup', owner: 'External Supplier\\nManaged by BTV', scope: '9 deliverables before BMG release + Safety Case + Release Report' }
+];
 
-.tag-asil-a{background:rgba(244,67,54,.15);color:var(--red)}
-.tag-asil-b{background:rgba(255,152,0,.15);color:var(--orange)}
-.tag-asil-c{background:rgba(171,71,188,.15);color:var(--purple)}
-.tag-asil-d{background:rgba(74,158,255,.15);color:var(--blue)}
-.tag-asil-qm{background:var(--card2);color:var(--muted)}
+function renderHutLayerTable() {
+  var html = '<thead><tr><th>Layer</th><th>Owner</th><th>Deliverable Scope</th></tr></thead><tbody>';
+  HUT_LAYERS.forEach(function(l) {
+    html += '<tr><td><span class="hut-layer-badge hut-layer-' + l.badge + '">' + l.layer + '</span></td><td class="text-sm">' + l.owner.replace(/\\n/g, '<br>') + '</td><td class="text-xs muted">' + l.scope + '</td></tr>';
+  });
+  html += '</tbody>';
+  document.getElementById('hut-layer-table').innerHTML = html;
+}
 
-/* Upstream Plan */
-.upstream-view-tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
-.upstream-view-tab{background:var(--card2);border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s}
-.upstream-view-tab:hover{border-color:var(--blue);color:var(--text)}
-.upstream-view-tab.active{background:var(--blue);border-color:var(--blue);color:#fff}
-.upstream-view-tab .badge{font-size:10px;padding:1px 6px;border-radius:3px;background:rgba(255,255,255,.15);margin-left:4px}
+var HUT_CLASSIFICATIONS = [
+  { cls: 'allnew', name: 'ALL-NEW', impact: 'Not required', scope: 'Full three-layer FuSa activities (System 14 items + GX Part 2-8 + Supplier 9 items), from Item Definition all new', count: 2 },
+  { cls: 'newvar', name: 'NEW VARIANT', impact: 'Required', scope: 'Impact Analysis determines which activities to reuse and which to delta-develop across three layers', count: 10 },
+  { cls: 'carryover', name: 'CARRY-OVER', impact: 'Required', scope: 'Impact Analysis first to determine which activities can be reused', count: 5 }
+];
 
-.upstream-matrix{font-size:12px;min-width:100%}
-.upstream-matrix th{font-size:10px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;min-width:90px;text-align:center}
-.upstream-matrix th:first-child{text-align:left}
-.upstream-matrix td{padding:6px 8px;white-space:nowrap;text-align:center}
-.upstream-matrix tbody tr:hover td{background:var(--card2)}
-.upstream-row-alt td{background:rgba(255,255,255,.015)}
-.upstream-ms-name{font-size:12px;text-align:left!important}
-.upstream-iter-col{color:var(--blue)}
-.upstream-date{display:inline-block;font-size:11px;font-weight:600;color:var(--text);background:rgba(74,158,255,.08);padding:2px 8px;border-radius:4px;border:1px solid rgba(74,158,255,.15)}
-.upstream-year{font-size:9px;color:var(--muted);font-weight:400}
-.upstream-empty{color:var(--dim);font-size:11px}
+function renderHutClsTable() {
+  var html = '<thead><tr><th>Classification</th><th>Impact Analysis</th><th>Coverage</th><th>Count</th></tr></thead><tbody>';
+  HUT_CLASSIFICATIONS.forEach(function(c) {
+    html += '<tr><td>' + hutClsTag(c.cls) + '</td><td class="text-sm">' + c.impact + '</td><td class="text-xs muted">' + c.scope + '</td><td class="font-bold">' + c.count + '</td></tr>';
+  });
+  html += '</tbody>';
+  document.getElementById('hut-cls-table').innerHTML = html;
+}
 
-/* Upstream sub-tabs */
-.upstream-subtabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0}
-.upstream-subtab{background:none;border:none;color:var(--muted);padding:8px 20px;cursor:pointer;font-size:14px;border-radius:6px 6px 0 0;font-weight:600;transition:all .2s;border-bottom:2px solid transparent}
-.upstream-subtab:hover{background:var(--card2);color:var(--text)}
-.upstream-subtab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
-.upstream-subtab-content{margin-top:0}
+var HUT_IPD_MS = [
+  { name: 'IPD Kick Off', desc: 'Iteration start' },
+  { name: 'HW Baseline Freeze', desc: 'Hardware baseline freeze' },
+  { name: 'Function Dadian JIRA L3&PRD Freeze', desc: 'Function milestone + L3/PRD freeze' },
+  { name: 'Specs &DBC Requirement Freeze', desc: 'Specs + DBC requirements freeze' },
+  { name: 'K-Matrix Release &SysRS Freeze', desc: 'K-matrix release + system requirements freeze' },
+  { name: 'DI Start', desc: 'DI start' },
+  { name: 'PI HW TBT', desc: 'PI hardware TBT' },
+  { name: 'PI Start (1st SW Submit)', desc: 'PI start (first software submit)' },
+  { name: 'IPD Platform Release Time', desc: 'IPD platform release' }
+];
 
-/* Safety Plan status colors */
-.sp-status-planned{background:rgba(255,213,79,.15);color:var(--yellow);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
-.sp-status-progress{background:rgba(74,158,255,.15);color:var(--blue);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
-.sp-status-done{background:rgba(76,175,80,.15);color:var(--green);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
-.sp-status-na{background:var(--card2);color:var(--dim);padding:2px 8px;border-radius:4px;font-size:11px}
-.sp-status-pending{background:rgba(244,67,54,.1);color:var(--red);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
-.sp-level-vehicle{background:rgba(74,158,255,.12);color:var(--blue);font-size:10px;padding:1px 6px;border-radius:3px}
-.sp-level-group{background:rgba(171,71,188,.12);color:var(--purple);font-size:10px;padding:1px 6px;border-radius:3px}
-.sp-level-component{background:rgba(255,152,0,.12);color:var(--orange);font-size:10px;padding:1px 6px;border-radius:3px}
-.sp-level-supplier{background:rgba(76,175,80,.12);color:var(--green);font-size:10px;padding:1px 6px;border-radius:3px}
+function renderHutIpdMsTable() {
+  var html = '<thead><tr><th>PEP Milestone</th><th>Description</th><th>FuSa Activity / Deliverable</th></tr></thead><tbody>';
+  HUT_IPD_MS.forEach(function(m) {
+    html += '<tr><td class="font-bold">' + m.name + '</td><td class="text-sm">' + m.desc + '</td><td class="hut-tobefilled">To be filled</td></tr>';
+  });
+  html += '</tbody>';
+  document.getElementById('hut-ipd-ms-table').innerHTML = html;
+}
 
-/* Component safety list */
-.comp-safety-list{list-style:none;padding:0;margin:0}
-.comp-safety-item{padding:8px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:all .15s;border-left:3px solid transparent}
-.comp-safety-item:hover{background:var(--card2)}
-.comp-safety-item.active{background:rgba(74,158,255,.08);border-left-color:var(--blue)}
-.comp-safety-item .comp-safety-abbr{font-weight:700;font-size:13px;color:var(--text)}
-.comp-safety-item .comp-safety-name{font-size:10px;color:var(--muted);margin-top:2px}
-.comp-safety-item .comp-safety-meta{display:flex;gap:6px;margin-top:4px;align-items:center}
-.comp-safety-item .comp-safety-domain{font-size:9px;color:var(--muted);background:var(--card2);padding:1px 6px;border-radius:3px}
-.comp-safety-item .comp-safety-progress{font-size:10px;color:var(--muted)}
-.comp-safety-item.active .comp-safety-abbr{color:var(--blue)}
-.comp-safety-group-header{padding:6px 12px;font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--card2);border-bottom:1px solid var(--border)}
+var HUT_PEPCEA_MS = [
+  { name: 'Architecture Concept', week: '-144W', desc: 'Architecture concept' },
+  { name: 'Architecture Freeze', week: '-124W', desc: 'Architecture freeze' },
+  { name: 'System Design Freeze', week: '-100W', desc: 'System design freeze' },
+  { name: 'SW Req. Freeze', week: '-90W', desc: 'Software requirements freeze' },
+  { name: 'VP1.0 (AGT Wave I)', week: '-88W', desc: 'Vehicle prototype 1.0' },
+  { name: 'VR1.0', week: '-70W', desc: 'Vehicle release 1.0' },
+  { name: 'IPD 1.0', week: '-60W', desc: 'Integrated product development 1.0' },
+  { name: 'IPD 2.0', week: '-52W', desc: 'Integrated product development 2.0' },
+  { name: 'IPD 3.0', week: '-44W', desc: 'Integrated product development 3.0' },
+  { name: 'IPD 4.0 (PRS)', week: '-36W', desc: 'Integrated product development 4.0' },
+  { name: 'IPD 5.0', week: '-30W', desc: 'IPD 5.0 (Homo HW freeze)' },
+  { name: 'IPD 6.0 (Homo)', week: '-24W', desc: 'IPD 6.0 (Homologation)' },
+  { name: 'IPD 7.0 (0S)', week: '-18W', desc: 'IPD 7.0 (0-Serie)' },
+  { name: 'IPD 7.5 (Bugfix)', week: '-12W', desc: 'IPD 7.5' },
+  { name: 'IPD 8.0', week: '-6W', desc: 'IPD 8.0' },
+  { name: 'SOP', week: '0W', desc: 'Start of Production' }
+];
 
-/* ===== Vehicle Lineage ===== */
-.lineage-table{font-size:12px}
-.lineage-table th{font-size:11px;white-space:nowrap}
-.lineage-table td{vertical-align:top}
-.lineage-platform-break{border-top:2px solid var(--border2)}
-.pg-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600}
-.tag-cmp21{background:rgba(74,158,255,.15);color:var(--blue)}
-.tag-csp31{background:rgba(171,71,188,.15);color:var(--purple)}
-.tag-meb31{background:rgba(76,175,80,.15);color:var(--green)}
-.tag-mqb{background:rgba(255,152,0,.15);color:var(--orange)}
-.lc-new{color:var(--red);font-weight:700}
-.lc-var{color:var(--orange);font-weight:600}
-.lc-co{color:var(--blue)}
-.lc-none{color:var(--dim)}
-.lv-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap}
-.lv-new{background:rgba(244,67,36,.15);color:var(--red)}
-.lv-var{background:rgba(255,152,0,.15);color:var(--orange)}
-.lv-co{background:rgba(74,158,255,.15);color:var(--blue)}
-.lineage-summary-card{padding:16px}
-.lineage-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
-.lineage-dot.lineage-new{background:var(--red)}
-.lineage-dot.lineage-variant{background:var(--orange)}
-.lineage-dot.lineage-carryover{background:var(--blue)}
-
-/* Hut Overview */
-.hut-cls-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
-.hut-cls-allnew{background:rgba(244,67,54,.15);color:var(--red)}
-.hut-cls-newvar{background:rgba(255,152,0,.15);color:var(--orange)}
-.hut-cls-carryover{background:rgba(74,158,255,.15);color:var(--blue)}
-.hut-jv-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600}
-.hut-jv-svw{background:rgba(76,175,80,.15);color:var(--green)}
-.hut-jv-faw{background:rgba(74,158,255,.15);color:var(--blue)}
-.hut-jv-vwa{background:rgba(171,71,188,.15);color:var(--purple)}
-.hut-cea-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:rgba(38,198,218,.12);color:var(--cyan)}
-.hut-sop-group{border-left:4px solid var(--border2);padding-left:16px;margin-bottom:16px}
-.hut-sop-header{font-size:15px;font-weight:700;color:var(--blue);margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.hut-sop-count{background:var(--blue);color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600}
-.hut-ms-table{font-size:11px;min-width:100%;border-collapse:collapse}
-.hut-ms-table th{background:var(--card2);padding:6px 4px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;min-width:50px;position:sticky;top:0;z-index:10}
-.hut-ms-table th:first-child{text-align:left;min-width:180px;position:sticky;left:0;z-index:15;background:var(--card2)}
-.hut-ms-table td{padding:4px 4px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--border)}
-.hut-ms-table td:first-child{text-align:left;font-weight:600;position:sticky;left:0;z-index:5;background:var(--card)}
-.hut-ms-date{display:inline-block;font-size:10px;font-weight:600;color:var(--text);background:rgba(74,158,255,.08);padding:2px 6px;border-radius:4px;border:1px solid rgba(74,158,255,.15)}
-.hut-ms-fusa-row td{background:rgba(255,213,79,.06)!important}
-.hut-ms-fusa-row td:first-child{background:rgba(255,213,79,.12)!important;color:var(--yellow);font-weight:700}
-.hut-ms-fusa-placeholder{color:var(--dim);font-style:italic;font-size:10px}
-.hut-layer-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-right:4px}
-.hut-layer-sys{background:rgba(74,158,255,.15);color:var(--blue)}
-.hut-layer-gx{background:rgba(76,175,80,.15);color:var(--green)}
-.hut-layer-sup{background:rgba(255,152,0,.15);color:var(--orange)}
-.hut-rule-card{background:rgba(255,213,79,.04);border:1px solid rgba(255,213,79,.2);border-radius:8px;padding:16px}
-.hut-tobefilled{color:var(--dim);font-style:italic;font-size:11px}
+function renderHutPepCeaMsTable() {
+  var html = '<thead><tr><th>PEP CEA Milestone</th><th>vs SOP</th><th>Description</th><th>FuSa Activity / Deliverable</th></tr></thead><tbody>';
+  HUT_PEPCEA_MS.forEach(function(m) {
+    html += '<tr><td class="font-bold">' + m.name + '</td><td class="text-xs muted">' + m.week + '</td><td class="text-sm">' + m.desc + '</td><td class="hut-tobefilled">To be filled</td></tr>';
+  });
+  html += '</tbody>';
+  document.getElementById('hut-pepcea-ms-table').innerHTML = html;
+}
