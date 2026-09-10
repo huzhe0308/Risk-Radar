@@ -1,5 +1,5 @@
 :root{
-  --bg:#0f1117; --bg2:#161922; --card:#1a1d27; --card2:#20242f; --border:#2a2d37; --border2:#353944;
+  --bg:#0f1117; --bg2:#161922; --bg3:#1e2130; --card:#1a1d27; --card2:#20242f; --border:#2a2d37; --border2:#353944; --bl:#252830; --hl:#1e2130;
   --text:#e0e0e0; --muted:#7a7e8a; --dim:#555862;
   --blue:#4a9eff; --blue2:#2d6ec9; --green:#4caf50; --green2:#2e7d32; --orange:#ff9800; --orange2:#e65100;
   --red:#f44336; --red2:#c62828; --purple:#ab47bc; --purple2:#6a1b9a; --cyan:#26c6da; --yellow:#ffd54f;
@@ -266,3 +266,40 @@ tr:hover td{background:var(--card2)}
 .hut-layer-sup{background:rgba(255,152,0,.15);color:var(--orange)}
 .hut-rule-card{background:rgba(255,213,79,.04);border:1px solid rgba(255,213,79,.2);border-radius:8px;padding:16px}
 .hut-tobefilled{color:var(--dim);font-style:italic;font-size:11px}
+
+/* Safety Plan Timeline (weekly Gantt) */
+.tl-scroll{overflow:auto;max-height:80vh;border-radius:8px;border:1px solid var(--border)}
+.tl-table{border-collapse:separate;border-spacing:0;font-size:10px;table-layout:fixed}
+.tl-table th{background:var(--card2);color:var(--text);padding:3px 1px;text-align:center;font-weight:600;border-right:1px solid var(--border);position:sticky;top:0;z-index:10}
+.tl-row-header{min-width:200px;text-align:left;font-size:11px;padding:4px 8px;position:sticky;left:0;z-index:15;background:var(--card2);border-right:2px solid var(--border)}
+.tl-year{font-size:9px;min-width:60px;background:var(--bg2)}
+.tl-wk{font-size:7px;min-width:18px;width:18px;max-width:18px;overflow:hidden}
+.tl-wk-month{background:var(--bg3);font-size:8px}
+.tl-cell{border-right:1px solid var(--bl);border-bottom:1px solid var(--bl);min-width:18px;width:18px;max-width:18px;height:30px;position:relative;vertical-align:middle}
+.tl-cell-month{border-left:1px solid var(--border)}
+.tl-ms-row .tl-ms-name{font-weight:600;color:var(--blue)}
+.tl-sep-row td{background:var(--hl)!important;font-weight:700;font-size:10px;color:var(--text);padding:4px 8px;border-top:2px solid var(--border);border-bottom:2px solid var(--border)}
+.tl-sep-row .tl-row-header{background:var(--hl)!important;color:var(--text);font-weight:700}
+.tl-sop-head td{background:var(--bg3)!important;font-weight:700;font-size:10px;padding:3px 8px}
+.tl-sop-head .tl-row-header{background:var(--bg3)!important}
+.tl-sop-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;color:#fff}
+.tl-project-row:hover .tl-row-header{background:rgba(74,158,255,.06)}
+.tl-project-name{white-space:normal;word-break:break-word;vertical-align:middle}
+.tl-jv{display:inline-block;padding:1px 3px;border-radius:2px;font-size:8px;font-weight:600;margin-right:2px}
+.tl-jv-svw{background:rgba(76,175,80,.15);color:var(--green)}
+.tl-jv-faw{background:rgba(74,158,255,.15);color:var(--blue)}
+.tl-jv-vwa{background:rgba(171,71,188,.15);color:var(--purple)}
+.tl-cls{display:inline-block;padding:1px 4px;border-radius:2px;font-size:8px;font-weight:700;margin-right:2px}
+.tl-cls-an{background:rgba(244,67,54,.15);color:var(--red)}
+.tl-cls-nv{background:rgba(255,152,0,.15);color:var(--orange)}
+.tl-cls-co{background:rgba(74,158,255,.15);color:var(--blue)}
+.tl-rsub{font-size:8px;color:var(--dim);margin-top:1px}
+.tl-has-ms{background:rgba(74,158,255,.04)}
+.tl-ms-marker{position:absolute;top:2px;left:50%;transform:translateX(-40%);z-index:20;display:flex;flex-direction:column;align-items:center;white-space:nowrap}
+.tl-tri{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:7px solid var(--blue)}
+.tl-ms-date{font-size:6px;font-weight:600;color:var(--text);margin-top:1px}
+.tl-ms-iter{font-size:6px;color:var(--muted);margin-top:0}
+.tl-fusa-sep td{background:rgba(255,213,79,.06)!important;font-weight:700;color:var(--yellow);font-size:9px;padding:2px 8px}
+.tl-fusa-sep .tl-row-header{background:rgba(255,213,79,.1)!important;color:var(--yellow);font-weight:700}
+.tl-fusa-row td:not(.tl-row-header){background:rgba(255,213,79,.03)!important}
+.tl-fusa-row .tl-row-header{background:rgba(255,213,79,.06)!important;color:var(--yellow)}
