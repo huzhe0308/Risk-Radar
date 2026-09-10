@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEA 2.X Safety Plan Project Dashboard</title>
+  <link rel="stylesheet" href="/safety-plan/styles.css">
+</head>
+<body>
+
+<div class="loading-overlay" id="loading-overlay"><div class="loading-spinner"></div></div>
+
+<header>
+  <div class="logo">CEA 2.X <span>Safety Plan</span> Dashboard</div>
+  <nav>
+    <button class="nav-btn active" data-tab="overview">Overview</button>
+    <button class="nav-btn" data-tab="upstream">CEA 2.X Safety Plan</button>
+    <button class="nav-btn" data-tab="timeline">PEP Timeline</button>
+    <button class="nav-btn" data-tab="deliverables">Deliverables</button>
+    <button class="nav-btn" data-tab="mapping">Safety &harr; PEP</button>
+    <button class="nav-btn" data-tab="components">Components</button>
+    <button class="nav-btn" data-tab="lineage">Vehicle Lineage</button>
+    <button class="nav-btn" data-tab="dashboard">Dashboard</button>
+  </nav>
+  <div class="header-actions">
+    <span class="dirty-indicator" id="dirty-indicator">Unsaved Changes</span>
+    <button onclick="saveAllData()" class="save-btn">Save</button>
+    <button onclick="exportData()">Export</button>
+    <button onclick="resetData()" class="danger">Reset</button>
+  </div>
+</header>
+
+<main>
+<!-- OVERVIEW -->
+<section id="tab-overview" class="tab-content active">
+  <div class="stats-grid" id="overview-stats"></div>
+  <div class="card">
+    <div class="card-title">Product Groups <span class="badge">5 groups &middot; 21 vehicle models</span></div>
+    <div style="overflow-x:auto"><table id="product-groups-table"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">PEP Comparison <span class="badge">PEP24 vs PEP29 vs PEP CEA</span></div>
+    <div style="overflow-x:auto"><table id="pep-comparison-table"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Impact Analysis Classification <span class="badge">CEA 2.X vs CEA 1.X</span></div>
+    <div style="overflow-x:auto"><table id="impact-analysis-table"></table></div>
+  </div>
+</section>
+
+<!-- UPSTREAM PLAN (CEA 2.X Safety Plan) -->
+<section id="tab-upstream" class="tab-content">
+  <div class="upstream-subtabs">
+    <button class="upstream-subtab active" data-usubtab="projectplan">Project Plan</button>
+    <button class="upstream-subtab" data-usubtab="safetyplan">Safety Plan</button>
+    <button class="upstream-subtab" data-usubtab="syssub">System &amp; Subsystem</button>
+    <button class="upstream-subtab" data-usubtab="compsp">Component Safety Plan</button>
+  </div>
+  <div id="usubtab-projectplan" class="upstream-subtab-content active">
+    <div class="stats-grid" id="upstream-stats"></div>
+    <div class="card">
+      <div class="card-title">CEA 2.X E/E Baseline Plan <span class="badge" id="upstream-badge"></span></div>
+      <div class="upstream-view-tabs" id="upstream-view-tabs"></div>
+      <div style="overflow:auto;max-height:75vh"><table id="upstream-matrix-table" class="upstream-matrix"></table></div>
+    </div>
+  </div>
+  <div id="usubtab-safetyplan" class="upstream-subtab-content" style="display:none">
+    <div class="stats-grid" id="safetyplan-stats"></div>
+    <div class="card">
+      <div class="card-title">Safety Plan per Project <span class="badge" id="safetyplan-badge"></span></div>
+      <div class="filters">
+        <span class="filter-label">Project:</span>
+        <select id="safetyplan-project-select"></select>
+        <span class="filter-label">Phase:</span>
+        <select id="safetyplan-phase-select"><option value="">All</option></select>
+        <span class="filter-label">Owner:</span>
+        <select id="safetyplan-owner-select"><option value="">All</option></select>
+        <span class="filter-label">Search:</span>
+        <input type="text" id="safetyplan-search" placeholder="Search activities/deliverables...">
+      </div>
+      <div style="overflow:auto;max-height:70vh"><table id="safetyplan-table"></table></div>
+    </div>
+  </div>
+  <div id="usubtab-syssub" class="upstream-subtab-content" style="display:none">
+    <div class="stats-grid" id="syssub-stats"></div>
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:16px">
+      <div class="card">
+        <div class="card-title">Systems <span class="badge" id="syssub-sys-badge"></span></div>
+        <div id="syssub-sys-list" style="overflow:auto;max-height:65vh"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">System-Level Safety Activities <span class="badge" id="syssub-deliv-badge"></span></div>
+        <p class="muted text-sm mb-16">Phase 4A: System Design &amp; Integration — VCTC issues requirements to component teams</p>
+        <div style="overflow:auto;max-height:60vh"><table id="syssub-table"></table></div>
+      </div>
+    </div>
+  </div>
+  <div id="usubtab-compsp" class="upstream-subtab-content" style="display:none">
+    <div class="stats-grid" id="compsp-stats"></div>
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:16px">
+      <div class="card">
+        <div class="card-title">Components <span class="badge" id="compsp-comp-badge"></span></div>
+        <div class="filters" style="margin-bottom:8px">
+          <input type="text" id="compsp-comp-search" placeholder="Search component..." style="font-size:12px">
+        </div>
+        <div id="compsp-comp-list" style="overflow:auto;max-height:55vh"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Component Safety Plan <span class="badge" id="compsp-deliv-badge"></span></div>
+        <div id="compsp-info" style="margin-bottom:12px"></div>
+        <div class="filters" style="margin-bottom:12px">
+          <span class="filter-label">ISO Part:</span>
+          <select id="compsp-iso-filter"><option value="">All</option></select>
+          <span class="filter-label">Resp:</span>
+          <select id="compsp-resp-filter"><option value="">All</option><option value="gx">GX</option><option value="vctc">VCTC</option><option value="shared">Shared</option></select>
+        </div>
+        <div style="overflow:auto;max-height:55vh"><table id="compsp-table"></table></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section id="tab-timeline" class="tab-content">
+  <div class="card">
+    <div class="card-title">PEP Development Timeline <span class="badge">-170W to +15W &middot; SOP = 0W</span></div>
+    <div class="timeline-container" id="timeline-container"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">CEA Development Key Milestones <span class="badge">HW/SW Freeze Points &amp; IPD Function Maturity</span></div>
+    <div style="overflow-x:auto"><table id="cea-milestones-table"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Synchronization Handshakes <span class="badge">Platform &harr; CEA &harr; Hut &harr; LCM</span></div>
+    <div style="overflow-x:auto"><table id="sync-table"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">TBT (Test Build Tooling) Milestones <span class="badge">Vehicle build schedule</span></div>
+    <div style="overflow-x:auto"><table id="tbt-table"></table></div>
+  </div>
+</section>
+
+<!-- DELIVERABLES -->
+<section id="tab-deliverables" class="tab-content">
+  <div class="card">
+    <div class="card-title">Safety Plan Deliverables Tracker <span class="badge" id="deliv-count"></span></div>
+    <div class="filters">
+      <span class="filter-label">Product Group:</span>
+      <select id="filter-pg"><option value="">All</option></select>
+      <span class="filter-label">Phase:</span>
+      <select id="filter-phase"><option value="">All</option></select>
+      <span class="filter-label">Owner:</span>
+      <select id="filter-owner"><option value="">All</option></select>
+      <span class="filter-label">Search:</span>
+      <input type="text" id="filter-search" placeholder="Search deliverables...">
+    </div>
+    <div style="overflow-x:auto;max-height:70vh"><table id="deliverables-table"></table></div>
+  </div>
+</section>
+
+<!-- MAPPING -->
+<section id="tab-mapping" class="tab-content">
+  <div class="card">
+    <div class="card-title">Safety Activities &harr; PEP Milestone Alignment <span class="badge">ISO 26262 &harr; PEP CEA</span></div>
+    <p class="muted text-sm mb-16">This view maps each Safety Plan activity to the corresponding PEP CEA development milestone, showing when safety deliverables should be available relative to the architecture and development timeline.</p>
+    <div style="overflow-x:auto"><table class="mapping-table" id="mapping-table"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Safety Activity Timeline Bands <span class="badge">Visual alignment on PEP timeline</span></div>
+    <div class="timeline-container" id="mapping-timeline-container"></div>
+  </div>
+</section>
+
+<!-- COMPONENTS -->
+<section id="tab-components" class="tab-content">
+  <div class="stats-grid" id="comp-stats"></div>
+  <div class="card">
+    <div class="card-title">Component Management <span class="badge" id="comp-count-badge"></span></div>
+    <div class="comp-subtabs">
+      <button class="comp-subtab active" data-subtab="matrix">Component Matrix</button>
+      <button class="comp-subtab" data-subtab="supplier">Supplier View</button>
+      <button class="comp-subtab" data-subtab="vehicle">Per-Vehicle Detail</button>
+      <button class="comp-subtab" data-subtab="ecu">ECU Variants</button>
+    </div>
+    <div id="comp-subtab-matrix" class="comp-subtab-content active">
+      <div class="filters">
+        <span class="filter-label">Domain:</span>
+        <select id="comp-filter-domain"><option value="">All</option></select>
+        <span class="filter-label">ASIL:</span>
+        <select id="comp-filter-asil"><option value="">All</option></select>
+        <span class="filter-label">Supplier:</span>
+        <select id="comp-filter-supplier"><option value="">All</option></select>
+        <span class="filter-label">Search:</span>
+        <input type="text" id="comp-filter-search" placeholder="Search components...">
+      </div>
+      <div style="overflow:auto;max-height:70vh"><table id="comp-matrix-table" class="comp-matrix-table"></table></div>
+    </div>
+    <div id="comp-subtab-supplier" class="comp-subtab-content" style="display:none">
+      <div style="overflow:auto;max-height:75vh"><table id="comp-supplier-table"></table></div>
+    </div>
+    <div id="comp-subtab-vehicle" class="comp-subtab-content" style="display:none">
+      <div class="filters">
+        <span class="filter-label">Vehicle:</span>
+        <select id="comp-vehicle-select"></select>
+      </div>
+      <div style="overflow:auto;max-height:70vh"><table id="comp-vehicle-table"></table></div>
+    </div>
+    <div id="comp-subtab-ecu" class="comp-subtab-content" style="display:none">
+      <div style="overflow:auto;max-height:75vh"><table id="comp-ecu-table"></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- VEHICLE LINEAGE -->
+<section id="tab-lineage" class="tab-content">
+  <div class="stats-grid" id="lineage-stats"></div>
+  <div class="card">
+    <div class="card-title">Vehicle Model Lineage Matrix <span class="badge" id="lineage-badge">同一车型跨年型演进</span></div>
+    <p class="muted text-sm mb-16">每款车从上市到停产会经历多次年型更新。红色=全新首发，橙色=新动力总成/新变体，蓝色=年型更新。</p>
+    <div style="overflow:auto;max-height:70vh"><table id="lineage-table" class="lineage-table"></table></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+    <div class="card lineage-summary-card">
+      <div class="card-title"><span class="lineage-dot lineage-new"></span> All-New 首发车型</div>
+      <div id="lineage-new-list" class="text-sm muted"></div>
+    </div>
+    <div class="card lineage-summary-card">
+      <div class="card-title"><span class="lineage-dot lineage-variant"></span> New Variant 新变体</div>
+      <div id="lineage-variant-list" class="text-sm muted"></div>
+    </div>
+    <div class="card lineage-summary-card">
+      <div class="card-title"><span class="lineage-dot lineage-carryover"></span> Carry-over 年型更新</div>
+      <div id="lineage-carryover-list" class="text-sm muted"></div>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<section id="tab-dashboard" class="tab-content">
+  <div class="stats-grid" id="dashboard-stats"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card"><div class="card-title">Deliverables by Phase</div><div id="chart-by-phase"></div></div>
+    <div class="card"><div class="card-title">Deliverables by Owner</div><div id="chart-by-owner"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Deliverables by Product Group</div>
+    <div id="chart-by-pg"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">ISO 26262 Parts Coverage</div>
+    <div style="overflow-x:auto"><table id="iso-parts-table"></table></div>
+  </div>
+</section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="/safety-plan/app.js"></script>
+</body>
+</html>
