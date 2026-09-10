@@ -2329,3 +2329,27 @@ tbody tr:hover { background: #f7fbfb; }
 .change-feed-raw-json { margin-top: 8px; }
 .change-feed-raw-json summary { cursor: pointer; font-size: 11px; color: #475569; padding: 4px 0; }
 .change-feed-raw-json pre { background: rgba(15, 23, 42, 0.92); color: #67e8f9; padding: 10px 14px; border-radius: 8px; font-size: 11px; font-family: "SF Mono", "Fira Code", monospace; overflow-x: auto; max-height: 300px; overflow-y: auto; margin: 0; }
+
+.safety-plan-wrapper {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 120px);
+  min-height: 600px;
+  overflow: hidden;
+}
+.safety-plan-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 12px;
+  background: #0f1117;
+}
+.safety-plan-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #94a3b8;
+  font-size: 14px;
+  z-index: 10;
+}
