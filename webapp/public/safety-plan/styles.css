@@ -349,5 +349,5 @@ table.sptl-g tr.sptl-fusa-sep td.sptl-rn{background:rgba(255,213,79,.12)!importa
 table.sptl-g tr.sptl-fusa-row td:not(.sptl-rn){background:rgba(255,213,79,.03)!important}
 table.sptl-g tr.sptl-fusa-row td.sptl-rn{background:rgba(255,213,79,.06)!important;color:#ffd54f}
 .sptl-fph{color:#555;font-style:italic;font-size:7px}
-.sptl-today-line{position:absolute;top:0;bottom:0;width:1px;background:#ff5252;z-index:8;pointer-events:none}
-.sptl-today-label{position:absolute;top:0;font-size:8px;color:#ff5252;font-weight:700;z-index:9;white-space:nowrap}
+.sptl-today-line{position:absolute;top:0;bottom:0;width:1px;background:#ff5252;z-index:8;pointer-events:none;margin-left:200px}
+.sptl-today-label{position:absolute;top:0;font-size:8px;color:#ff5252;font-weight:700;z-index:9;white-space:nowrap;margin-left:200px}
