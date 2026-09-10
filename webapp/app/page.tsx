@@ -816,7 +816,7 @@ export default function Home() {
           ) : workspaceMode === "change-feed" ? (
             <ChangeFeed token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} />
           ) : workspaceMode === "safety-plan" ? (
-            <SafetyPlanTimeline />
+            <SafetyPlanPanel initialTab="upstream" />
           ) : workspaceMode === "safety-components" ? (
             <SafetyPlanPanel initialTab="components" />
           ) : <>
