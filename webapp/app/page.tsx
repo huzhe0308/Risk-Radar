@@ -20,6 +20,7 @@ import { ExcelAnalysisEmbedded } from "./ExcelAnalysisEmbedded";
 import { CeaVersionView } from "./CeaVersionView";
 import FeishuTableView from "./FeishuTableView";
 import { ChangeFeed } from "./ChangeFeed";
+import { SafetyPlanPanel } from "./SafetyPlanPanel";
 
 const STORAGE_KEY = "time-plan-viewer-v4";
 
@@ -88,7 +89,7 @@ export default function Home() {
   const [arrowDashed, setArrowDashed] = useState(false);
   const [arrowColor, setArrowColor] = useState("#d8ff3e");
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
-  const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline" | "cea" | "feishu-table" | "change-feed">("overview");
+  const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline" | "cea" | "feishu-table" | "change-feed" | "safety-plan">("overview");
   const [ceaExpanded, setCeaExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const changePreviewRef = useRef(false);
@@ -736,6 +737,12 @@ export default function Home() {
               <span className="view-copy"><strong>变更提醒</strong></span>
               {workspaceMode === "change-feed" && <span className="active-dot" />}
             </button>
+            <div className="sidebar-divider" />
+            <button className={`view-item ${workspaceMode === "safety-plan" ? "active" : ""}`} onClick={() => { setWorkspaceMode("safety-plan"); setSelectedProjectId(""); setSelectedMilestone(null); }}>
+              <span className="view-icon">(EIF)</span>
+              <span className="view-copy"><strong>Safety Plan</strong></span>
+              {workspaceMode === "safety-plan" && <span className="active-dot" />}
+            </button>
           </div>
           <div className="sidebar-foot">
             <p>{changePreview ? "变更预览不会覆盖当前计划" : "本地自动保存已开启"}</p>
@@ -745,9 +752,9 @@ export default function Home() {
         <section className="content">
           <div className="page-heading">
             <div>
-              <div className="breadcrumb">{workspaceMode === "feishu-table" ? "功能区 / 飞书表格" : workspaceMode === "change-feed" ? "功能区 / 变更提醒" : `功能区 / ${activeView.name}`}</div>
+              <div className="breadcrumb">{workspaceMode === "feishu-table" ? "功能区 / 飞书表格" : workspaceMode === "change-feed" ? "功能区 / 变更提醒" : workspaceMode === "safety-plan" ? "功能区 / Safety Plan" : `功能区 / ${activeView.name}`}</div>
               <h1>{data.title}</h1>
-              <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : workspaceMode === "change-feed" ? "实时监控飞书多维表格的数据变更，展示字段级差异对比。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
+              <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : workspaceMode === "change-feed" ? "实时监控飞书多维表格的数据变更，展示字段级差异对比。" : workspaceMode === "safety-plan" ? "CEA 2.X 功能安全计划 Dashboard：交付物、PEP时间线、组件管理、车型谱系。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
             </div>
             <div className="plan-heading-actions">
               {workspaceMode === "timeline" && <>
@@ -791,6 +798,8 @@ export default function Home() {
             <FeishuTableView token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} onFeishuImport={() => { setFeishuStatus(""); setShowFeishuImport(true); }} />
           ) : workspaceMode === "change-feed" ? (
             <ChangeFeed token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} />
+          ) : workspaceMode === "safety-plan" ? (
+            <SafetyPlanPanel />
           ) : <>
           <div className="toolbar">
             <div className="search-field"><Icon>⌕</Icon><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目、里程碑或备注…" /><kbd>⌘ K</kbd></div>
