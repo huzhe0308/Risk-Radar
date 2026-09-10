@@ -6,22 +6,17 @@ export function SafetyPlanPanel({ initialTab }: { initialTab?: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    if (loaded && initialTab && iframeRef.current) {
-      iframeRef.current.contentWindow?.postMessage(
-        { type: "switch-tab", tab: initialTab },
-        "*"
-      );
-    }
-  }, [loaded, initialTab]);
+  const src = initialTab
+    ? `/safety-plan/index.html?tab=${initialTab}`
+    : "/safety-plan/index.html";
 
   return (
     <div className="safety-plan-wrapper">
-      {!loaded && <div className="safety-plan-loading">Loading Safety Plan Dashboard…</div>}
+      {!loaded && <div className="safety-plan-loading">Loading…</div>}
       <iframe
         ref={iframeRef}
-        src={initialTab ? `/safety-plan/index.html#${initialTab}` : "/safety-plan/index.html"}
-        title="CEA 2.X Safety Plan Dashboard"
+        src={src}
+        title="Safety Plan Dashboard"
         className="safety-plan-iframe"
         onLoad={() => setLoaded(true)}
       />
