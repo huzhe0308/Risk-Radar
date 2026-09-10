@@ -1,23 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Milestone, Project, View } from "./types";
-import { ProjectPlanCanvas } from "./ProjectPlanCanvas";
 
 type MatrixVal = string | string[];
 
 type UpstreamProject = {
   name: string;
-  tags?: string;
-  remark?: string;
   matrix: Record<string, MatrixVal>;
 };
 
 type UpstreamView = {
-  source?: string;
-  exportDate?: string;
   iterations: string[];
-  milestoneTypes?: string[];
   projects: UpstreamProject[];
 };
 
@@ -31,183 +24,203 @@ type SafetyPlanData = {
 
 const TOKEN = process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || "123456";
 
-const ITERATION_COLORS: Array<{ bg: string; text: string }> = [
-  { bg: "#0d4f4a", text: "#a7f3d0" },
-  { bg: "#1a3a5c", text: "#93c5fd" },
-  { bg: "#3c2a1a", text: "#fbbf24" },
-  { bg: "#3a1a2c", text: "#f9a8d4" },
-  { bg: "#1a2c3a", text: "#67e8f9" },
-  { bg: "#2c1a3a", text: "#c4b5fd" },
-  { bg: "#3a3a1a", text: "#fde047" },
-  { bg: "#1a3a2c", text: "#6ee7b7" },
-  { bg: "#2a2a2a", text: "#e2e8f0" },
+const TIMELINE_START = new Date("2026-01-05T00:00:00");
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const TOTAL_WEEKS = 156;
+
+const SOP_COLORS = ["#e74c3c", "#e67e22", "#3498db", "#9b59b6", "#1abc9c", "#2ecc71", "#f39c12", "#e91e63"];
+
+const HUT_DATA = [
+  { sop: "2027-05", jv: "SVW", hut: "CMP21 CS A SUV MY27 VW316/9CS_B1 2ECV6H", cea: "CEA 2.0", cls: "carryover" },
+  { sop: "2027-05", jv: "FAW", hut: "CMP21 CN A NB PHEV VW311/1CN_P 2EFV6H", cea: "CEA 2.0", cls: "newvar" },
+  { sop: "2027-05", jv: "FAW", hut: "CMP21 CN A Main SUV BEV VW316/9CN_B 2EGV6H", cea: "CEA 2.0", cls: "newvar" },
+  { sop: "2027-08", jv: "FAW", hut: "CMP21 CN A NB MY27 VW311/1CN_B1 2EF001", cea: "CEA 2.1", cls: "carryover" },
+  { sop: "2027-08", jv: "SVW", hut: "CMP21 CS A SUV PHEV VW316/9CS_P 2EPV6K", cea: "CEA 2.2", cls: "newvar" },
+  { sop: "2027-08", jv: "SVW", hut: "CSP31 CS B NB BEV VW423/1CS_B CS0V6K", cea: "CEA 2.1", cls: "allnew" },
+  { sop: "2027-09", jv: "VWA", hut: "MEB31 CM A SUVe MY28 VW316/8CM_B1 11H001", cea: "CEA 2.0", cls: "carryover" },
+  { sop: "2027-09", jv: "FAW", hut: "MEB31 CN ID4 PA MY28 VW316/6CN_B1 CN0001", cea: "CEA 2.1", cls: "carryover" },
+  { sop: "2027-09", jv: "VWA", hut: "MEB31 CM A COSe MY28 VW313/2CM_B1 11M001", cea: "CEA 2.1", cls: "carryover" },
+  { sop: "2027-10", jv: "FAW", hut: "CSP31 CN B SUV BEV 5S VW416/6CN_B CN5V6I", cea: "CEA 2.1", cls: "newvar" },
+  { sop: "2027-10", jv: "SVW", hut: "CSP31 CS B NB EREV VW423/1CS_E CS0V6I", cea: "CEA 2.2", cls: "newvar" },
+  { sop: "2027-11", jv: "FAW", hut: "CSP31 CN B SUV EREV 5S VW416/6CN_E CN5001", cea: "CEA 2.2", cls: "newvar" },
+  { sop: "2028-01", jv: "SVW", hut: "CSP31 CS A+ SUV BEV VW326/6CS_B CS2V6E", cea: "CEA 2.3", cls: "allnew" },
+  { sop: "2028-03", jv: "FAW", hut: "CSP31 CN B NB BEV VW423/1CN_B CN4V6E", cea: "CEA 2.3", cls: "newvar" },
+  { sop: "2028-03", jv: "FAW", hut: "CSP31 CN B NB EREV VW423/1CN_E CN4V6F", cea: "CEA 2.4", cls: "newvar" },
+  { sop: "2028-03", jv: "SVW", hut: "CSP31 CS A+ SUV EREV VW326/6CS_E CS2001", cea: "CEA 2.3", cls: "newvar" },
+  { sop: "2028-10", jv: "FAW", hut: "CSP31 CN B SUV EREV 6S VW416/5CN_E CN2V6I", cea: "CEA 2.2", cls: "newvar" },
 ];
 
-const TYPE_COLORS = [
-  "#d8ff3e",
-  "#7dd3fc",
-  "#f9a8d4",
-  "#fbbf24",
-  "#a7f3d0",
-  "#c4b5fd",
-  "#fda4af",
-  "#93c5fd",
-  "#fde047",
+const FUSA_ROWS: { section: string; items: { name: string; desc: string }[] }[] = [
+  {
+    section: "System Level (14 Items)",
+    items: [
+      { name: "01 - Item Definition", desc: "ALL-NEW: full; VARIANT/CARRY-OVER: per IA" },
+      { name: "02 - Impact Analysis", desc: "ALL-NEW: skip; VARIANT/CARRY-OVER: first" },
+      { name: "03 - HARA", desc: "ALL-NEW: full; VARIANT: delta; CARRY-OVER: per IA" },
+      { name: "04 - Safety Plan", desc: "Based on IA + HARA" },
+      { name: "05 - FSC/TSC", desc: "After HARA" },
+      { name: "06/07/08 - FMEA/FTA/DFA", desc: "After FSC/TSC" },
+      { name: "09 - Integration & Test Strategy", desc: "After Safety Analysis" },
+      { name: "10 - Integration & Test Case", desc: "After Strategy" },
+      { name: "11 - Integration & Test Report", desc: "After VFF" },
+      { name: "12 - Safety Validation Plan", desc: "Before validation" },
+      { name: "13 - Safety Validation Report", desc: "After validation" },
+      { name: "14 - Safety Case", desc: "Before 0S" },
+    ],
+  },
+  {
+    section: "GX / In-house Layer",
+    items: [
+      { name: "GX Safety Plan", desc: "Follows VCTC" },
+      { name: "GX TSR/TSC/Design", desc: "Part 4" },
+      { name: "GX HW Dev", desc: "Part 5" },
+      { name: "GX SW Dev", desc: "Part 6" },
+      { name: "GX Safety Case + Release", desc: "Consolidate" },
+    ],
+  },
+  {
+    section: "Supplier / BTV Layer",
+    items: [
+      { name: "DIA Signed", desc: "Prerequisite" },
+      { name: "Supplier Safety Plan (3-1)", desc: "After DIA" },
+      { name: "Supplier TSC (3-4)", desc: "After FSR" },
+      { name: "Supplier Safety Analysis (3-5)", desc: "FMEA+FTA+DFA" },
+      { name: "Supplier FMEDA (3-8)", desc: "After HW design" },
+      { name: "Supplier Integration Test (3-6/3-7)", desc: "After integration" },
+      { name: "Supplier Safety Case + Release (3-2/3-3)", desc: "Before BMG" },
+      { name: "BMG Release", desc: "All prerequisites" },
+    ],
+  },
+  {
+    section: "Vehicle Release",
+    items: [
+      { name: "System Safety Case Consolidation", desc: "All layers -> system" },
+      { name: "Vehicle Release", desc: "Per SOP node" },
+    ],
+  },
 ];
 
-const GROUP_DEFS: Record<string, { label: string; icon: string }> = {
-  ipd: { label: "IPD 迭代", icon: "◆" },
-  cea: { label: "CEA 平台", icon: "★" },
+const PLATFORM_SHORT_NAMES: Record<string, string> = {
+  "IPD Kick Off": "IPD Kick Off",
+  "HW Baseline Freeze": "HW Baseline Freeze",
+  "Function Dadian JIRA L3&PRD Freeze": "Func Dadian & PRD",
+  "Specs &DBC Requirement Freeze": "Specs & DBC Req Freeze",
+  "K-Matrix Release &SysRS Freeze": "K-Matrix & SysRS",
+  "DI Start": "DI Start",
+  "PI HW TBT": "PI HW TBT",
+  "PI Start (1st SW Submit)": "PI Start (1st SW)",
+  "IPD Platform Release Time": "IPD Release",
 };
 
-function normGroup(key: string): string {
-  return /^IPD/i.test(key) ? "ipd" : "cea";
+function weekIndex(dateStr: string): number {
+  const d = new Date(dateStr + "T00:00:00");
+  const diff = d.getTime() - TIMELINE_START.getTime();
+  return Math.floor(diff / WEEK_MS);
 }
 
-function shortDate(value: string): string {
-  const parts = value.split("-");
-  return parts.length === 3 ? `${parts[1]}/${parts[2]}` : value;
+function dayOffsetInWeek(dateStr: string): number {
+  const d = new Date(dateStr + "T00:00:00");
+  const dayOfWeek = d.getDay() || 7;
+  return (dayOfWeek - 1) / 7;
 }
 
-function earliest(matrix: Record<string, MatrixVal>): string {
-  let earliest = "9999";
-  for (const val of Object.values(matrix)) {
+function shortDate(s: string): string {
+  const parts = s.split("-");
+  return parts.length === 3 ? `${parts[1]}/${parts[2]}` : s;
+}
+
+function getISOWeek(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+type WeekCell = { year: number; month: number; week: number; isMonthStart: boolean };
+type Milestone = { date: string; label: string; color: string };
+
+function buildWeeks(): WeekCell[] {
+  const weeks: WeekCell[] = [];
+  const cur = new Date(TIMELINE_START);
+  let prevMonth = -1;
+  for (let i = 0; i < TOTAL_WEEKS; i++) {
+    const thursday = new Date(cur);
+    thursday.setDate(cur.getDate() + 3);
+    const m = thursday.getMonth() + 1;
+    const isMonthStart = m !== prevMonth;
+    weeks.push({ year: thursday.getFullYear(), month: m, week: getISOWeek(cur), isMonthStart });
+    prevMonth = m;
+    cur.setDate(cur.getDate() + 7);
+  }
+  return weeks;
+}
+
+const years = [2026, 2027, 2028];
+
+function findHutView(jv: string, data: SafetyPlanData): UpstreamView | null {
+  const map: Record<string, string> = { FAW: "FAW", SVW: "SVW", VWA: "VWA" };
+  const name = map[jv];
+  return data.upstreamPlan?.views?.[name] || null;
+}
+
+function findHutMilestones(hut: typeof HUT_DATA[0], data: SafetyPlanData): Milestone[] {
+  const view = findHutView(hut.jv, data);
+  if (!view) return [];
+  const proj = view.projects.find((p) => p.name === hut.hut);
+  if (!proj) return [];
+  const result: Milestone[] = [];
+  const color = hut.cls === "allnew" ? "#e74c3c" : hut.cls === "newvar" ? "#e67e22" : "#3498db";
+  for (const [iter, val] of Object.entries(proj.matrix)) {
+    if (!iter) continue;
     const dates = Array.isArray(val) ? val : [val];
     for (const d of dates) {
-      if (d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d < earliest) earliest = d;
+      if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+      result.push({ date: d, label: iter, color });
     }
   }
-  return earliest === "9999" ? "" : earliest;
+  return result;
 }
 
-function viewRange(view: UpstreamView): { start: string; end: string } {
-  let min = "9999";
-  let max = "0000";
-  for (const p of view.projects) {
-    for (const val of Object.values(p.matrix)) {
-      const dates = Array.isArray(val) ? val : [val];
-      for (const d of dates) {
-        if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
-        if (d < min) min = d;
-        if (d > max) max = d;
-      }
+function findPlatformMilestones(projName: string, data: SafetyPlanData): Milestone[] {
+  const view = data.upstreamPlan?.views?.["CEA 2.X Platform"];
+  if (!view) return [];
+  const proj = view.projects.find((p) => p.name === projName);
+  if (!proj) return [];
+  const result: Milestone[] = [];
+  for (const [iter, val] of Object.entries(proj.matrix)) {
+    const dates = Array.isArray(val) ? val : [val];
+    for (const d of dates) {
+      if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+      result.push({ date: d, label: iter, color: "#002733" });
     }
   }
-  if (min === "9999") return { start: "2026-01-05", end: "2029-01-01" };
-  const start = new Date(`${min}T00:00:00`);
-  start.setDate(start.getDate() - 14);
-  const end = new Date(`${max}T00:00:00`);
-  end.setDate(end.getDate() + 21);
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  return { start: iso(start), end: iso(end) };
+  return result;
 }
 
-function buildPlatformRows(view: UpstreamView): { projects: Project[] } {
-  const iterationDates = new Map<string, string>();
-  for (const p of view.projects) {
-    for (const [iter, val] of Object.entries(p.matrix)) {
-      const dates = Array.isArray(val) ? val : [val];
-      for (const d of dates) {
-        if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
-        const prev = iterationDates.get(iter);
-        if (!prev || d < prev) iterationDates.set(iter, d);
-      }
-    }
+const clsLabel: Record<string, string> = { allnew: "ALL-NEW", newvar: "NEW VARIANT", carryover: "CARRY-OVER" };
+const clsClass: Record<string, string> = { allnew: "ct-an", newvar: "ct-nv", carryover: "ct-co" };
+const jvClass: Record<string, string> = { FAW: "j-faw", SVW: "j-svw", VWA: "j-vwa" };
+
+const SOP_GROUPS = (() => {
+  const groups: Record<string, typeof HUT_DATA> = {};
+  for (const h of HUT_DATA) {
+    if (!groups[h.sop]) groups[h.sop] = [];
+    groups[h.sop].push(h);
   }
+  return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+})();
 
-  const iterations = [...iterationDates.entries()]
-    .map(([key, date]) => ({ key, date }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-
-  const colorByType = new Map<string, string>();
-  view.projects.forEach((p, i) => colorByType.set(p.name, TYPE_COLORS[i % TYPE_COLORS.length]));
-
-  const projects: Project[] = iterations.map((row, rowIdx) => {
-    const colors = ITERATION_COLORS[rowIdx % ITERATION_COLORS.length];
-    const milestones: Milestone[] = [];
-    view.projects.forEach((p) => {
-      const val = p.matrix[row.key];
-      if (!val) return;
-      const dates = Array.isArray(val) ? val : [val];
-      dates.forEach((d, di) => {
-        if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
-        milestones.push({
-          id: `${row.key}__${p.name}__${di}`,
-          iteration: p.name,
-          releaseDate: d,
-          remark: shortDate(d),
-          detailRemark: row.key,
-          color: colorByType.get(p.name) || "#d8ff3e",
-          textColor: colors.text,
-          shape: "diamond",
-        });
-      });
-    });
-    milestones.sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
-    return {
-      uuid: `sp_${row.key}`,
-      name: row.key,
-      tag: GROUP_DEFS[normGroup(row.key)]?.label || "CEA 平台",
-      detailRemark: "",
-      bgColor: colors.bg,
-      textColor: colors.text,
-      milestones,
-      viewId: "safety-plan",
-    } as Project;
-  });
-
-  return { projects };
-}
-
-function buildVehicleRows(view: UpstreamView): { projects: Project[] } {
-  const rows = view.projects
-    .map((p) => ({ p, date: earliest(p.matrix) }))
-    .filter((row) => row.date)
-    .sort((a, b) => a.date.localeCompare(b.date));
-
-  const projects: Project[] = rows.map((row, rowIdx) => {
-    const colors = ITERATION_COLORS[rowIdx % ITERATION_COLORS.length];
-    const marker = row.p.name.includes("Vehicle MS") ? "triangle" : "circle";
-    const milestones: Milestone[] = [];
-    Object.entries(row.p.matrix).forEach(([iter, val]) => {
-      if (!iter) return;
-      const dates = Array.isArray(val) ? val : [val];
-      dates.forEach((d, di) => {
-        if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
-        milestones.push({
-          id: `${row.p.name}__${iter}__${di}`,
-          iteration: iter,
-          releaseDate: d,
-          remark: shortDate(d),
-          detailRemark: "",
-          color: colors.text,
-          textColor: colors.text,
-          shape: marker,
-        });
-      });
-    });
-    milestones.sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
-    return {
-      uuid: `sp_${row.p.name}`,
-      name: row.p.name,
-      tag: row.p.tags || "",
-      detailRemark: row.p.remark || "",
-      bgColor: colors.bg,
-      textColor: colors.text,
-      milestones,
-      viewId: "safety-plan",
-    } as Project;
-  });
-
-  return { projects };
-}
+const todayWeekIdx = (() => {
+  const now = new Date();
+  if (now < TIMELINE_START) return -1;
+  const idx = weekIndex(now.toISOString().slice(0, 10));
+  return idx >= 0 && idx < TOTAL_WEEKS ? idx : -1;
+})();
 
 export function SafetyPlanTimeline() {
   const [data, setData] = useState<SafetyPlanData | null>(null);
   const [error, setError] = useState("");
-  const [viewName, setViewName] = useState("CEA 2.X Platform");
-  const [columnWidth, setColumnWidth] = useState(20);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ ipd: true, cea: false });
 
   useEffect(() => {
     let cancelled = false;
@@ -219,144 +232,188 @@ export function SafetyPlanTimeline() {
           const body = await res.json();
           if (body?.upstreamPlan) parsed = body;
         }
-      } catch {
-        /* fall through to static json */
-      }
+      } catch {}
       try {
         if (!parsed) {
           const res = await fetch("/safety-plan/data.json");
           if (res.ok) parsed = await res.json();
         }
-      } catch {
-        /* ignore */
-      }
+      } catch {}
       if (cancelled) return;
-      if (parsed?.upstreamPlan) {
-        setData(parsed);
-        const names = Object.keys(parsed.upstreamPlan!.views);
-        if (names.length > 0) setViewName(names[0]);
-      } else {
-        setError("Safety Plan 数据加载失败");
-      }
+      if (parsed?.upstreamPlan) setData(parsed);
+      else setError("Safety Plan 数据加载失败");
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  const viewNames = useMemo(() => (data?.upstreamPlan ? Object.keys(data.upstreamPlan.views) : []), [data]);
-  const upView = data?.upstreamPlan?.views?.[viewName] || null;
+  const weeks = useMemo(() => buildWeeks(), []);
 
-  const { projects, isPlatform } = useMemo(() => {
-    if (!upView) return { projects: [] as Project[], isPlatform: false };
-    const platformLike = viewName === "CEA 2.X Platform" || viewName === "IPD &MS Match";
-    const built = platformLike ? buildPlatformRows(upView) : buildVehicleRows(upView);
-    return { ...built, isPlatform: platformLike };
-  }, [upView, viewName]);
+  const platformRows = useMemo(() => {
+    if (!data) return [];
+    const view = data.upstreamPlan?.views?.["CEA 2.X Platform"];
+    if (!view) return [];
+    return view.projects.map((p) => ({
+      name: PLATFORM_SHORT_NAMES[p.name] || p.name,
+      milestones: findPlatformMilestones(p.name, data),
+    }));
+  }, [data]);
 
-  const range = useMemo(() => (upView ? viewRange(upView) : { start: "2026-01-05", end: "2029-01-01" }), [upView]);
+  const sopHutRows = useMemo(() => {
+    if (!data) return [];
+    return SOP_GROUPS.map(([sop, huts]) => ({
+      sop,
+      hutCount: huts.length,
+      color: SOP_COLORS[0],
+      huts: huts.map((h) => ({
+        ...h,
+        milestones: findHutMilestones(h, data),
+      })),
+    }));
+  }, [data]);
 
-  const visibleProjects = useMemo(() => {
-    if (!isPlatform) return projects;
-    return projects.filter((p) => !collapsed[normGroup(p.name)]);
-  }, [projects, collapsed, isPlatform]);
+  if (error) return <div className="sptl-empty"><p>{error}</p></div>;
+  if (!data) return <div className="sptl-empty"><p>加载 Safety Plan 数据…</p></div>;
 
-  const groupStats = useMemo(() => {
-    if (!isPlatform) return [];
-    const ipdRows = projects.filter((p) => normGroup(p.name) === "ipd");
-    const ceaRows = projects.filter((p) => normGroup(p.name) === "cea");
-    return [
-      { id: "ipd" as const, label: GROUP_DEFS.ipd.label, icon: GROUP_DEFS.ipd.icon, count: ipdRows.length, msCount: ipdRows.reduce((s, p) => s + p.milestones.length, 0) },
-      { id: "cea" as const, label: GROUP_DEFS.cea.label, icon: GROUP_DEFS.cea.icon, count: ceaRows.length, msCount: ceaRows.reduce((s, p) => s + p.milestones.length, 0) },
-    ].filter((g) => g.count > 0);
-  }, [projects, isPlatform]);
-
-  const ceaView = useMemo<View>(
-    () => ({
-      id: `safety-plan_${viewName}`,
-      name: viewName,
-      type: "plan",
-      startDate: range.start,
-      endDate: range.end,
-      content: `${data?.upstreamPlan?.source || viewName}`,
-      columnWidth,
-      projects: visibleProjects,
-      connections: [],
-    }),
-    [viewName, range, columnWidth, visibleProjects, data],
-  );
-
-  const legendColors = useMemo(() => {
-    if (!isPlatform || !upView) return [];
-    return upView.projects.map((p, i) => ({ name: p.name, color: TYPE_COLORS[i % TYPE_COLORS.length] }));
-  }, [upView, isPlatform]);
-
-  if (error) return <div className="cea-version-empty"><p>{error}</p></div>;
-  if (!data || !upView) return <div className="cea-version-empty"><p>加载 Safety Plan 数据…</p></div>;
+  const totalMs = platformRows.reduce((s, r) => s + r.milestones.length, 0) + sopHutRows.reduce((s, g) => s + g.huts.reduce((s2, h) => s2 + h.milestones.length, 0), 0);
 
   return (
-    <section className="cea-version-view">
-      <div className="cea-version-toolbar">
-        <select value={viewName} onChange={(e) => setViewName(e.target.value)} className="toolbar-select">
-          {viewNames.map((name) => <option key={name} value={name}>{name}</option>)}
-        </select>
-        <span className="cea-version-count">{visibleProjects.length} 行 · {visibleProjects.reduce((s, p) => s + p.milestones.length, 0)} 个里程碑 · 导出 {data.upstreamPlan?.exportDate || "—"}</span>
-        <span style={{ flex: 1 }} />
-        <span className="column-width-control">
-          <button onClick={() => setColumnWidth((w) => Math.max(10, w - 2))}>−</button>
-          <input type="number" min="10" max="120" value={columnWidth} onChange={(e) => { const v = Number(e.target.value); if (!Number.isNaN(v) && v >= 8 && v <= 200) setColumnWidth(v); }} />
-          <span>px / 周</span>
-          <button onClick={() => setColumnWidth((w) => Math.min(120, w + 2))}>＋</button>
-        </span>
+    <div className="sptl-wrap">
+      <div className="sptl-title">CEA 2.X Safety Plan Timeline</div>
+      <div className="sptl-sub">17 Huts | 8 SOP Nodes | Weekly Calendar 2026-01-05 ~ 2028-12-25 | 156 weeks</div>
+      <div className="sptl-stats">
+        <div className="sptl-sc"><span className="n">17</span><span className="l">Huts</span></div>
+        <div className="sptl-sc" style={{ borderBottomColor: "#e74c3c" }}><span className="n" style={{ color: "#e74c3c" }}>2</span><span className="l">All-New</span></div>
+        <div className="sptl-sc" style={{ borderBottomColor: "#e67e22" }}><span className="n" style={{ color: "#e67e22" }}>10</span><span className="l">New Variant</span></div>
+        <div className="sptl-sc" style={{ borderBottomColor: "#3498db" }}><span className="n" style={{ color: "#3498db" }}>5</span><span className="l">Carry-Over</span></div>
+        <div className="sptl-sc"><span className="n">8</span><span className="l">SOP Nodes</span></div>
+        <div className="sptl-sc"><span className="n">{totalMs}</span><span className="l">Milestones</span></div>
       </div>
+      <div className="sptl-gbox">
+        <div className="sptl-twrap">
+          <table className="sptl-g">
+            <thead>
+              <tr>
+                <th className="rn" rowSpan={2}>Project / Hut</th>
+                {years.map((y) => <th key={y} className="yr" colSpan={52}>{y}</th>)}
+              </tr>
+              <tr>
+                {weeks.map((w, i) => (
+                  <th key={i} className={`wk${w.isMonthStart ? " m" : ""}`}>{w.isMonthStart ? w.month : ""}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {platformRows.map((row) => (
+                <tr key={row.name}>
+                  <td className="rn">{row.name}</td>
+                  {weeks.map((_, wi) => {
+                    const ms = row.milestones.filter((m) => weekIndex(m.date) === wi);
+                    return (
+                      <td key={wi} className={weeks[wi].isMonthStart ? "month-border" : ""} style={{ position: "relative" }}>
+                        {ms.map((m, mi) => {
+                          const off = dayOffsetInWeek(m.date);
+                          return (
+                            <div key={mi} className="ms" style={{ left: `${off * 100}%` }}>
+                              <div className="tri" style={{ borderBottomColor: m.color }} />
+                              <div className="dl">{shortDate(m.date)}</div>
+                              <div className="il">{m.label}</div>
+                            </div>
+                          );
+                        })}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
 
-      {isPlatform && (
-        <>
-          <div className="cea-group-bar">
-            {groupStats.map((g) => {
-              const isCollapsed = collapsed[g.id];
-              return (
-                <button
-                  key={g.id}
-                  className={`cea-group-chip ${isCollapsed ? "collapsed" : ""}`}
-                  style={{ background: ITERATION_COLORS[g.id === "ipd" ? 0 : 1].bg, color: ITERATION_COLORS[g.id === "ipd" ? 0 : 1].text }}
-                  onClick={() => setCollapsed((p) => ({ ...p, [g.id]: !p[g.id] }))}
-                >
-                  <span className="cea-group-chip-icon">{g.icon}</span>
-                  <span>{g.label}</span>
-                  <span className="cea-group-chip-count">{g.count} / {g.msCount}</span>
-                  <span className={`cea-chip-chevron ${isCollapsed ? "rotated" : ""}`}>▾</span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="cea-group-bar" style={{ marginBottom: 10 }}>
-            {legendColors.map((item) => (
-              <span key={item.name} className="safety-plan-legend">
-                <i style={{ background: item.color }} />{item.name}
-              </span>
-            ))}
-          </div>
-        </>
-      )}
+              <tr className="sep-row"><td className="rn">=== HUTS BY SOP ===</td>{weeks.map((_, i) => <td key={i} />)}</tr>
 
-      <ProjectPlanCanvas
-        view={ceaView}
-        projects={visibleProjects}
-        onProjectClick={() => {}}
-        onMilestoneClick={() => {}}
-        arrowMode={false}
-        arrowStart={null}
-        onArrowMilestone={() => {}}
-        onUpdateProject={() => {}}
-        onUpdateItem={() => {}}
-        onSelectItem={() => {}}
-        selectedItemId={null}
-        onConnectionClick={() => {}}
-        selectedConnectionId={null}
-        onColumnWidthChange={(delta) => setColumnWidth((w) => Math.max(10, Math.min(120, w + delta)))}
-        readOnly
-      />
-    </section>
+              {sopHutRows.map((group, gi) => {
+                const color = SOP_COLORS[gi % SOP_COLORS.length];
+                return (
+                  <SopGroup key={group.sop} group={group} color={color} weeks={weeks} />
+                );
+              })}
+
+              <tr className="fusa-sep"><td className="rn">=== FUSA ACTIVITY MAPPING (TO BE FILLED) ===</td>{weeks.map((_, i) => <td key={i} />)}</tr>
+
+              {FUSA_ROWS.map((section) => (
+                <FusaSection key={section.section} section={section} weeks={weeks} />
+              ))}
+            </tbody>
+          </table>
+          {todayWeekIdx >= 0 && (
+            <>
+              <div className="today-line" style={{ left: `calc(200px + ${todayWeekIdx * 18 + 9}px)` }} />
+              <div className="today-label" style={{ left: `calc(200px + ${todayWeekIdx * 18 + 9}px)` }}>Today</div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type HutRow = { sop: string; jv: string; hut: string; cea: string; cls: string; milestones: Milestone[] };
+
+function SopGroup({ group, color, weeks }: { group: { sop: string; hutCount: number; huts: HutRow[] }; color: string; weeks: WeekCell[] }) {
+  return (
+    <>
+      <tr className="sop-head">
+        <td className="rn">
+          <span className="sop-badge" style={{ background: color }}>SOP {group.sop} ({group.hutCount} Huts)</span>
+        </td>
+        {weeks.map((_, i) => <td key={i} />)}
+      </tr>
+      {group.huts.map((h) => (
+        <tr key={h.hut}>
+          <td className="rn" style={{ fontSize: "10px" }}>
+            <span className={`jtag ${jvClass[h.jv] || ""}`}>{h.jv}</span>
+            <span className={`ctag ${clsClass[h.cls] || ""}`}>{clsLabel[h.cls] || ""}</span>
+            {h.hut}
+            <div className="rsub">SOP {h.sop} | {h.cea}</div>
+          </td>
+          {weeks.map((_, wi) => {
+            const ms = (h.milestones as Milestone[]).filter((m) => weekIndex(m.date) === wi);
+            const isSopBar = wi < TOTAL_WEEKS;
+            return (
+              <td key={wi} className={weeks[wi].isMonthStart ? "month-border" : ""} style={{ position: "relative" }}>
+                {isSopBar && <div className="sop-bar" style={{ background: color }} />}
+                {ms.map((m, mi) => {
+                  const off = dayOffsetInWeek(m.date);
+                  return (
+                    <div key={mi} className="ms" style={{ left: `${off * 100}%` }}>
+                      <div className="tri" style={{ borderBottomColor: m.color }} />
+                      <div className="dl">{shortDate(m.date)}</div>
+                      <div className="il">{m.label}</div>
+                    </div>
+                  );
+                })}
+              </td>
+            );
+          })}
+        </tr>
+      ))}
+    </>
+  );
+}
+
+function FusaSection({ section, weeks }: { section: { section: string; items: { name: string; desc: string }[] }; weeks: WeekCell[] }) {
+  return (
+    <>
+      <tr className="fusa-sep">
+        <td className="rn">--- {section.section} ---</td>
+        {weeks.map((_, i) => <td key={i} />)}
+      </tr>
+      {section.items.map((item) => (
+        <tr key={item.name} className="fusa-row">
+          <td className="rn" style={{ fontSize: "9px" }}>
+            {item.name}
+            <span className="fph"> {item.desc}</span>
+          </td>
+          {weeks.map((_, i) => <td key={i} />)}
+        </tr>
+      ))}
+    </>
   );
 }
