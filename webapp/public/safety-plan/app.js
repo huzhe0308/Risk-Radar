@@ -1097,7 +1097,8 @@ function renderUpstreamPlan() {
   document.querySelectorAll('.upstream-view-tab').forEach(btn => {
     btn.onclick = function() {
       upstreamActiveView = this.dataset.view;
-      renderUpstreamPlan();
+  renderUpstreamPlan();
+  if (typeof renderUpstreamTimeline === 'function') renderUpstreamTimeline();
     };
   });
 
