@@ -737,6 +737,11 @@ export default function Home() {
               <span className="view-copy"><strong>变更提醒</strong></span>
               {workspaceMode === "change-feed" && <span className="active-dot" />}
             </button>
+            <button className={`view-item ${showExcelAnalysis ? "active" : ""}`} onClick={() => setShowExcelAnalysis(true)}>
+              <span className="view-icon">▥</span>
+              <span className="view-copy"><strong>Excel 分析</strong></span>
+              {showExcelAnalysis && <span className="active-dot" />}
+            </button>
             <div className="sidebar-divider" />
             <button className={`view-item ${workspaceMode === "safety-plan" ? "active" : ""}`} onClick={() => { setWorkspaceMode("safety-plan"); setSelectedProjectId(""); setSelectedMilestone(null); }}>
               <span className="view-icon">⊞</span>
@@ -750,13 +755,19 @@ export default function Home() {
         </aside>
 
         <section className="content">
+          {workspaceMode !== "safety-plan" && (
           <div className="page-heading">
             <div>
-              <div className="breadcrumb">{workspaceMode === "feishu-table" ? "功能区 / 飞书表格" : workspaceMode === "change-feed" ? "功能区 / 变更提醒" : workspaceMode === "safety-plan" ? "功能区 / Safety Plan" : `功能区 / ${activeView.name}`}</div>
-              <h1>{workspaceMode === "safety-plan" ? "Safety Plan Dashboard" : data.title}</h1>
-              <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : workspaceMode === "change-feed" ? "实时监控飞书多维表格的数据变更，展示字段级差异对比。" : workspaceMode === "safety-plan" ? "" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
+              <div className="breadcrumb">{workspaceMode === "feishu-table" ? "功能区 / 飞书表格" : workspaceMode === "change-feed" ? "功能区 / 变更提醒" : `功能区 / ${activeView.name}`}</div>
+              <h1>{data.title}</h1>
+              <p>{workspaceMode === "overview" ? "从管理视角掌握计划健康度、近期节点与关键风险。" : workspaceMode === "cea" ? "按 CEA 软件版本分组浏览所有车型的里程碑节点。" : workspaceMode === "feishu-table" ? "查看飞书多维表格 webhook 推送的原始记录数据。" : workspaceMode === "change-feed" ? "实时监控飞书多维表格的数据变更，展示字段级差异对比。" : "统一管理产品、车型和系统里程碑，支持 Excel 往返编辑。"}</p>
             </div>
             <div className="plan-heading-actions">
+              <div className="workspace-mode-switch" aria-label="工作区模式">
+                <button className={workspaceMode === "overview" ? "active" : ""} onClick={() => { setWorkspaceMode("overview"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>◫</Icon>管理概览</button>
+                <button className={workspaceMode === "timeline" ? "active" : ""} onClick={() => setWorkspaceMode("timeline")}><Icon>▤</Icon>时间线</button>
+                <button className={workspaceMode === "cea" ? "active" : ""} onClick={() => { setWorkspaceMode("cea"); setSelectedProjectId(""); setSelectedMilestone(null); }}><Icon>⊟</Icon>CEA 版本</button>
+              </div>
               {workspaceMode === "timeline" && <>
                 <button className="button button-outline" onClick={addProjectRow}><Icon>＋</Icon>新增行</button>
                 <button className="button button-outline" onClick={beginAddMilestone}><Icon>＋</Icon>新增里程碑</button>
@@ -771,11 +782,11 @@ export default function Home() {
                   <button className="button button-quiet" onClick={() => window.print()}><Icon>▣</Icon>打印 / PDF</button>
                   <button className="icon-button" title="导出 PNG" onClick={exportPng}>▧</button>
                   <button className="icon-button" title="导出 HTML" onClick={exportHtml}>⤴</button>
-                  <button className="button button-outline" onClick={() => setShowExcelAnalysis(true)}><Icon>▥</Icon>Excel 分析</button>
                 </div>
               )}
             </div>
           </div>
+          )}
 
           {workspaceMode === "overview" ? (
             <ManagementDashboard view={activeView} onLocate={locateFromDashboard} />
