@@ -20,6 +20,7 @@
     <button class="nav-btn" data-tab="mapping">Safety &harr; PEP</button>
     <button class="nav-btn" data-tab="components">Components</button>
     <button class="nav-btn" data-tab="lineage">Vehicle Lineage</button>
+    <button class="nav-btn" data-tab="hut-overview">Hut Overview</button>
     <button class="nav-btn" data-tab="dashboard">Dashboard</button>
   </nav>
   <div class="header-actions">
@@ -235,6 +236,50 @@
   </div>
 </section>
 
+<!-- HUT OVERVIEW -->
+<section id="tab-hut-overview" class="tab-content">
+  <div class="stats-grid" id="hut-stats"></div>
+  <div class="card">
+    <div class="card-title">Hut Overview <span class="badge">17 Huts &middot; 3 classifications</span></div>
+    <div style="overflow:auto;max-height:75vh"><table id="hut-table"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">SOP Release Groups <span class="badge">8 SOP nodes</span></div>
+    <div id="sop-groups"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">CEA Iteration Milestone Timeline <span class="badge">IPD3.0 &rarr; CEA 2.6 &middot; 9 milestones &times; 18 iterations</span></div>
+    <p class="muted text-sm mb-16">Each CEA/IPD iteration contains 9 upstream milestones. Yellow rows = FuSa activity mapping (to be filled).</p>
+    <div style="overflow:auto;max-height:75vh"><table class="hut-ms-table" id="hut-ms-table"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">FuSa Activity Mapping Rules <span class="badge">Three-layer responsibilities</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <h3 class="text-sm font-bold mb-8" style="color:var(--blue)">Three-Layer Responsibility Architecture</h3>
+        <div style="overflow:auto"><table id="hut-layer-table"></table></div>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold mb-8" style="color:var(--blue)">Classification Rules</h3>
+        <div style="overflow:auto"><table id="hut-cls-table"></table></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">PEP Milestone &rarr; FuSa Activity Mapping <span class="badge">To be filled</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <h3 class="text-sm font-bold mb-8" style="color:var(--orange)">IPD / CEA Iteration Milestones</h3>
+        <div style="overflow:auto;max-height:60vh"><table id="hut-ipd-ms-table"></table></div>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold mb-8" style="color:var(--orange)">Vehicle-Level PEP CEA Milestones</h3>
+        <div style="overflow:auto;max-height:60vh"><table id="hut-pepcea-ms-table"></table></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- DASHBOARD -->
 <section id="tab-dashboard" class="tab-content">
   <div class="stats-grid" id="dashboard-stats"></div>
@@ -257,5 +302,6 @@
 <div class="toast" id="toast"></div>
 
 <script src="/safety-plan/app.js"></script>
+<script src="/safety-plan/hut-overview.js"></script>
 </body>
 </html>
