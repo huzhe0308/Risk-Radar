@@ -278,15 +278,21 @@ function renderUpstreamTimeline() {
   // FuSa separator
   // (removed — not displayed)
 
+  // Today line — placed inside the table via a absolutely positioned overlay
+  // Using a data attribute so we can position it after render
+  var now = new Date();
+  var yyyy = now.getFullYear();
+  var mm = ('' + (now.getMonth() + 1)).padStart(2, '0');
+  var dd = ('' + now.getDate()).padStart(2, '0');
+  var todayStr = yyyy + '-' + mm + '-' + dd;
+  var todayIdx = tlWeekIndex(todayStr);
+
   html += '</tbody></table>';
 
-  // Today line
-  var todayStr = new Date().toISOString().slice(0, 10);
-  var todayIdx = tlWeekIndex(todayStr);
   if (todayIdx >= 0 && todayIdx < TL_WEEKS) {
     var todayDayOff = tlDayOffset(todayStr);
-    var todayLeft = 200 + (todayIdx + todayDayOff) * 18;
-    html += '<div class="sptl-today-line" style="left:' + todayLeft + 'px"></div>';
+    var todayLeft = (todayIdx + todayDayOff) * 18;
+    html += '<div class="sptl-today-line" data-week-idx="' + todayIdx + '" data-day-off="' + todayDayOff + '" style="left:' + todayLeft + 'px"></div>';
     html += '<div class="sptl-today-label" style="left:' + (todayLeft + 2) + 'px">Today</div>';
   }
 
