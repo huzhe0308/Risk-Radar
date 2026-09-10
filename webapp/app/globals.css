@@ -2152,6 +2152,9 @@ tbody tr:hover { background: #f7fbfb; }
 .cea-group-chip-count { font-size: 10px; opacity: 0.6; }
 .cea-chip-chevron { font-size: 9px; transition: transform .2s; }
 .cea-chip-chevron.rotated { transform: rotate(-90deg); }
+.safety-plan-legend { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; color: #94a3b8; }
+.safety-plan-legend i { width: 9px; height: 9px; display: inline-block; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,255,255,.3); }
+.toolbar-select { background: #0f172a; color: #e2e8f0; border: 1px solid rgba(148,163,184,0.2); border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; outline: none; }
 
 /* Feishu Webhook Sync Dialog */
 .feishu-import-dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px); display: flex; flex-direction: column; overflow: hidden; }
