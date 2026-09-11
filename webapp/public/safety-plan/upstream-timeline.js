@@ -43,7 +43,7 @@ var TL_HUTS = [
   { sop:'2028-10', jv:'FAW', hut:'CSP31 CN B SUV EREV 6S VW416/5CN_E CN2V6I', cea:'CEA 2.2', cls:'newvar' }
 ];
 
-var TL_SOP_COLORS = ['#6b4444','#6b5a44','#44616b','#446b4f','#5a446b','#446b5e','#6b4a44','#4a6b5e'];
+var TL_SOP_COLORS = ['none','none','none','none','none','none','none','none'];
 
 var TL_PLATFORM_ROWS = [
   'IPD Kick Off',
