@@ -264,10 +264,8 @@ function renderUpstreamTimeline() {
       var clsClass = h.cls === 'allnew' ? 'sptl-ct-an' : h.cls === 'newvar' ? 'sptl-ct-nv' : 'sptl-ct-co';
 
       html += '<tr><td class="sptl-rn" style="font-size:10px">';
-      html += '<span class="sptl-jtag sptl-j-' + h.jv.toLowerCase() + '">' + h.jv + '</span>';
-      html += '<span class="sptl-ctag ' + clsClass + '">' + clsLabel + '</span>';
       html += h.hut;
-      html += '<div class="sptl-rsub">SOP ' + h.sop + ' | ' + h.cea + '</div>';
+      html += '<div class="sptl-rsub"><span class="sptl-jtag sptl-j-' + h.jv.toLowerCase() + '">' + h.jv + '</span><span class="sptl-ctag ' + clsClass + '">' + clsLabel + '</span> SOP ' + h.sop + ' | ' + h.cea + '</div>';
       html += '</td>';
 
       for (var w = 0; w < TL_WEEKS; w++) {
