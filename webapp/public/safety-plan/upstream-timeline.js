@@ -227,10 +227,12 @@ function renderUpstreamTimeline() {
       html += '<td class="' + cellClass + '" style="position:relative">';
       ms.forEach(function(m) {
         var off = tlDayOffset(m.date);
-        html += '<div class="sptl-ms" style="left:' + (off * 100) + '%">';
-        html += '<div class="sptl-tri" style="border-bottom-color:#4a9eff"></div>';
-        html += '<div class="sptl-dl">' + tlShortDate(m.date) + '</div>';
-        html += '<div class="sptl-il">' + m.label + '</div>';
+        var isPast = tlWeekIndex(m.date) < todayIdx;
+        var triColor = isPast ? '#555' : '#4a9eff';
+        html += '<div class="sptl-ms" style="left:' + (off * 100) + '%' + (isPast ? ';opacity:.5' : '') + '">';
+        html += '<div class="sptl-tri" style="border-bottom-color:' + triColor + '"></div>';
+        html += '<div class="sptl-dl" style="' + (isPast ? 'color:#555' : '') + '">' + tlShortDate(m.date) + '</div>';
+        html += '<div class="sptl-il" style="' + (isPast ? 'color:#444' : '') + '">' + m.label + '</div>';
         html += '</div>';
       });
       html += '</td>';
@@ -275,11 +277,12 @@ function renderUpstreamTimeline() {
         html += '<div class="sptl-sop-bar" style="background:' + color + '"></div>';
         ms.forEach(function(m) {
           var off = tlDayOffset(m.date);
-          var msColor = h.cls === 'allnew' ? '#e74c3c' : h.cls === 'newvar' ? '#e67e22' : '#3498db';
-          html += '<div class="sptl-ms" style="left:' + (off * 100) + '%">';
+          var isPast = tlWeekIndex(m.date) < todayIdx;
+          var msColor = isPast ? '#555' : (h.cls === 'allnew' ? '#e74c3c' : h.cls === 'newvar' ? '#e67e22' : '#3498db');
+          html += '<div class="sptl-ms" style="left:' + (off * 100) + '%' + (isPast ? ';opacity:.5' : '') + '">';
           html += '<div class="sptl-tri" style="border-bottom-color:' + msColor + '"></div>';
-          html += '<div class="sptl-dl">' + tlShortDate(m.date) + '</div>';
-          html += '<div class="sptl-il">' + m.label + '</div>';
+          html += '<div class="sptl-dl" style="' + (isPast ? 'color:#555' : '') + '">' + tlShortDate(m.date) + '</div>';
+          html += '<div class="sptl-il" style="' + (isPast ? 'color:#444' : '') + '">' + m.label + '</div>';
           html += '</div>';
         });
         html += '</td>';
