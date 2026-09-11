@@ -212,7 +212,8 @@ tr:hover td{background:var(--card2)}
 .comp-safety-item .comp-safety-domain{font-size:9px;color:var(--muted);background:var(--card2);padding:1px 6px;border-radius:3px}
 .comp-safety-item .comp-safety-progress{font-size:10px;color:var(--muted)}
 .comp-safety-item.active .comp-safety-abbr{color:var(--blue)}
-.comp-safety-group-header{padding:6px 12px;font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--card2);border-bottom:1px solid var(--border)}
+.comp-safety-group-header{padding:6px 12px;font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--card2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.cs-group-arrow{margin-left:auto;color:var(--muted);font-size:10px}
 
 /* ===== Vehicle Lineage ===== */
 .lineage-table{font-size:12px}
