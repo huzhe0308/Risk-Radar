@@ -1143,10 +1143,12 @@ function renderSafetyPlan() {
   });
   projSel.value = spActiveProject;
 
-  // Populate phase filter
+  // Populate phase filter (exclude per-component phases from general view)
+  const PERCOMP_PHASES = ['Phase 4B: Component Dev - Hardware (per component)', 'Phase 4C: Component Dev - Software (per component)', 'Phase 5S: Supplier Deliverables (per supplier)'];
   const phaseSel = document.getElementById('safetyplan-phase-select');
   phaseSel.innerHTML = '<option value="">All</option>';
   DATA.deliverables.forEach(phase => {
+    if (PERCOMP_PHASES.indexOf(phase.phase) >= 0) return;
     phaseSel.innerHTML += '<option value="' + phase.phase + '">' + phase.phase + '</option>';
   });
 
@@ -1189,11 +1191,89 @@ function renderSafetyPlan() {
         renderCompSP();
       } else {
         updateSafetyPlanTable();
+        updateSafetyPlanPerCompTable();
+      }
+    });
+  });
+
+  // View tab switching
+  document.querySelectorAll('#safetyplan-view-tabs .upstream-subtab').forEach(btn => {
+    var bc = btn.cloneNode(true);
+    btn.parentNode.replaceChild(bc, btn);
+    bc.addEventListener('click', function() {
+      document.querySelectorAll('#safetyplan-view-tabs .upstream-subtab').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      var view = this.dataset.spview;
+      var generalWrap = document.getElementById('safetyplan-table').parentElement;
+      var percompWrap = document.getElementById('safetyplan-percomp-table').parentElement;
+      var filtersEl = document.querySelector('#usubtab-safetyplan .filters');
+      if (view === 'percomp') {
+        generalWrap.style.display = 'none';
+        percompWrap.style.display = '';
+        if (filtersEl) filtersEl.style.display = 'none';
+        updateSafetyPlanPerCompTable();
+      } else {
+        generalWrap.style.display = '';
+        percompWrap.style.display = 'none';
+        if (filtersEl) filtersEl.style.display = '';
+        updateSafetyPlanTable();
       }
     });
   });
 
   updateSafetyPlanTable();
+}
+
+function updateSafetyPlanPerCompTable() {
+  var PERCOMP_PHASES = ['Phase 4B: Component Dev - Hardware (per component)', 'Phase 4C: Component Dev - Software (per component)', 'Phase 5S: Supplier Deliverables (per supplier)'];
+  var spData = getSafetyPlanData();
+  var projData = spData[spActiveProject] || {};
+  var statuses = projData.statuses || {};
+  var remarks = projData.remarks || {};
+
+  var html = '<thead><tr>';
+  html += '<th style="width:50px">ID</th>';
+  html += '<th style="width:140px">Phase</th>';
+  html += '<th style="width:220px">Activity</th>';
+  html += '<th style="width:260px">Deliverable</th>';
+  html += '<th style="width:80px">ISO Ref</th>';
+  html += '<th style="width:70px">Owner</th>';
+  html += '<th style="width:110px">Level</th>';
+  html += '<th style="width:130px">Status</th>';
+  html += '<th style="width:220px">Remark</th>';
+  html += '</tr></thead><tbody>';
+
+  var count = 0;
+  DATA.deliverables.forEach(function(phase) {
+    if (PERCOMP_PHASES.indexOf(phase.phase) < 0) return;
+
+    html += '<tr class="phase-row"><td colspan="9">' + phase.phase + ' <span class="muted text-xs">(' + phase.isoPart + ')</span> <span class="badge" style="margin-left:8px">' + phase.items.length + '</span></td></tr>';
+
+    phase.items.forEach(function(item, ii) {
+      var key = phase.phase.split(':')[0] + '-' + ii;
+      var status = statuses[key] || '';
+      var remark = remarks[key] || '';
+
+      html += '<tr>';
+      html += '<td class="font-bold">' + item.id + '</td>';
+      html += '<td class="text-xs muted">' + phase.phase.split(':')[0] + '</td>';
+      html += '<td>' + item.activity + '</td>';
+      html += '<td class="text-sm">' + item.deliverable + (item.annex ? ' <span class="text-xs muted">[' + item.annex + ']</span>' : '') + '</td>';
+      html += '<td class="text-xs muted">' + (item.isoRef || '—') + '</td>';
+      html += '<td>' + ownerBadge(item.owner) + '</td>';
+      html += '<td><span class="' + spLevelClass(item.level) + '">' + item.level + '</span></td>';
+      html += '<td class="sp-status-cell" data-key="' + key + '" data-field="status" style="cursor:pointer">' + spStatusBadge(status) + '</td>';
+      html += '<td class="text-xs muted sp-remark-cell" data-key="' + key + '" data-field="remark" style="cursor:pointer">' + (remark || '<span class="muted">—</span>') + '</td>';
+      html += '</tr>';
+      count++;
+    });
+  });
+  html += '</tbody>';
+  var pcTable = document.getElementById('safetyplan-percomp-table');
+  if (pcTable) {
+    pcTable.innerHTML = html;
+    attachSafetyPlanEditors(spActiveProject);
+  }
 }
 
 function spLevelClass(level) {
@@ -1235,7 +1315,9 @@ function updateSafetyPlanTable() {
   html += '</tr></thead><tbody>';
 
   let count = 0;
+  var PERCOMP_PHASES_GEN = ['Phase 4B: Component Dev - Hardware (per component)', 'Phase 4C: Component Dev - Software (per component)', 'Phase 5S: Supplier Deliverables (per supplier)'];
   DATA.deliverables.forEach(phase => {
+    if (PERCOMP_PHASES_GEN.indexOf(phase.phase) >= 0) return;
     if (phaseFilter && phase.phase !== phaseFilter) return;
 
     const filteredItems = phase.items.filter(item => {
