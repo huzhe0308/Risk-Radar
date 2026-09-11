@@ -306,14 +306,16 @@ function renderUpstreamTimeline() {
 
   html += '</tbody></table>';
 
-  // Pagination controls
+  html += '</div>'; // close sptl-twrap
+
+  // Pagination controls (outside twrap so they don't scroll horizontally)
   html += '<div class="sptl-pagination" id="sptl-pagination">';
   html += '<button class="sptl-page-btn" id="sptl-page-prev">&laquo; Prev</button>';
   html += '<span class="sptl-page-info" id="sptl-page-info"></span>';
   html += '<button class="sptl-page-btn" id="sptl-page-next">Next &raquo;</button>';
   html += '</div>';
 
-  html += '</div></div></div>';
+  html += '</div></div>'; // close sptl-gbox, sptl-container
 
   container.innerHTML = html;
 
