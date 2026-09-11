@@ -1642,8 +1642,9 @@ function renderCompSPList(allComps, tplWP, search) {
 
   const csData = getCompSPData();
   let html = '';
+  var gIdx = 0;
   Object.keys(groups).forEach(sys => {
-    var gid = 'csplist-' + sys.replace(/[^a-zA-Z0-9]/g, '');
+    var gid = 'csplist-g' + (gIdx++);
     html += '<div class="comp-safety-group-header cs-group-toggle" data-gid="' + gid + '" style="cursor:pointer">' + sys + ' <span class="badge">' + groups[sys].length + '</span><span class="cs-group-arrow">▼</span></div>';
     html += '<div class="comp-safety-list cs-group-body" id="' + gid + '">';
     groups[sys].forEach(c => {
