@@ -304,17 +304,7 @@ function renderUpstreamTimeline() {
 
   html += '</tbody></table>';
 
-  html += '</div>';  // close sptl-twrap
-  html += '<div class="sptl-scroll-x" id="sptl-scrollx"><div class="sptl-scroll-x-inner"></div></div>';
   html += '</div></div></div>';
 
   container.innerHTML = html;
-
-  // Sync horizontal scroll between twrap and the sticky bottom scrollbar
-  var twrap = document.getElementById('sptl-twrap');
-  var scrollBar = document.getElementById('sptl-scrollx');
-  if (twrap && scrollBar) {
-    twrap.addEventListener('scroll', function() { scrollBar.scrollLeft = twrap.scrollLeft; });
-    scrollBar.addEventListener('scroll', function() { twrap.scrollLeft = scrollBar.scrollLeft; });
-  }
 }
