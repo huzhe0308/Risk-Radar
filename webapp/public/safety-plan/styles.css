@@ -27,7 +27,7 @@ nav button.active{background:var(--blue);color:#fff}
 .header-actions .dirty-indicator{font-size:11px;color:var(--orange);font-weight:600;padding:4px 8px;background:rgba(255,152,0,.1);border-radius:4px;display:none}
 .header-actions .dirty-indicator.show{display:inline-block}
 
-main{padding:12px 24px;max-width:1800px;margin:0 auto}
+main{padding:4px 24px;max-width:1800px;margin:0 auto}
 .tab-content{display:none}
 .tab-content.active{display:block;animation:fadeIn .3s}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
