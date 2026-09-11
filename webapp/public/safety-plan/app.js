@@ -42,7 +42,7 @@ function autoSave() {
   markDirty();
   if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
   _autoSaveTimer = setTimeout(async function() {
-    await saveAllData();
+    await saveAllData(true);
   }, 800);
 }
 
@@ -51,16 +51,17 @@ function markClean() {
   document.getElementById('dirty-indicator').classList.remove('show');
 }
 
-async function saveAllData() {
+async function saveAllData(silent) {
   if (!DATA) return;
   try {
-    await fetch(API, {
+    const resp = await fetch(API, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: DATA })
     });
+    if (!resp.ok) throw new Error(resp.status + ' ' + resp.statusText);
     markClean();
-    showToast('Data saved successfully', 'success');
+    if (!silent) showToast('Data saved successfully', 'success');
   } catch (e) {
     showToast('Save failed: ' + e.message, 'error');
   }
@@ -1090,6 +1091,8 @@ function initUpstreamSubTabs() {
       const target = document.getElementById('usubtab-' + this.dataset.usubtab);
       target.classList.add('active');
       target.style.display = 'block';
+      if (this.dataset.usubtab === 'syssub') renderSysSub();
+      if (this.dataset.usubtab === 'compsp') renderCompSP();
     };
   });
 }
@@ -1100,7 +1103,8 @@ function initUpstreamSubTabs() {
 let spActiveProject = null;
 
 function getSafetyPlanData() {
-  return DATA.safetyPlanPerProject || {};
+  if (!DATA.safetyPlanPerProject) DATA.safetyPlanPerProject = {};
+  return DATA.safetyPlanPerProject;
 }
 
 function getAllVehicleProjects() {
@@ -1173,12 +1177,16 @@ function renderSafetyPlan() {
   // Clone to remove old listeners
   ['safetyplan-project-select', 'safetyplan-phase-select', 'safetyplan-owner-select', 'safetyplan-search'].forEach(id => {
     const el = document.getElementById(id);
+    const savedValue = el.value;
     const clone = el.cloneNode(true);
     el.parentNode.replaceChild(clone, el);
+    clone.value = savedValue;
     clone.addEventListener('input', function() {
       if (id === 'safetyplan-project-select') {
         spActiveProject = this.value;
         renderSafetyPlan();
+        renderSysSub();
+        renderCompSP();
       } else {
         updateSafetyPlanTable();
       }
@@ -1458,7 +1466,8 @@ function getCompSPData() {
 }
 
 function getCompSafetyData() {
-  return DATA.compSafetyPlan || {};
+  if (!DATA.compSafetyPlan) DATA.compSafetyPlan = {};
+  return DATA.compSafetyPlan;
 }
 
 function renderCompSP() {
@@ -1518,15 +1527,19 @@ function renderCompSP() {
 
   // Search
   const searchEl = document.getElementById('compsp-comp-search');
+  const searchSavedValue = searchEl.value;
   const searchClone = searchEl.cloneNode(true);
   searchEl.parentNode.replaceChild(searchClone, searchEl);
+  searchClone.value = searchSavedValue;
   searchClone.addEventListener('input', function() { renderCompSPList(allComps, tplWP, this.value); });
 
   // Filters
   ['compsp-iso-filter', 'compsp-resp-filter'].forEach(id => {
     const el = document.getElementById(id);
+    const savedValue = el.value;
     const clone = el.cloneNode(true);
     el.parentNode.replaceChild(clone, el);
+    clone.value = savedValue;
     clone.addEventListener('change', function() { renderCompSPTable(tplWP, allComps); });
   });
 }
