@@ -1643,8 +1643,9 @@ function renderCompSPList(allComps, tplWP, search) {
   const csData = getCompSPData();
   let html = '';
   Object.keys(groups).forEach(sys => {
-    html += '<div class="comp-safety-group-header">' + sys + ' <span class="badge">' + groups[sys].length + '</span></div>';
-    html += '<div class="comp-safety-list">';
+    var gid = 'csplist-' + sys.replace(/[^a-zA-Z0-9]/g, '');
+    html += '<div class="comp-safety-group-header cs-group-toggle" data-gid="' + gid + '" style="cursor:pointer">' + sys + ' <span class="badge">' + groups[sys].length + '</span><span class="cs-group-arrow">▼</span></div>';
+    html += '<div class="comp-safety-list cs-group-body" id="' + gid + '">';
     groups[sys].forEach(c => {
       const active = c.abbreviation === compSPActive ? 'active' : '';
       const compKey = spActiveProject + '||' + c.abbreviation;
@@ -1668,6 +1669,21 @@ function renderCompSPList(allComps, tplWP, search) {
   const listEl = document.getElementById('compsp-comp-list');
   listEl.innerHTML = html;
   document.getElementById('compsp-comp-badge').textContent = comps.length + ' components';
+
+  listEl.querySelectorAll('.cs-group-toggle').forEach(header => {
+    header.onclick = function() {
+      var body = document.getElementById(this.dataset.gid);
+      if (body) {
+        if (body.style.display === 'none') {
+          body.style.display = '';
+          this.querySelector('.cs-group-arrow').textContent = '▼';
+        } else {
+          body.style.display = 'none';
+          this.querySelector('.cs-group-arrow').textContent = '▶';
+        }
+      }
+    };
+  });
 
   listEl.querySelectorAll('.comp-safety-item').forEach(item => {
     item.onclick = function() {
