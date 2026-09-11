@@ -316,4 +316,31 @@ function renderUpstreamTimeline() {
   if (todayLineEl && tableEl) {
     todayLineEl.style.height = tableEl.offsetHeight + 'px';
   }
+
+  // Collect milestones that fall on today
+  var todayMilestones = [];
+  platRows.forEach(function(row) {
+    row.milestones.forEach(function(m) {
+      if (m.date === todayStr) todayMilestones.push({ hut: row.name, label: m.label });
+    });
+  });
+  Object.keys(sopGroups).forEach(function(sopKey) {
+    sopGroups[sopKey].forEach(function(r) {
+      r.milestones.forEach(function(m) {
+        if (m.date === todayStr) todayMilestones.push({ hut: r.hut.hut, label: m.label });
+      });
+    });
+  });
+
+  if (todayMilestones.length > 0) {
+    var badge = document.getElementById('upstream-badge');
+    if (badge) {
+      var n = todayMilestones.length;
+      badge.textContent = n + ' milestone' + (n > 1 ? 's' : '') + ' today';
+      badge.style.background = 'rgba(255,82,82,.2)';
+      badge.style.color = '#ff5252';
+      badge.style.fontWeight = '600';
+      badge.title = todayMilestones.map(function(m) { return m.hut + ': ' + m.label; }).join('\n');
+    }
+  }
 }
