@@ -245,15 +245,16 @@ function renderUpstreamTimeline() {
   for (var w = 0; w < TL_WEEKS; w++) html += '<td></td>';
   html += '</tr>';
 
-  // SOP groups
+  // SOP groups with pagination
+  var sopKeys = Object.keys(sopGroups).sort();
   var sopIdx = 0;
-  Object.keys(sopGroups).sort().forEach(function(sopKey) {
+  sopKeys.forEach(function(sopKey) {
     var group = sopGroups[sopKey];
     var color = TL_SOP_COLORS[sopIdx % TL_SOP_COLORS.length];
     sopIdx++;
 
     // SOP header
-    html += '<tr class="sptl-sop-head"><td class="sptl-rn">';
+    html += '<tr class="sptl-sop-head sptl-sop-page" data-sop-page="' + sopKey + '"><td class="sptl-rn">';
     html += '<span class="sptl-sop-badge" style="background:' + color + '">SOP ' + sopKey + ' (' + group.length + ' Huts)</span>';
     html += '</td>';
     for (var w = 0; w < TL_WEEKS; w++) html += '<td></td>';
@@ -265,7 +266,7 @@ function renderUpstreamTimeline() {
       var clsLabel = h.cls === 'allnew' ? 'ALL-NEW' : h.cls === 'newvar' ? 'NEW VARIANT' : 'CARRY-OVER';
       var clsClass = h.cls === 'allnew' ? 'sptl-ct-an' : h.cls === 'newvar' ? 'sptl-ct-nv' : 'sptl-ct-co';
 
-      html += '<tr><td class="sptl-rn" style="font-size:10px">';
+      html += '<tr class="sptl-sop-page" data-sop-page="' + sopKey + '"><td class="sptl-rn" style="font-size:10px">';
       html += h.hut;
       html += '<div class="sptl-rsub"><span class="sptl-jtag sptl-j-' + h.jv.toLowerCase() + '">' + h.jv + '</span><span class="sptl-ctag ' + clsClass + '">' + clsLabel + '</span> SOP ' + h.sop + ' | ' + h.cea + '</div>';
       html += '</td>';
@@ -305,9 +306,49 @@ function renderUpstreamTimeline() {
 
   html += '</tbody></table>';
 
+  // Pagination controls
+  html += '<div class="sptl-pagination" id="sptl-pagination">';
+  html += '<button class="sptl-page-btn" id="sptl-page-prev">&laquo; Prev</button>';
+  html += '<span class="sptl-page-info" id="sptl-page-info"></span>';
+  html += '<button class="sptl-page-btn" id="sptl-page-next">Next &raquo;</button>';
+  html += '</div>';
+
   html += '</div></div></div>';
 
   container.innerHTML = html;
+
+  // Pagination logic
+  var currentPage = 0;
+  var totalPages = sopKeys.length;
+
+  function showPage(page) {
+    var pages = container.querySelectorAll('.sptl-sop-page');
+    pages.forEach(function(row) { row.style.display = 'none'; });
+    var activeKey = sopKeys[page];
+    var activeRows = container.querySelectorAll('.sptl-sop-page[data-sop-page="' + activeKey + '"]');
+    activeRows.forEach(function(row) { row.style.display = ''; });
+
+    var infoEl = document.getElementById('sptl-page-info');
+    if (infoEl) {
+      var groupLen = sopGroups[activeKey].length;
+      infoEl.textContent = 'SOP ' + activeKey + ' (' + groupLen + ' Huts)  —  Page ' + (page + 1) + ' / ' + totalPages;
+    }
+
+    // Update today line height
+    var twrapEl2 = document.getElementById('sptl-twrap');
+    var todayLineEl2 = twrapEl2 ? twrapEl2.querySelector('.sptl-today-line') : null;
+    var tableEl2 = twrapEl2 ? twrapEl2.querySelector('table.sptl-g') : null;
+    if (todayLineEl2 && tableEl2) {
+      todayLineEl2.style.height = tableEl2.offsetHeight + 'px';
+    }
+  }
+
+  showPage(0);
+
+  var prevBtn = document.getElementById('sptl-page-prev');
+  var nextBtn = document.getElementById('sptl-page-next');
+  if (prevBtn) prevBtn.addEventListener('click', function() { if (currentPage > 0) { currentPage--; showPage(currentPage); } });
+  if (nextBtn) nextBtn.addEventListener('click', function() { if (currentPage < totalPages - 1) { currentPage++; showPage(currentPage); } });
 
   // Set today line height to match table height
   var twrapEl = document.getElementById('sptl-twrap');
