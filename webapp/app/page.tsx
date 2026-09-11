@@ -90,7 +90,7 @@ export default function Home() {
   const [arrowDashed, setArrowDashed] = useState(false);
   const [arrowColor, setArrowColor] = useState("#d8ff3e");
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
-  const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline" | "cea" | "feishu-table" | "change-feed" | "safety-plan" | "safety-components">("overview");
+  const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline" | "cea" | "feishu-table" | "change-feed" | "safety-plan" | "safety-components">("safety-plan");
   const [ceaExpanded, setCeaExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const changePreviewRef = useRef(false);
