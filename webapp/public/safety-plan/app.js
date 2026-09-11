@@ -1645,17 +1645,18 @@ function renderCompSPTable(tplWP, allComps) {
     'unknown': '<span class="sp-status-pending">?</span>',
   };
 
-  let html = '<thead><tr><th style="width:40px">#</th><th style="width:160px">Activity</th><th style="width:50px">ISO Ch.</th><th style="width:320px">Work Product</th><th style="width:60px">Resp</th><th style="width:80px">DDL</th><th style="width:80px">Status</th><th>Remark</th></tr></thead><tbody>';
+  let html = '<thead><tr><th style="width:32px"><input type="checkbox" id="cs-select-all"></th><th style="width:40px">#</th><th style="width:160px">Activity</th><th style="width:50px">ISO Ch.</th><th style="width:320px">Work Product</th><th style="width:60px">Resp</th><th style="width:80px">DDL</th><th style="width:80px">Status</th><th>Remark</th></tr></thead><tbody>';
 
   Object.keys(groups).forEach(part => {
     const items = groups[part];
     const short = part.split('\n')[0];
-    html += '<tr class="phase-row"><td colspan="8">' + short + ' <span class="badge">' + items.length + '</span></td></tr>';
+    html += '<tr class="phase-row"><td colspan="9">' + short + ' <span class="badge">' + items.length + '</span></td></tr>';
     items.forEach(wp => {
       const status = statuses[wp.id] || '';
       const remark = remarks[wp.id] || '';
       const ddlShort = (wp.ddl || '').replace('VCTC_', '').substring(0, 25);
       html += '<tr>';
+      html += '<td><input type="checkbox" class="cs-row-check" data-key="' + wp.id + '"></td>';
       html += '<td class="text-xs muted">' + wp.id + '</td>';
       html += '<td class="text-sm">' + wp.activity + '</td>';
       html += '<td class="text-xs muted">' + (wp.isoChapter || '') + '</td>';
@@ -1670,6 +1671,74 @@ function renderCompSPTable(tplWP, allComps) {
   html += '</tbody>';
   document.getElementById('compsp-table').innerHTML = html;
   attachInlineStatusEditors('compsp-table', 'cs-status-cell', 'cs-remark-cell', compKey);
+  attachBatchHandlers(compKey);
+}
+
+// ============================================================
+// SHARED: Batch status editor
+// ============================================================
+function attachBatchHandlers(compKey) {
+  var table = document.getElementById('compsp-table');
+  var batchBar = document.getElementById('compsp-batch-bar');
+  var batchInfo = document.getElementById('compsp-batch-info');
+  var selectAll = document.getElementById('cs-select-all');
+  var checks = table.querySelectorAll('.cs-row-check');
+
+  function updateBatchBar() {
+    var selected = table.querySelectorAll('.cs-row-check:checked');
+    if (selected.length > 0) {
+      batchBar.style.display = 'flex';
+      batchInfo.textContent = selected.length + ' selected';
+    } else {
+      batchBar.style.display = 'none';
+    }
+    selectAll.checked = selected.length === checks.length && checks.length > 0;
+  }
+
+  if (selectAll) {
+    var saClone = selectAll.cloneNode(true);
+    selectAll.parentNode.replaceChild(saClone, selectAll);
+    saClone.addEventListener('change', function() {
+      checks.forEach(function(c) { c.checked = saClone.checked; });
+      updateBatchBar();
+    });
+  }
+
+  checks.forEach(function(c) {
+    c.addEventListener('change', updateBatchBar);
+  });
+
+  batchBar.querySelectorAll('.sp-batch-btn').forEach(function(btn) {
+    var bc = btn.cloneNode(true);
+    btn.parentNode.replaceChild(bc, btn);
+    bc.addEventListener('click', function() {
+      var status = this.dataset.status;
+      var csData = getCompSafetyData();
+      if (!csData[compKey]) csData[compKey] = { statuses: {}, remarks: {} };
+      if (!csData[compKey].statuses) csData[compKey].statuses = {};
+      var selected = table.querySelectorAll('.cs-row-check:checked');
+      selected.forEach(function(c) {
+        var key = c.dataset.key;
+        csData[compKey].statuses[key] = status;
+        var cell = table.querySelector('.cs-status-cell[data-key="' + key + '"]');
+        if (cell) cell.innerHTML = spStatusBadge(status);
+      });
+      DATA.compSafetyPlan = csData;
+      autoSave();
+    });
+  });
+
+  var clearBtn = document.getElementById('compsp-batch-clear');
+  if (clearBtn) {
+    var cc = clearBtn.cloneNode(true);
+    clearBtn.parentNode.replaceChild(cc, clearBtn);
+    cc.addEventListener('click', function() {
+      checks.forEach(function(c) { c.checked = false; });
+      updateBatchBar();
+    });
+  }
+
+  updateBatchBar();
 }
 
 // ============================================================
