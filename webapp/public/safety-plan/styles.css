@@ -326,7 +326,7 @@ table.sptl-g th.sptl-wk{font-size:7px;min-width:18px;width:18px;max-width:18px;o
 table.sptl-g th.sptl-wk-m{background:#1e2130;font-size:8px}
 table.sptl-g th.sptl-yr{font-size:9px;min-width:60px;text-align:center;background:#0d0f15;color:#4a9eff}
 table.sptl-g td.sptl-rn{position:sticky;left:0;z-index:25;background:#1a1d27;border-right:2px solid #2a2d37;width:200px;min-width:200px;padding:4px 8px;text-align:left;font-size:10px;white-space:normal;word-break:break-word;vertical-align:middle;color:#e0e0e0}
-table.sptl-g td{border-right:1px solid #252830;border-bottom:1px solid #252830;min-width:18px;width:18px;max-width:18px;height:42px;overflow:visible;position:relative;vertical-align:middle}
+table.sptl-g td{border-right:1px solid #252830;border-bottom:1px solid #252830;min-width:18px;width:18px;max-width:18px;height:36px;overflow:visible;position:relative;vertical-align:middle}
 table.sptl-g tr:hover td.sptl-rn{background:#20242f}
 table.sptl-g tr:nth-child(even) td:not(.sptl-rn){background:#12141c}
 .sptl-month-border{border-left:1px solid #353944}
