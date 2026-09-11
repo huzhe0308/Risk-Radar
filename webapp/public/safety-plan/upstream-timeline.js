@@ -305,4 +305,12 @@ function renderUpstreamTimeline() {
   html += '</div></div></div>';
 
   container.innerHTML = html;
+
+  // Set today line height to match table height
+  var twrapEl = document.getElementById('sptl-twrap');
+  var todayLineEl = twrapEl ? twrapEl.querySelector('.sptl-today-line') : null;
+  var tableEl = twrapEl ? twrapEl.querySelector('table.sptl-g') : null;
+  if (todayLineEl && tableEl) {
+    todayLineEl.style.height = tableEl.offsetHeight + 'px';
+  }
 }
