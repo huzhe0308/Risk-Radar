@@ -1142,6 +1142,11 @@ export default function Home() {
           ...data,
           views: data.views.map((view) => view.id === nextView.id ? nextView : view),
         })}
+        workspaceMode={workspaceMode}
+        visibleProjects={visibleProjects}
+        searchQuery={query}
+        tagFilter={tagFilter}
+        sortMode={sortMode}
       />
     </main>
   );
