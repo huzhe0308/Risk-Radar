@@ -1676,7 +1676,7 @@ function attachInlineStatusEditors(tableId, statusClass, remarkClass, dataKey) {
       const nextIdx = (cycle.indexOf(current) + 1) % cycle.length;
       csData[dataKey].statuses[sKey] = cycle[nextIdx];
       DATA.compSafetyPlan = csData;
-      markDirty();
+      autoSave();
       this.innerHTML = spStatusBadge(csData[dataKey].statuses[sKey]);
     };
   });
@@ -1707,7 +1707,7 @@ function attachInlineStatusEditors(tableId, statusClass, remarkClass, dataKey) {
         DATA.compSafetyPlan = csData;
         this.classList.remove('editing');
         this.innerHTML = input.value || '<span class="muted">—</span>';
-        markDirty();
+        autoSave();
       };
       const cancel = () => { this.classList.remove('editing'); this.innerHTML = origHTML; };
       input.onkeydown = function(e) {
