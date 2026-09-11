@@ -1554,6 +1554,11 @@ tbody tr:hover { background: #f7fbfb; }
 .ai-composer button { min-width: 74px; min-height: 34px; }
 .ai-composer button:disabled { opacity: .45; cursor: default; }
 
+.ai-suggestions { padding: 6px 14px 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.ai-suggestion-chip { padding: 5px 11px; border: 1px solid #c5d8dc; border-radius: 999px; background: #f0f6f7; color: #155e54; font-size: 10px; font-weight: 600; cursor: pointer; transition: border-color .15s, background .15s; }
+.ai-suggestion-chip:hover { border-color: #0f8b80; background: #e6f7f4; }
+.ai-suggestion-chip:disabled { opacity: .5; cursor: default; }
+
 @media (max-width: 760px) {
   .ai-fab { right: 14px; bottom: 16px; }
   .ai-panel { right: 14px; bottom: 84px; height: calc(100vh - 104px); }

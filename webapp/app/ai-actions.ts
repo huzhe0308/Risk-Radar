@@ -192,7 +192,7 @@ function describeAction(action: AiAction, view: View): string {
 
 export function validateAiCommand(raw: unknown, view: View): ValidationResult {
   const root = record(raw) || {};
-  const reply = text(root.reply, 4000) || "我已分析你的要求。";
+  const reply = text(root.reply, 8000) || "我已分析你的要求。";
   const warnings = Array.isArray(root.warnings) ? root.warnings.map((item) => text(item, 500)).filter((item): item is string => !!item).slice(0, 10) : [];
   const actions: AiAction[] = [];
   const rejected: string[] = [];
