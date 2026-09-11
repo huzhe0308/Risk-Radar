@@ -358,6 +358,13 @@ function renderUpstreamTimeline() {
     todayLineEl.style.height = tableEl.offsetHeight + 'px';
   }
 
+  // Scroll to today line position on initial load
+  if (twrapEl && todayIdx >= 0 && todayIdx < TL_WEEKS) {
+    var todayDayOff2 = tlDayOffset(todayStr);
+    var todayLeftPx = 200 + (todayIdx + todayDayOff2) * 18;
+    twrapEl.scrollLeft = Math.max(0, todayLeftPx - 220);
+  }
+
   // Collect milestones that fall on today
   var todayMilestones = [];
   platRows.forEach(function(row) {
