@@ -1212,9 +1212,9 @@ function updateSafetyPlanTable() {
   html += '<th style="width:260px">Deliverable</th>';
   html += '<th style="width:80px">ISO Ref</th>';
   html += '<th style="width:70px">Owner</th>';
-  html += '<th style="width:70px">Level</th>';
-  html += '<th style="width:90px">Status</th>';
-  html += '<th>Remark</th>';
+  html += '<th style="width:110px">Level</th>';
+  html += '<th style="width:130px">Status</th>';
+  html += '<th style="width:220px">Remark</th>';
   html += '</tr></thead><tbody>';
 
   let count = 0;
