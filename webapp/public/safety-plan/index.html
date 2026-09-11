@@ -114,6 +114,16 @@
           <select id="compsp-resp-filter"><option value="">All</option><option value="gx">GX</option><option value="vctc">VCTC</option><option value="shared">Shared</option></select>
         </div>
         <div style="overflow:auto;max-height:55vh"><table id="compsp-table"></table></div>
+        <div id="compsp-batch-bar" class="sp-batch-bar" style="display:none">
+          <span class="sp-batch-info" id="compsp-batch-info"></span>
+          <span class="sp-batch-label">Set Status:</span>
+          <button class="sp-batch-btn" data-status="">Clear</button>
+          <button class="sp-batch-btn" data-status="planned">Planned</button>
+          <button class="sp-batch-btn" data-status="progress">In Progress</button>
+          <button class="sp-batch-btn" data-status="done">Done</button>
+          <button class="sp-batch-btn" data-status="na">N/A</button>
+          <button class="sp-batch-clear" id="compsp-batch-clear">✕</button>
+        </div>
       </div>
     </div>
   </div>
