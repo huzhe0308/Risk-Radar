@@ -67,6 +67,10 @@
     <div class="stats-grid" id="safetyplan-stats"></div>
     <div class="card">
       <div class="card-title">Safety Plan per Project <span class="badge" id="safetyplan-badge"></span></div>
+      <div class="upstream-subtabs" style="margin-bottom:8px" id="safetyplan-view-tabs">
+        <button class="upstream-subtab active" data-spview="general">General</button>
+        <button class="upstream-subtab" data-spview="percomp">Per-Component (4B/4C/5S)</button>
+      </div>
       <div class="filters">
         <span class="filter-label">Project:</span>
         <select id="safetyplan-project-select"></select>
@@ -78,6 +82,7 @@
         <input type="text" id="safetyplan-search" placeholder="Search activities/deliverables...">
       </div>
       <div style="overflow:auto;max-height:70vh"><table id="safetyplan-table"></table></div>
+      <div style="overflow:auto;max-height:70vh;display:none"><table id="safetyplan-percomp-table"></table></div>
     </div>
   </div>
   <div id="usubtab-syssub" class="upstream-subtab-content" style="display:none">
