@@ -313,7 +313,7 @@ tr:hover td{background:var(--card2)}
 .sptl-n{font-size:18px;font-weight:700;color:#e0e0e0}
 .sptl-l{font-size:8px;color:#7a7e8a;text-transform:uppercase;margin-top:1px}
 .sptl-gbox{background:#0f1117;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.3);overflow:hidden;position:relative}
-.sptl-twrap{overflow:auto;position:relative;max-height:calc(100vh - 100px);scrollbar-color:#4a5568 #1a1d27;scrollbar-width:thin}
+.sptl-twrap{overflow:auto;position:relative;max-height:calc(100vh - 160px);scrollbar-color:#4a5568 #1a1d27;scrollbar-width:thin}
 .sptl-twrap::-webkit-scrollbar{height:14px;width:14px}
 .sptl-twrap::-webkit-scrollbar-track{background:#161922;border-radius:7px}
 .sptl-twrap::-webkit-scrollbar-thumb{background:#4a5568;border-radius:7px;border:3px solid #161922}
