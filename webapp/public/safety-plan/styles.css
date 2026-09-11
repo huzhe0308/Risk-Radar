@@ -359,3 +359,10 @@ table.sptl-g tr.sptl-fusa-row td.sptl-rn{background:rgba(255,213,79,.06)!importa
 .sptl-page-btn:hover{border-color:#4a9eff;color:#4a9eff}
 .sptl-page-btn:active{transform:scale(.97)}
 .sptl-page-info{color:#7a7e8a;font-size:12px;font-weight:600}
+.sp-batch-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#1e2130;border:1px solid #353944;border-radius:8px;margin-top:8px}
+.sp-batch-info{color:#4a9eff;font-size:12px;font-weight:700;margin-right:8px}
+.sp-batch-label{color:#7a7e8a;font-size:11px;font-weight:600}
+.sp-batch-btn{background:#20242f;border:1px solid #353944;color:#e0e0e0;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s}
+.sp-batch-btn:hover{border-color:#4a9eff;color:#4a9eff}
+.sp-batch-clear{background:none;border:none;color:#7a7e8a;cursor:pointer;font-size:14px;padding:0 4px;margin-left:auto}
+.sp-batch-clear:hover{color:#f44336}
