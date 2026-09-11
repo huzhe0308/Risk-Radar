@@ -1143,8 +1143,6 @@ export default function Home() {
           views: data.views.map((view) => view.id === nextView.id ? nextView : view),
         })}
       />
-
-      <footer className="statusbar"><span><i className="online-dot" />{changePreview ? "Excel 变更预览模式" : "本地运行模式"}</span><span>兼容 V3.40 Excel 数据格式</span><span className="status-spacer" /><button onClick={removeView}>删除当前视图</button></footer>
     </main>
   );
 }
