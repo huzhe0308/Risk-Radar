@@ -37,6 +37,15 @@ function markDirty() {
   document.getElementById('dirty-indicator').classList.add('show');
 }
 
+let _autoSaveTimer = null;
+function autoSave() {
+  markDirty();
+  if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(async function() {
+    await saveAllData();
+  }, 800);
+}
+
 function markClean() {
   isDirty = false;
   document.getElementById('dirty-indicator').classList.remove('show');
@@ -1274,7 +1283,7 @@ function attachSafetyPlanEditors(projectName) {
       const nextIdx = (cycle.indexOf(current) + 1) % cycle.length;
       spData[projectName].statuses[key] = cycle[nextIdx];
       DATA.safetyPlanPerProject = spData;
-      markDirty();
+      autoSave();
       // Update just this cell
       this.innerHTML = spStatusBadge(spData[projectName].statuses[key]);
     };
@@ -1313,7 +1322,7 @@ function attachSafetyPlanEditors(projectName) {
         DATA.safetyPlanPerProject = spData;
         this.classList.remove('editing');
         this.innerHTML = input.value || '<span class="muted">—</span>';
-        markDirty();
+        autoSave();
       };
       const cancel = () => {
         this.classList.remove('editing');
