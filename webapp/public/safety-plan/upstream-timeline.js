@@ -347,8 +347,8 @@ function renderUpstreamTimeline() {
 
   var prevBtn = document.getElementById('sptl-page-prev');
   var nextBtn = document.getElementById('sptl-page-next');
-  if (prevBtn) prevBtn.addEventListener('click', function() { if (currentPage > 0) { currentPage--; showPage(currentPage); } });
-  if (nextBtn) nextBtn.addEventListener('click', function() { if (currentPage < totalPages - 1) { currentPage++; showPage(currentPage); } });
+  if (prevBtn) prevBtn.addEventListener('click', function() { currentPage = (currentPage - 1 + totalPages) % totalPages; showPage(currentPage); });
+  if (nextBtn) nextBtn.addEventListener('click', function() { currentPage = (currentPage + 1) % totalPages; showPage(currentPage); });
 
   // Set today line height to match table height
   var twrapEl = document.getElementById('sptl-twrap');
