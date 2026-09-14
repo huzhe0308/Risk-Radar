@@ -55,7 +55,7 @@ type Cea2Phase = {
   items: Cea2Deliverable[];
 };
 
-const CEA2_DELIVERABLES: Cea2Phase[] = [
+const DEFAULT_DELIVERABLES: Cea2Phase[] = [
   {
     name: "Phase 1: FuSa Initialize (ISO 26262 Part 2 & 3)",
     items: [
@@ -194,6 +194,8 @@ type DataJson = {
   ceaKeyMilestones: Array<{ name: string; week: number; desc: string; fnLevel?: string; isFreeze?: boolean; isHomoFreeze?: boolean }>;
   safetyPepMapping: Array<{ safetyPhase: string; safetyActivity: string; pepMilestone: string; pepWeek: number; startWeek: number; endWeek: number; notes: string }>;
   safetyPlanPerProject?: Record<string, SpEntry>;
+  cea2CustomDeliverables?: Cea2Deliverable[];
+  cea2DeletedDeliverables?: string[];
 };
 
 export function Cea2Info() {
@@ -270,6 +272,61 @@ export function Cea2Info() {
   const cea2PGs = useMemo(() => (data?.productGroups || []).filter((pg) => CEA2_PGS.includes(pg.name)), [data]);
   const cea2Milestones = useMemo(() => (data?.ceaKeyMilestones || []).filter((m) => m.week <= -22 || m.name === "SOP"), [data]);
 
+  const cea2Deliverables = useMemo<Cea2Phase[]>(() => {
+    const deleted = new Set(data?.cea2DeletedDeliverables || []);
+    const customs = data?.cea2CustomDeliverables || [];
+    const phases: Cea2Phase[] = DEFAULT_DELIVERABLES.map((p) => ({ ...p, items: p.items.filter((i) => !deleted.has(i.no)) }));
+    if (customs.length > 0) {
+      const customPhase = phases.find((p) => p.name === "Custom Deliverables");
+      if (customPhase) {
+        customPhase.items = [...customPhase.items, ...customs];
+      } else {
+        phases.push({ name: "Custom Deliverables (自定义交付物)", items: customs });
+      }
+    }
+    return phases;
+  }, [data?.cea2CustomDeliverables, data?.cea2DeletedDeliverables]);
+
+  const addDeliverable = useCallback((item: Cea2Deliverable) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const customs = [...(prev.cea2CustomDeliverables || [])];
+      const existing = customs.find((c) => c.no === item.no);
+      if (existing) {
+        const idx = customs.indexOf(existing);
+        customs[idx] = item;
+      } else {
+        customs.push(item);
+      }
+      const deleted = (prev.cea2DeletedDeliverables || []).filter((n) => n !== item.no);
+      return { ...prev, cea2CustomDeliverables: customs, cea2DeletedDeliverables: deleted };
+    });
+    autoSave();
+  }, [autoSave]);
+
+  const deleteDeliverable = useCallback((no: string, isCustom: boolean) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      if (isCustom) {
+        const customs = (prev.cea2CustomDeliverables || []).filter((c) => c.no !== no);
+        return { ...prev, cea2CustomDeliverables: customs };
+      } else {
+        const deleted = [...(prev.cea2DeletedDeliverables || []), no];
+        return { ...prev, cea2DeletedDeliverables: deleted };
+      }
+    });
+    autoSave();
+  }, [autoSave]);
+
+  const restoreDeliverable = useCallback((no: string) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const deleted = (prev.cea2DeletedDeliverables || []).filter((n) => n !== no);
+      return { ...prev, cea2DeletedDeliverables: deleted };
+    });
+    autoSave();
+  }, [autoSave]);
+
   if (!data) return <div style={{ padding: 40, color: "#8b949e" }}>Loading CEA 2.0 data…</div>;
 
   const tabs: Array<{ key: typeof tab; label: string; icon: string }> = [
@@ -294,7 +351,7 @@ export function Cea2Info() {
       <div style={{ flex: 1, overflow: "auto", padding: "16px 24px" }}>
         {tab === "huts" && <HutTab vehicles={CEA2_VEHICLES} pgs={cea2PGs} impacts={cea2Impact} pepComparison={data.pepComparison} />}
         {tab === "deliverables" && (
-          <DeliverablesTab spData={data.safetyPlanPerProject || {}} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} />
+          <DeliverablesTab deliverables={cea2Deliverables} deletedNos={data.cea2DeletedDeliverables || []} spData={data.safetyPlanPerProject || {}} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} onAddDeliverable={addDeliverable} onDeleteDeliverable={deleteDeliverable} onRestoreDeliverable={restoreDeliverable} />
         )}
         {tab === "timeline" && <TimelineTab milestones={cea2Milestones} pepCeaMilestones={data.pepCeaMilestones} mapping={data.safetyPepMapping} />}
       </div>
@@ -389,33 +446,39 @@ function HutTab({ vehicles, pgs, impacts, pepComparison }: {
   );
 }
 
-function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange, onDateChange, onTailoringChange }: {
+function DeliverablesTab({ deliverables, deletedNos, spData, onStatusChange, onRemarkChange, onLinkChange, onDateChange, onTailoringChange, onAddDeliverable, onDeleteDeliverable, onRestoreDeliverable }: {
+  deliverables: Cea2Phase[];
+  deletedNos: string[];
   spData: Record<string, SpEntry>;
   onStatusChange: (vc: string, key: string, val: string) => void;
   onRemarkChange: (vc: string, key: string, val: string) => void;
   onLinkChange: (vc: string, key: string, val: string) => void;
   onDateChange: (vc: string, key: string, field: "plannedDates" | "actualDates", val: string) => void;
   onTailoringChange: (vc: string, key: string, val: string) => void;
+  onAddDeliverable: (item: Cea2Deliverable) => void;
+  onDeleteDeliverable: (no: string, isCustom: boolean) => void;
+  onRestoreDeliverable: (no: string) => void;
 }) {
   const [activeVehicle, setActiveVehicle] = useState(CEA2_VEHICLES[0].shortCode);
   const [subView, setSubView] = useState<"tailoring" | "general" | "compdev" | "supplier">("tailoring");
 
-  const isGeneral = (name: string) => !name.includes("4A") && !name.includes("5S");
+  const isGeneral = (name: string) => !name.includes("4A") && !name.includes("5S") && !name.includes("Custom");
   const isCompDev = (name: string) => name.includes("4A");
   const isSupplier = (name: string) => name.includes("5S");
+  const isCustom = (name: string) => name.includes("Custom");
 
   const phasesByView = {
-    general: CEA2_DELIVERABLES.filter((p) => isGeneral(p.name)),
-    compdev: CEA2_DELIVERABLES.filter((p) => isCompDev(p.name)),
-    supplier: CEA2_DELIVERABLES.filter((p) => isSupplier(p.name)),
+    general: deliverables.filter((p) => isGeneral(p.name)),
+    compdev: deliverables.filter((p) => isCompDev(p.name)),
+    supplier: deliverables.filter((p) => isSupplier(p.name)),
   };
 
-  const phasesToShow = subView === "tailoring" ? CEA2_DELIVERABLES : (phasesByView as Record<string, Cea2Phase[]>)[subView];
+  const phasesToShow = subView === "tailoring" ? deliverables : (phasesByView as Record<string, Cea2Phase[]>)[subView];
   const totalCount = phasesToShow.reduce((s, p) => s + p.items.length, 0);
   const vd = spData[activeVehicle] || { statuses: {}, remarks: {} };
 
   const subTabs: Array<{ key: typeof subView; label: string; count: number }> = [
-    { key: "tailoring", label: "Tailoring Matrix", count: CEA2_DELIVERABLES.reduce((s, p) => s + p.items.length, 0) },
+    { key: "tailoring", label: "Tailoring Matrix", count: deliverables.reduce((s, p) => s + p.items.length, 0) },
     { key: "general", label: "General (Phase 1-8)", count: phasesByView.general.reduce((s, p) => s + p.items.length, 0) },
     { key: "compdev", label: "Component Dev (4A)", count: phasesByView.compdev.reduce((s, p) => s + p.items.length, 0) },
     { key: "supplier", label: "Supplier (5S)", count: phasesByView.supplier.reduce((s, p) => s + p.items.length, 0) },
@@ -433,7 +496,7 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
             ))}
           </div>
         </div>
-        <TailoringMatrix spData={spData} onTailoringChange={onTailoringChange} />
+        <TailoringMatrix deliverables={deliverables} spData={spData} onTailoringChange={onTailoringChange} />
       </div>
     );
   }
@@ -459,7 +522,9 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
         </div>
       )}
 
-      {phasesToShow.map((p) => (
+      {phasesToShow.map((p) => {
+        const phaseIsCustom = isCustom(p.name);
+        return (
         <Card key={p.name} title={p.name} accent="#58a6ff">
           <div style={{ overflowX: "auto" }}>
             <Table>
@@ -478,6 +543,7 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
                   <Th style={{ width: 100 }}>Status</Th>
                   <Th style={{ width: 80 }}>Link</Th>
                   <Th style={{ width: 150 }}>Remark</Th>
+                  <Th style={{ width: 36 }}></Th>
                 </tr>
               </thead>
               <tbody>
@@ -495,9 +561,10 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
                   const nextStatus = STATUS_CYCLE[(STATUS_CYCLE.indexOf(status) + 1) % STATUS_CYCLE.length];
                   const rowStyle: React.CSSProperties = isNA ? { opacity: 0.4 } : {};
                   const noEdit = isNA;
+                  const itemIsCustom = phaseIsCustom;
                   return (
                     <tr key={item.no} style={rowStyle}>
-                      <Td style={{ fontWeight: 700, color: "#58a6ff" }}>{item.no}</Td>
+                      <Td style={{ fontWeight: 700, color: itemIsCustom ? "#d29922" : "#58a6ff" }}>{item.no}</Td>
                       <Td style={{ fontSize: 12 }}>{item.activity}</Td>
                       <Td>{item.deliverable}</Td>
                       <Td style={{ fontSize: 11, color: "#bc8cff" }}>{item.annex !== "-" ? item.annex : "—"}</Td>
@@ -510,27 +577,86 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
                       <Td><StatusBadge status={status} onClick={noEdit ? undefined : () => onStatusChange(activeVehicle, key, nextStatus)} /></Td>
                       <Td>{noEdit ? <span style={{ color: "#484f58" }}>—</span> : <EditableCell value={link} type="url" onSave={(v) => onLinkChange(activeVehicle, key, v)} placeholder="—" />}</Td>
                       <Td>{noEdit ? <span style={{ color: "#484f58" }}>—</span> : <EditableCell value={remark} onSave={(v) => onRemarkChange(activeVehicle, key, v)} placeholder="点击编辑…" />}</Td>
+                      <Td><button onClick={() => onDeleteDeliverable(item.no, itemIsCustom)} title="删除此行" style={{ background: "none", border: "none", color: "#f85149", cursor: "pointer", fontSize: 14, padding: 0 }}>&times;</button></Td>
                     </tr>
                   );
                 })}
               </tbody>
             </Table>
           </div>
+          <div style={{ marginTop: 8 }}>
+            <AddRowForm onAdd={onAddDeliverable} existingNos={p.items.map((i) => i.no)} />
+          </div>
         </Card>
-      ))}
+        );
+      })}
+
+      {deletedNos.length > 0 && (
+        <Card title="已删除的交付物" accent="#484f58">
+          {deletedNos.map((no) => (
+            <span key={no} style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: "0 8px 4px 0", padding: "2px 8px", background: "#21262d", borderRadius: 4, fontSize: 11 }}>
+              <span style={{ color: "#f85149" }}>{no}</span>
+              <button onClick={() => onRestoreDeliverable(no)} style={{ background: "none", border: "1px solid #30363d", color: "#3fb950", borderRadius: 3, padding: "0 6px", fontSize: 10, cursor: "pointer" }}>恢复</button>
+            </span>
+          ))}
+        </Card>
+      )}
     </div>
   );
 }
 
-function TailoringMatrix({ spData, onTailoringChange }: {
+function AddRowForm({ onAdd, existingNos }: { onAdd: (item: Cea2Deliverable) => void; existingNos: string[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const [no, setNo] = useState("");
+  const [activity, setActivity] = useState("");
+  const [deliverable, setDeliverable] = useState("");
+  const [annex, setAnnex] = useState("-");
+  const [isoRef, setIsoRef] = useState("");
+  const [owner, setOwner] = useState("VFSM");
+  const [level, setLevel] = useState("Vehicle Item Level");
+
+  if (!expanded) {
+    return <button onClick={() => setExpanded(true)} style={{ background: "#161b22", border: "1px dashed #30363d", color: "#8b949e", borderRadius: 6, padding: "4px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>+ 添加自定义交付物</button>;
+  }
+
+  const inputStyle: React.CSSProperties = { background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 4, padding: "4px 8px", fontSize: 12, width: "100%" };
+
+  const handleSubmit = () => {
+    if (!no.trim() || !deliverable.trim()) return;
+    if (existingNos.includes(no.trim())) { alert("编号已存在，请使用其他编号"); return; }
+    onAdd({ no: no.trim(), activity: activity.trim() || "Custom", deliverable: deliverable.trim(), annex: annex.trim() || "-", isoRef: isoRef.trim() || "-", owner: owner.trim() || "VFSM", level: level.trim() || "Vehicle Item Level" });
+    setNo(""); setActivity(""); setDeliverable(""); setAnnex("-"); setIsoRef(""); setOwner("VFSM"); setLevel("Vehicle Item Level");
+    setExpanded(false);
+  };
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "60px 120px 1fr 80px 120px 80px 120px auto", gap: 6, alignItems: "center", padding: "8px", background: "#0d1117", border: "1px dashed #58a6ff", borderRadius: 6 }}>
+      <input value={no} onChange={(e) => setNo(e.target.value)} placeholder="No.*" style={inputStyle} />
+      <input value={activity} onChange={(e) => setActivity(e.target.value)} placeholder="Activity" style={inputStyle} />
+      <input value={deliverable} onChange={(e) => setDeliverable(e.target.value)} placeholder="Deliverable / Document*" style={inputStyle} />
+      <input value={annex} onChange={(e) => setAnnex(e.target.value)} placeholder="Annex" style={inputStyle} />
+      <input value={isoRef} onChange={(e) => setIsoRef(e.target.value)} placeholder="ISO 26262 Ref." style={inputStyle} />
+      <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Owner" style={inputStyle} />
+      <input value={level} onChange={(e) => setLevel(e.target.value)} placeholder="Level" style={inputStyle} />
+      <div style={{ display: "flex", gap: 4 }}>
+        <button onClick={handleSubmit} style={{ background: "#238636", border: "none", color: "#fff", borderRadius: 4, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>添加</button>
+        <button onClick={() => setExpanded(false)} style={{ background: "#21262d", border: "1px solid #30363d", color: "#8b949e", borderRadius: 4, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>取消</button>
+      </div>
+    </div>
+  );
+}
+
+function TailoringMatrix({ deliverables, spData, onTailoringChange }: {
+  deliverables: Cea2Phase[];
   spData: Record<string, SpEntry>;
   onTailoringChange: (vc: string, key: string, val: string) => void;
 }) {
   const legendItems = TAILORING_CYCLE.map((t) => ({ key: t, ...TAILORING_META[t] }));
+  const totalDeliverables = deliverables.reduce((s, p) => s + p.items.length, 0);
 
   return (
     <div>
-      <Card title="Tailoring Matrix — 裁剪矩阵（4 vehicles × 49 deliverables）" accent="#8957e5">
+      <Card title={`Tailoring Matrix — 裁剪矩阵（4 vehicles × ${totalDeliverables} deliverables）`} accent="#8957e5">
         <div style={{ display: "flex", gap: 16, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ fontSize: 12, color: "#8b949e" }}>Legend:</span>
           {legendItems.map((l) => (
@@ -562,7 +688,7 @@ function TailoringMatrix({ spData, onTailoringChange }: {
               </tr>
             </thead>
             <tbody>
-              {CEA2_DELIVERABLES.map((phase) => (
+              {deliverables.map((phase) => (
                 <React.Fragment key={phase.name}>
                   <tr key={phase.name}>
                     <td colSpan={3 + CEA2_VEHICLES.length} style={{ background: "#21262d", color: "#79c0ff", padding: "6px 10px", fontSize: 12, fontWeight: 700, borderBottom: "1px solid #30363d" }}>{phase.name}</td>
