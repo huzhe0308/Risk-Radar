@@ -251,6 +251,87 @@ export function Cea2Info() {
     return e;
   }), [mutateEntry]);
 
+  const applyTailoringPreset = useCallback((vehicleCode: string) => {
+    const vehicle = CEA2_VEHICLES.find((v) => v.shortCode === vehicleCode);
+    if (!vehicle) return;
+    const cls = vehicle.cls;
+    mutateEntry(vehicleCode, (e) => {
+      e.tailoring = e.tailoring || {};
+      e.statuses = e.statuses || {};
+      CEA2_DELIVERABLES.forEach((phase) => {
+        phase.items.forEach((item) => {
+          let val = "Applicable";
+          if (cls === "carryover") {
+            if (item.activity.includes("Item Definition") || item.deliverable.includes("Checklist — Item Definition")) {
+              val = "Carry-over";
+            } else if (item.activity.includes("Impact Analysis") || item.deliverable.includes("I3 Confirmation Review Proof of Impact Analysis")) {
+              val = "Carry-over";
+            } else if (item.activity.includes("HARA") || item.deliverable.includes("Checklist — HARA")) {
+              val = "Delta";
+            } else if (item.activity.includes("FuSa Audit") || item.activity.includes("FuSa Assessment")) {
+              val = "Carry-over";
+            } else if (item.activity.includes("FSC/FSR") || item.deliverable.includes("Functional Safety Concept")) {
+              val = "Delta";
+            } else if (item.deliverable.includes("Checklist — Functional Safety Concept")) {
+              val = "Carry-over";
+            } else if (item.activity.includes("System FMEA") || item.deliverable.includes("Checklist — System FMEA")) {
+              val = "Delta";
+            } else if (item.activity.includes("System FTA") || item.deliverable.includes("Checklist — System FTA")) {
+              val = "Delta";
+            } else if (item.activity.includes("DFA")) {
+              val = "Carry-over";
+            } else if (item.activity.includes("Integration & Test Strategy") || item.deliverable.includes("Checklist — HW/SW Integration")) {
+              val = "Delta";
+            } else if (item.activity.includes("System Design")) {
+              val = "Delta";
+            } else if (item.deliverable.includes("Checklist — HW/SW Interface") || item.deliverable.includes("Checklist — System Integration")) {
+              val = "Carry-over";
+            } else if (item.activity.includes("Safety Plan") || item.deliverable.includes("Safety Plan")) {
+              val = "Applicable";
+            } else if (item.activity.includes("Safety Validation") || item.activity.includes("Integration & Test Case") || item.activity.includes("Integration & Test Report")) {
+              val = "Applicable";
+            } else if (item.activity.includes("Release")) {
+              val = "Applicable";
+            } else if (item.activity.includes("Safety Case")) {
+              val = "Applicable";
+            } else if (item.activity.includes("Supplier") || item.activity.includes("Supplier Interface") || item.activity.includes("Supplier Deliverables") || item.activity.includes("Supplier Safety Case")) {
+              val = "Applicable";
+            } else if (item.activity.includes("I3 CR")) {
+              val = "Applicable";
+            } else if (item.activity.includes("System Integration") && !item.deliverable.includes("Checklist")) {
+              val = "Delta";
+            }
+          } else if (cls === "newvar") {
+            if (item.activity.includes("Item Definition") || item.deliverable.includes("Checklist — Item Definition")) {
+              val = "Applicable";
+            } else if (item.activity.includes("Impact Analysis")) {
+              val = "Applicable";
+            } else if (item.activity.includes("FuSa Audit") || item.activity.includes("FuSa Assessment")) {
+              val = "Applicable";
+            } else if (item.activity.includes("DFA")) {
+              val = "Applicable";
+            } else if (item.deliverable.includes("Checklist — ") && (item.deliverable.includes("Item Definition") || item.deliverable.includes("HARA") || item.deliverable.includes("Functional Safety"))) {
+              val = "Applicable";
+            } else {
+              val = "Applicable";
+            }
+          }
+          e.tailoring[item.no] = val;
+          if (val === "Carry-over") {
+            e.statuses[item.no] = "done";
+          } else if (val === "N/A") {
+            e.statuses[item.no] = "na";
+          } else {
+            if (e.statuses[item.no] === "done" || e.statuses[item.no] === "na") {
+              e.statuses[item.no] = "";
+            }
+          }
+        });
+      });
+      return e;
+    });
+  }, [mutateEntry]);
+
   const cea2Impact = useMemo(() => (data?.impactAnalysis || []).filter((ia) => CEA2_PGS.includes(ia.pg)), [data]);
   const cea2PGs = useMemo(() => (data?.productGroups || []).filter((pg) => CEA2_PGS.includes(pg.name)), [data]);
   const cea2Milestones = useMemo(() => (data?.ceaKeyMilestones || []).filter((m) => m.week <= -22 || m.name === "SOP"), [data]);
@@ -293,7 +374,7 @@ export function Cea2Info() {
           <ComponentsTab components={filteredComponents} domains={data.componentManagement.domains} domainFilter={domainFilter} setDomainFilter={setDomainFilter} compSearch={compSearch} setCompSearch={setCompSearch} />
         )}
         {tab === "deliverables" && (
-          <DeliverablesTab spData={data.safetyPlanPerProject || {}} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} />
+          <DeliverablesTab spData={data.safetyPlanPerProject || {}} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} onApplyPreset={applyTailoringPreset} />
         )}
         {tab === "timeline" && <TimelineTab milestones={cea2Milestones} pepCeaMilestones={data.pepCeaMilestones} mapping={data.safetyPepMapping} />}
       </div>
@@ -413,13 +494,14 @@ function ComponentsTab({ components, domains, domainFilter, setDomainFilter, com
   );
 }
 
-function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange, onDateChange, onTailoringChange }: {
+function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange, onDateChange, onTailoringChange, onApplyPreset }: {
   spData: Record<string, SpEntry>;
   onStatusChange: (vc: string, key: string, val: string) => void;
   onRemarkChange: (vc: string, key: string, val: string) => void;
   onLinkChange: (vc: string, key: string, val: string) => void;
   onDateChange: (vc: string, key: string, field: "plannedDates" | "actualDates", val: string) => void;
   onTailoringChange: (vc: string, key: string, val: string) => void;
+  onApplyPreset: (vc: string) => void;
 }) {
   const [activeVehicle, setActiveVehicle] = useState(CEA2_VEHICLES[0].shortCode);
   const [subView, setSubView] = useState<"tailoring" | "general" | "compdev" | "supplier">("tailoring");
@@ -457,7 +539,7 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
             ))}
           </div>
         </div>
-        <TailoringMatrix spData={spData} onTailoringChange={onTailoringChange} />
+        <TailoringMatrix spData={spData} onTailoringChange={onTailoringChange} onApplyPreset={onApplyPreset} />
       </div>
     );
   }
@@ -546,9 +628,10 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
   );
 }
 
-function TailoringMatrix({ spData, onTailoringChange }: {
+function TailoringMatrix({ spData, onTailoringChange, onApplyPreset }: {
   spData: Record<string, SpEntry>;
   onTailoringChange: (vc: string, key: string, val: string) => void;
+  onApplyPreset: (vc: string) => void;
 }) {
   const legendItems = TAILORING_CYCLE.map((t) => ({ key: t, ...TAILORING_META[t] }));
 
@@ -571,6 +654,13 @@ function TailoringMatrix({ spData, onTailoringChange }: {
             </span>
           ))}
           <span style={{ fontSize: 11, color: "#6e7681", marginLeft: 8 }}>点击单元格循环切换状态</span>
+          <span style={{ marginLeft: 16, fontSize: 12, color: "#8b949e" }}>智能预设：</span>
+          {CEA2_VEHICLES.map((v) => (
+            <button key={v.shortCode} onClick={() => onApplyPreset(v.shortCode)} style={{ background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 4, padding: "3px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: CLS_TAG[v.cls].color, display: "inline-block" }} />
+              {v.shortCode} ({CLS_TAG[v.cls].label})
+            </button>
+          ))}
         </div>
 
         <div style={{ overflowX: "auto" }}>
