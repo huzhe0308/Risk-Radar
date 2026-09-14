@@ -90,7 +90,7 @@ export default function Home() {
   const [arrowDashed, setArrowDashed] = useState(false);
   const [arrowColor, setArrowColor] = useState("#d8ff3e");
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
-  const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline" | "cea" | "feishu-table" | "change-feed" | "safety-plan" | "safety-components">("safety-plan");
+  const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline" | "cea" | "feishu-table" | "change-feed" | "safety-plan" | "safety-components" | "cea2-info">("safety-plan");
   const [ceaExpanded, setCeaExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const changePreviewRef = useRef(false);
@@ -754,6 +754,11 @@ export default function Home() {
               <span className="view-copy"><strong>Components</strong></span>
               {workspaceMode === "safety-components" && <span className="active-dot" />}
             </button>
+            <button className={`view-item ${workspaceMode === "cea2-info" ? "active" : ""}`} onClick={() => { setWorkspaceMode("cea2-info"); setSelectedProjectId(""); setSelectedMilestone(null); }}>
+              <span className="view-icon">◈</span>
+              <span className="view-copy"><strong>CEA 2.0</strong></span>
+              {workspaceMode === "cea2-info" && <span className="active-dot" />}
+            </button>
           </div>
           <div className="sidebar-foot">
             <p>{changePreview ? "变更预览不会覆盖当前计划" : "本地自动保存已开启"}</p>
@@ -761,7 +766,7 @@ export default function Home() {
         </aside>
 
         <section className="content">
-          {workspaceMode !== "safety-plan" && workspaceMode !== "safety-components" && (
+          {workspaceMode !== "safety-plan" && workspaceMode !== "safety-components" && workspaceMode !== "cea2-info" && (
           <div className="page-heading">
             <div>
               <div className="breadcrumb">{workspaceMode === "feishu-table" ? "功能区 / 飞书表格" : workspaceMode === "change-feed" ? "功能区 / 变更提醒" : `功能区 / ${activeView.name}`}</div>
@@ -819,6 +824,8 @@ export default function Home() {
             <SafetyPlanPanel initialTab="upstream" />
           ) : workspaceMode === "safety-components" ? (
             <SafetyPlanPanel initialTab="components" />
+          ) : workspaceMode === "cea2-info" ? (
+            <iframe src="/cea2-info/index.html" style={{ width: "100%", height: "calc(100vh - 80px)", border: "none" }} title="CEA 2.0 Info" />
           ) : <>
           <div className="toolbar">
             <div className="search-field"><Icon>⌕</Icon><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目、里程碑或备注…" /><kbd>⌘ K</kbd></div>
