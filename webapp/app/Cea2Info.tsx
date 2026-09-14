@@ -204,6 +204,23 @@ export function Cea2Info() {
       });
   }, []);
 
+  useEffect(() => {
+    if (!data?.safetyPlanPerProject) return;
+    let needsSync = false;
+    const synced = { ...data.safetyPlanPerProject };
+    for (const [vc, entry] of Object.entries(synced)) {
+      if (!entry.tailoring) continue;
+      const newStatuses = { ...entry.statuses };
+      for (const [key, val] of Object.entries(entry.tailoring)) {
+        if (val === "Carry-over" && newStatuses[key] !== "done") { newStatuses[key] = "done"; needsSync = true; }
+        else if (val === "N/A" && newStatuses[key] !== "na") { newStatuses[key] = "na"; needsSync = true; }
+        else if ((val === "Applicable" || val === "Delta") && (newStatuses[key] === "done" || newStatuses[key] === "na") && entry.tailoring[key] !== "Carry-over" && entry.tailoring[key] !== "N/A") { newStatuses[key] = ""; needsSync = true; }
+      }
+      if (needsSync) synced[vc] = { ...entry, statuses: newStatuses };
+    }
+    if (needsSync) { setData((prev) => prev ? { ...prev, safetyPlanPerProject: synced } : prev); autoSave(); }
+  }, [data?.safetyPlanPerProject, autoSave]);
+
   const autoSave = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus("saving");
