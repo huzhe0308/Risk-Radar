@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEA 2.0 平台功能安全信息汇总</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;background:#0d1117;color:#e6edf3;line-height:1.6}
+.container{max-width:1400px;margin:0 auto;padding:24px}
+h1{text-align:center;font-size:28px;color:#f0f6fc;margin-bottom:8px}
+.subtitle{text-align:center;color:#8b949e;font-size:14px;margin-bottom:24px}
+h2{font-size:22px;color:#58a6ff;border-left:4px solid #58a6ff;padding-left:12px;margin:40px 0 16px}
+h3{font-size:17px;color:#79c0ff;margin:24px 0 12px}
+h4{font-size:15px;color:#c9d1d9;margin:16px 0 8px}
+.card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:24px;margin-bottom:20px}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;margin-left:8px}
+.badge-blue{background:#1f6feb;color:#f0f6fc}
+.badge-green{background:#238636;color:#f0f6fc}
+.badge-orange{background:#d29922;color:#0d1117}
+.badge-red{background:#da3633;color:#f0f6fc}
+.badge-purple{background:#8957e5;color:#f0f6fc}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+th{background:#21262d;color:#f0f6fc;padding:10px 8px;text-align:left;font-weight:600;white-space:nowrap}
+td{padding:8px;border-bottom:1px solid #30363d;vertical-align:top}
+tr:hover{background:#1c2128}
+.i3-tag{display:inline-block;background:#da3633;color:#fff;padding:1px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.i2-tag{display:inline-block;background:#d29922;color:#0d1117;padding:1px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.i1-tag{display:inline-block;background:#1f6feb;color:#fff;padding:1px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.i0-tag{display:inline-block;background:#484f58;color:#fff;padding:1px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.dash-tag{display:inline-block;color:#484f58;padding:1px 8px;font-size:11px}
+.flow-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin:12px 0;font-family:'Courier New',monospace;font-size:13px;line-height:1.8;overflow-x:auto;white-space:pre;color:#e6edf3}
+.system-item{display:inline-block;background:#1f2937;border:1px solid #374151;border-radius:6px;padding:4px 12px;margin:3px;font-size:13px;color:#93c5fd}
+.layer-sys{border-left:4px solid #58a6ff}
+.layer-gx{border-left:4px solid #238636}
+.layer-sup{border-left:4px solid #d29922}
+.out-of-scope{color:#484f58;text-decoration:line-through}
+.toc{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:24px}
+.toc a{color:#58a6ff;text-decoration:none;display:block;padding:3px 0;font-size:14px}
+.toc a:hover{text-decoration:underline}
+.toc-section{font-weight:700;color:#58a6ff;margin-top:12px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}
+.toc-section:first-child{margin-top:0}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px}
+.legend-dot{width:14px;height:14px;border-radius:3px}
+.asil-table th{text-align:center;min-width:50px}
+.asil-table td{text-align:center}
+.asil-table td:first-child,.asil-table th:first-child{text-align:left}
+.iso-ref{color:#bc8cff;font-size:12px}
+.highlight-row{background:#1c2128}
+.diff-row{background:#0d2818}
+.stat-card{display:inline-block;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 24px;margin:4px;text-align:center}
+.stat-value{font-size:32px;font-weight:700;color:#58a6ff}
+.stat-label{font-size:13px;color:#8b949e;margin-top:4px}
+.warning-box{background:#1c1208;border:1px solid #d29922;border-radius:6px;padding:12px;margin-top:12px;font-size:13px}
+.diff-card{background:#0d2818;border:1px solid #238636}
+.tab-bar{position:sticky;top:0;z-index:100;background:#0d1117;border-bottom:1px solid #30363d;display:flex;gap:0;overflow-x:auto;padding:0 24px}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:color .2s,border-color .2s}
+.tab-btn:hover{color:#e6edf3}
+.tab-btn.active{color:#58a6ff;border-bottom-color:#58a6ff}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab(0)">概览</button>
+  <button class="tab-btn" onclick="switchTab(1)">交付物</button>
+  <button class="tab-btn" onclick="switchTab(2)">规则与流程</button>
+  <button class="tab-btn" onclick="switchTab(3)">时间线</button>
+  <button class="tab-btn" onclick="switchTab(4)">角色与对照</button>
+</div>
+
+<div class="container">
+
+<h1>CEA 2.0 平台功能安全信息汇总</h1>
+<p class="subtitle">基于 Fusa Risk Radar 项目数据整理 | 生成日期：2026-09-14</p>
+
+<!-- ==================== TAB 0: 概览 ==================== -->
+<div class="tab-panel active" id="tab0">
+
+<!-- TOC -->
+<div class="toc">
+  <div class="toc-section">目录</div>
+  <a href="#s0">0. CEA 2.0 平台概览</a>
+  <a href="#s1">1. 总体架构：三层责任划分</a>
+  <a href="#s2">2. CEA 2.0 车型（HUT）清单</a>
+  <a href="#s3">3. 系统和子系统清单（域与零部件）</a>
+  <a href="#s4">4. 交付物完整清单（按 Phase 分组）</a>
+  <a href="#s5">5. 评审规则（含 I3 独立性要求）</a>
+  <a href="#s6">6. CEA 2.0 特有规则（与 CEA 2.X 差异）</a>
+  <a href="#s7">7. FSR 传递机制</a>
+  <a href="#s8">8. 嵌入式（GX / 域控制器）展开</a>
+  <a href="#s9">9. 零部件/供应商级（BTV 管理）</a>
+  <a href="#s10">10. PEP CEA 时间线与安全活动映射</a>
+  <a href="#s11">11. 端到端完整流程</a>
+  <a href="#s12">12. 角色职责矩阵</a>
+  <a href="#s13">13. 交付物编号统一对照</a>
+</div>
+
+<!-- ============ 0. CEA 2.0 平台概览 ============ -->
+<h2 id="s0">0. CEA 2.0 平台概览</h2>
+<div class="card">
+<div style="text-align:center;margin-bottom:16px">
+  <div class="stat-card"><div class="stat-value">4</div><div class="stat-label">CEA 2.0 HUTs</div></div>
+  <div class="stat-card"><div class="stat-value">3</div><div class="stat-label">产品组</div></div>
+  <div class="stat-card"><div class="stat-value">3</div><div class="stat-label">合资方</div></div>
+  <div class="stat-card"><div class="stat-value">2</div><div class="stat-label">SOP 节点</div></div>
+  <div class="stat-card"><div class="stat-value">7</div><div class="stat-label">域</div></div>
+</div>
+
+<h3>基本信息</h3>
+<table>
+<tr><th style="width:200px">属性</th><th>内容</th></tr>
+<tr><td>平台名称</td><td>CEA 2.0（CEA 2.X 家族首个迭代版本）</td></tr>
+<tr><td>HO 基线迭代</td><td>IPD 6.0</td></tr>
+<tr><td>所属 PEP</td><td>PEP CEA（32 个月，E/E 架构开发流程）</td></tr>
+<tr><td>前序平台</td><td>CEA 1.3 / CEA 1.4（部分 HUT 从 CEA 1.X 升级）</td></tr>
+<tr><td>涉及产品组</td><td>CMP21 BEV、CMP21 PHEV、MEB31 BEV</td></tr>
+<tr><td>涉及合资方</td><td>SVW（上汽大众）、FAW（一汽大众）、VWA（安徽大众）</td></tr>
+<tr><td>SOP 时间窗口</td><td>2027-05 ～ 2027-09</td></tr>
+<tr><td>CEA 迭代序列</td><td>CEA 2.0 → CEA 2.0.5 → CEA 2.1 → CEA 2.1.5 → CEA 2.2 → ... → CEA 2.6</td></tr>
+</table>
+
+<h3>PEP 类型对比</h3>
+<table>
+<tr><th>PEP 类型</th><th>范围</th><th>周期</th><th>状态</th></tr>
+<tr><td>PEP24</td><td>Non-1st-User Hut</td><td>24 个月</td><td>Approved (2025), closed</td></tr>
+<tr><td>PEP29</td><td>Platform &amp; 1st-User Hut</td><td>29 个月</td><td>First shortened version ready</td></tr>
+<tr><td><strong>PEP CEA</strong></td><td><strong>E/E Architecture (CEA) — CEA 2.0 所属</strong></td><td><strong>32 个月</strong></td><td><strong>First PEP for CEA ready</strong></td></tr>
+<tr><td>PEP Module</td><td>Module (integrated)</td><td>-</td><td>Integrated into PEP29 &amp; PEP24</td></tr>
+</table>
+</div>
+
+<!-- ============ 1. 总体架构 ============ -->
+<h2 id="s1">1. 总体架构：三层责任划分</h2>
+<div class="card layer-sys">
+<p style="margin-bottom:12px;color:#8b949e">
+  CEA 2.0 平台遵循与 CEA 2.X 一致的三层功能安全责任划分架构。每层有明确的责任方和交付物范围。
+</p>
+<table>
+<tr><th style="width:20%">层级</th><th style="width:25%">负责方</th><th style="width:30%">交付物范围</th><th>说明</th></tr>
+<tr>
+  <td><strong>系统/子系统级</strong></td>
+  <td>系统/子系统级功能安全工程师（FSE）<br>安全管理由 FSM（VFSM）负责</td>
+  <td>ISO 26262 Part 3 + Part 4（系统级）<br>共 14 项交付物</td>
+  <td>负责 Item Definition → HARA → FSC/TSC → 系统级 Safety Analysis → 集成测试 → Safety Validation → 系统级 Safety Case</td>
+</tr>
+<tr>
+  <td><strong>嵌入式（GX / 域控制器）</strong><br><span class="badge badge-green">In-house 内部开发</span></td>
+  <td>GX 团队</td>
+  <td>ISO 26262 Part 2 + Part 4 + Part 5 + Part 6 + Part 7 + Part 8</td>
+  <td>接收 FSR 后，按 V 模型展开 HW/SW 开发，自行产出 GX Safety Case</td>
+</tr>
+<tr>
+  <td><strong>零部件/供应商级</strong></td>
+  <td>外部供应商开发<br>BTV（Bauteilverantwortlicher）管理</td>
+  <td>BMG 释放前 9 项最小交付物 + Safety Case + Release Report</td>
+  <td>BTV 是 VCTC 内部管理外部供应商的角色。供应商交付物经 BTV 审核后释放</td>
+</tr>
+</table>
+
+<h3>CEA 2.0 责任层级补充说明</h3>
+<table>
+<tr><th>层级</th><th>负责方</th><th>交付物范围</th></tr>
+<tr><td><strong>System-Level</strong></td><td>System/Subsystem FSE<br>Safety managed by FSM</td><td>ISO 26262 Part 3 + Part 4 (system-level), 14 deliverables (Item Def → HARA → FSC/TSC → Safety Analysis → Integration → Validation → Safety Case)</td></tr>
+<tr><td><strong>GX Embedded</strong></td><td>GX Team (In-house)</td><td>ISO 26262 Part 2 + Part 4 + Part 5 + Part 6 + Part 7 + Part 8, receives FSR then follows V-model, produces GX Safety Case</td></tr>
+<tr><td><strong>Supplier</strong></td><td>External Supplier<br>Managed by BTV</td><td>9 deliverables before BMG release + Safety Case + Release Report</td></tr>
+</table>
+</div>
+
+<!-- ============ 2. CEA 2.0 车型清单 ============ -->
+<h2 id="s2">2. CEA 2.0 车型（HUT）清单</h2>
+<div class="card">
+<p style="margin-bottom:12px;color:#8b949e">
+  CEA 2.0 平台共涉及 <strong>4 个 HUT</strong>，分属 <strong>3 个产品组</strong>、<strong>3 个合资方</strong>，分布在 <strong>2 个 SOP 节点</strong>。
+</p>
+
+<h3>CEA 2.0 HUT 明细</h3>
+<table>
+<tr>
+  <th style="width:30px">#</th>
+  <th style="width:75px">SOP</th>
+  <th style="width:50px">JV</th>
+  <th>HUT 名称</th>
+  <th style="width:80px">CEA 版本</th>
+  <th style="width:110px">前序平台</th>
+  <th style="width:110px">分类</th>
+  <th>说明</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><strong>2027-05</strong></td>
+  <td>SVW</td>
+  <td>CMP21 CS A SUV MY27 VW316/9CS_B1 2ECV6H</td>
+  <td><span class="badge badge-blue">CEA 2.0</span></td>
+  <td>CEA 1.3 → 1.4</td>
+  <td><span class="badge badge-green">Carry-Over</span></td>
+  <td>2026 first ALS1(1.3) to ALS2(1.4) to MY27 upgrade CEA2.0</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><strong>2027-05</strong></td>
+  <td>FAW</td>
+  <td>CMP21 CN A NB PHEV VW311/1CN_P 2EFV6H</td>
+  <td><span class="badge badge-blue">CEA 2.0</span></td>
+  <td>-</td>
+  <td><span class="badge badge-orange">New Variant</span></td>
+  <td>New powertrain PHEV, CMP21 platform first PHEV</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><strong>2027-05</strong></td>
+  <td>FAW</td>
+  <td>CMP21 CN A Main SUV BEV VW316/9CN_B 2EGV6H</td>
+  <td><span class="badge badge-blue">CEA 2.0</span></td>
+  <td>-</td>
+  <td><span class="badge badge-orange">New Variant</span></td>
+  <td>FAW CMP21 Main SUV, new JV variant</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><strong>2027-09</strong></td>
+  <td>VWA</td>
+  <td>MEB31 CM A SUVe MY28 VW316/8CM_B1 11H001</td>
+  <td><span class="badge badge-blue">CEA 2.0</span></td>
+  <td>CEA 1.3 (from 1.0 ACOSe)</td>
+  <td><span class="badge badge-green">Carry-Over</span></td>
+  <td>2026 first ALS1(1.3) to MY28 upgrade CEA2.0</td>
+</tr>
+</table>
+
+<h3>按 SOP 节点分组</h3>
+<table>
+<tr><th>SOP 节点</th><th>HUT 数量</th><th>HUT 列表</th></tr>
+<tr>
+  <td><strong>2027-05</strong>（Release Node 1）</td>
+  <td>3</td>
+  <td>
+    1. CMP21 CS A SUV MY27 (SVW) — Carry-Over<br>
+    2. CMP21 CN A NB PHEV (FAW) — New Variant<br>
+    3. CMP21 CN A Main SUV BEV (FAW) — New Variant
+  </td>
+</tr>
+<tr>
+  <td><strong>2027-09</strong>（Release Node 3）</td>
+  <td>1</td>
+  <td>4. MEB31 CM A SUVe MY28 (VWA) — Carry-Over</td>
+</tr>
+</table>
+
+<h3>按产品组分组</h3>
+<table>
+<tr><th>产品组</th><th>平台</th><th>动力总成</th><th>Leading Car</th><th>CEA 2.0 HUTs</th></tr>
+<tr>
+  <td><strong>CMP21 BEV</strong></td>
+  <td>CMP21</td>
+  <td>BEV</td>
+  <td>CMP21 CS A SUV MY27 VW316/9CS_B1 2ECV6H (SVW)</td>
+  <td>
+    Leading: CMP21 CS A SUV MY27 (SVW)<br>
+    Derivative: CMP21 CN A Main SUV BEV (FAW)
+  </td>
+</tr>
+<tr>
+  <td><strong>CMP21 PHEV</strong></td>
+  <td>CMP21</td>
+  <td>PHEV</td>
+  <td>CMP21 CN A NB PHEV VW311/1CN_P 2EFV6H (FAW)</td>
+  <td>Leading: CMP21 CN A NB PHEV (FAW)</td>
+</tr>
+<tr>
+  <td><strong>MEB31 BEV</strong></td>
+  <td>MEB31</td>
+  <td>BEV</td>
+  <td>MEB31 CM A SUVe MY28 VW316/8CM_B1 11H001 (VWA)</td>
+  <td>Leading: MEB31 CM A SUVe MY28 (VWA)</td>
+</tr>
+</table>
+
+<h3>Impact Analysis 分类</h3>
+<table>
+<tr><th>产品组</th><th>分类</th><th>参考平台</th><th>参考车型</th><th>理由</th></tr>
+<tr>
+  <td>CMP21 BEV</td>
+  <td><span class="badge badge-orange">Modification with safety-related changes</span></td>
+  <td>CEA 1.X CMP 21D BEV</td>
+  <td>Amain SUV</td>
+  <td>CMP21 platform continued from CEA 1.X; E/E architecture upgrade to CEA 2.X requires safety-related changes</td>
+</tr>
+<tr>
+  <td>CMP21 PHEV</td>
+  <td><span class="badge badge-red">New development</span></td>
+  <td>-</td>
+  <td>-</td>
+  <td>New powertrain variant (PHEV) on CMP21 platform; no direct CEA 1.X predecessor; leading car VW311/1CN_P 2EFV6H serves as the new development baseline</td>
+</tr>
+<tr>
+  <td>MEB31 BEV</td>
+  <td><span class="badge badge-orange">Modification with safety-related changes</span></td>
+  <td>CEA 1.X MEB 31</td>
+  <td>A COSe</td>
+  <td>MEB31 platform continued from CEA 1.X; E/E architecture upgrade to CEA 2.X requires safety-related changes</td>
+</tr>
+</table>
+
+<h3>HUT 分类统计</h3>
+<table>
+<tr><th>分类</th><th>Impact Analysis</th><th>覆盖范围</th><th>CEA 2.0 数量</th></tr>
+<tr>
+  <td><span class="badge badge-red">ALL-NEW</span></td>
+  <td>Not required</td>
+  <td>Full three-layer FuSa activities (System 14 items + GX Part 2-8 + Supplier 9 items), from Item Definition all new</td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><span class="badge badge-orange">NEW VARIANT</span></td>
+  <td>Required</td>
+  <td>Impact Analysis determines which activities to reuse and which to delta-develop across three layers</td>
+  <td>2</td>
+</tr>
+<tr>
+  <td><span class="badge badge-green">CARRY-OVER</span></td>
+  <td>Required</td>
+  <td>Impact Analysis first to determine which activities can be reused</td>
+  <td>2</td>
+</tr>
+</table>
+</div>
+
+<!-- ============ 3. 系统和子系统清单 ============ -->
+<h2 id="s2-systems">3. 系统和子系统清单（域与零部件）</h2>
+<div class="card">
+<p style="margin-bottom:12px;color:#8b949e">
+  CEA 2.0 平台按 <strong>7 个域（Domain）</strong>进行功能安全管理，每个域下设若干零部件（Component）。
+</p>
+
+<h3>域清单</h3>
+<div>
+<span class="system-item">ADAS System L2</span>
+<span class="system-item">ADAS System L2++</span>
+<span class="system-item">ADAS System L3</span>
+<span class="system-item">Body System</span>
+<span class="system-item">Chassis System</span>
+<span class="system-item">Core Control Unit</span>
+<span class="system-item">Powertrain</span>
+</div>
+
+<h3>CEA 1.3 基线系统清单（前序平台参考）</h3>
+<div>
+<span class="system-item">BODY: Light</span>
+<span class="system-item">BODY: OTA</span>
+<span class="system-item">BODY: SEAT</span>
+<span class="system-item">Window</span>
+<span class="system-item">BODY: Door</span>
+<span class="system-item">BODY: Tailgate</span>
+<span class="system-item">BODY: Wiper</span>
+<span class="system-item">Chassis: IPB/EPB</span>
+<span class="system-item">Chassis: EPS</span>
+<span class="system-item">FID</span>
+<span class="system-item">HUD</span>
+<span class="system-item">ADAS</span>
+<span class="system-item">Powertrain System</span>
+</div>
+
+<h3>零部件清单摘要（按域分组）</h3>
+
+<h4>ADAS System L2</h4>
+<table>
+<tr><th style="width:80px">缩写</th><th>全称</th><th style="width:120px">中文名</th><th style="width:100px">FSM</th><th style="width:100px">BTV</th><th style="width:60px">ASIL</th><th>供应商</th><th style="width:80px">FuSa 开发</th></tr>
+<tr><td>FLC</td><td>Front Long Range Camera Controller</td><td>前视一体机</td><td>Chen, Yili (C|GF-4)</td><td>Zhang, Wanyao (VCTC-AFH)</td><td>B</td><td>MiniEye &amp; 未定点</td><td>Layer 6</td></tr>
+</table>
+
+<h4>ADAS System L2++</h4>
+<table>
+<tr><th style="width:80px">缩写</th><th>全称</th><th style="width:120px">中文名</th><th style="width:100px">FSM</th><th style="width:100px">BTV</th><th style="width:60px">ASIL</th><th>供应商</th><th style="width:80px">FuSa 开发</th></tr>
+<tr><td>ADS_NGXM</td><td>Intelligent Driving Driven System_ADAS Domain Control Unit Main</td><td>智驾主控制器</td><td>Chen, Yili (C|GF-4)</td><td>Yu, Jiabo (C|GF-5)</td><td>B</td><td>未定点</td><td>Layer 6</td></tr>
+<tr><td>LIDAR</td><td>Lidar</td><td>激光雷达</td><td>Chen, Yili (C|GF-4)</td><td>Zeng, Zijie (Thomas Zeng) (C|GF-5)</td><td>B</td><td>禾赛</td><td>Layer 6</td></tr>
+<tr><td>MRR</td><td>Front Radar</td><td>前毫米波雷达模块</td><td>Chen, Yili (C|GF-4)</td><td>Chen, Renjie (Ramon) (C|GF-5)</td><td>B</td><td>森斯泰克</td><td>Layer 6</td></tr>
+<tr><td>USS</td><td>Ultrasonic Sensor System - 12 Sensor</td><td>整车超声波雷达（12）</td><td>Chen, Yili (C|GF-4)</td><td>Lu, Yuchen (C|GF-5)</td><td>B</td><td>Bosch</td><td>Layer 6</td></tr>
+<tr><td>Topview camera</td><td>Topview Camera - 4 / Front Tele Camera / Front Wide Camera / Rear Facing Camera / Side Camera FL/FR/RL/RR</td><td>俯视摄像头 / 前视长焦 / 前视广角 / 后置 / 侧视×4</td><td>Chen, Yili (C|GF-4)</td><td>Zeng, Zijie (Thomas Zeng) (C|GF-5)</td><td>B</td><td>德赛 / 豪恩</td><td>Layer 6</td></tr>
+</table>
+
+<h4>ADAS System L3</h4>
+<table>
+<tr><th style="width:80px">缩写</th><th>全称</th><th style="width:120px">中文名</th><th style="width:100px">FSM</th><th style="width:100px">BTV</th><th style="width:60px">ASIL</th><th>供应商</th><th style="width:80px">FuSa 开发</th></tr>
+<tr><td>ADS_NGXFB</td><td>ADAS Domain Control Unit Fallback</td><td>智驾备控制器</td><td>Chen, Yili (C|GF-4)</td><td>—</td><td>B</td><td>未定点</td><td>Layer 6</td></tr>
+<tr><td>LRR_F</td><td>Front Long Range Radar</td><td>前长距雷达</td><td>Chen, Yili (C|GF-4)</td><td>—</td><td>B</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>LRR_R</td><td>Rear Long Range Radar</td><td>后长距雷达</td><td>Chen, Yili (C|GF-4)</td><td>—</td><td>B</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>CR_FL/FR/RL/RR</td><td>Corner Radar (4 corners)</td><td>角雷达×4</td><td>Chen, Yili (C|GF-4)</td><td>—</td><td>B</td><td>—</td><td>Layer 6</td></tr>
+</table>
+
+<h4>Body System</h4>
+<table>
+<tr><th style="width:80px">缩写</th><th>全称</th><th style="width:120px">中文名</th><th style="width:60px">ASIL</th><th style="width:80px">FuSa 开发</th></tr>
+<tr><td>FDM</td><td>Front Display Module</td><td>前显示屏</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>FID</td><td>Front Illumination Device</td><td>前大灯</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>FSL</td><td>Front Signal Light</td><td>前信号灯</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>LHCM</td><td>Left Headlight Control Module</td><td>左大灯控制模块</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>RHCM</td><td>Right Headlight Control Module</td><td>右大灯控制模块</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>RSL</td><td>Rear Signal Light</td><td>后信号灯</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>SMLS</td><td>Side Marker Light System</td><td>侧标灯</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>HUD</td><td>Head-Up Display</td><td>抬头显示</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>KLR/HOD+MFL</td><td>Kick Line Recognition / Hands-Off Detection + Multi-Function Light</td><td>踢脚感应/离手检测+多功能灯</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>LINDA</td><td>Linda Module</td><td>Linda 模块</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>WWM</td><td>Wiper Washer Module</td><td>雨刮洗涤模块</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>RLFS</td><td>Rear Liftgate / Fuel System</td><td>后尾门/燃油系统</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>DMS Camera</td><td>Driver Monitoring System Camera</td><td>驾驶员监控摄像头</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>OMS Camera</td><td>Occupant Monitoring System Camera</td><td>乘员监控摄像头</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>MFL</td><td>Multi-Function Light</td><td>多功能灯</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>ASU</td><td>Air Supply Unit</td><td>供气单元</td><td>—</td><td>Layer 6</td></tr>
+</table>
+
+<h4>Chassis System</h4>
+<table>
+<tr><th style="width:80px">缩写</th><th>全称</th><th style="width:120px">中文名</th><th style="width:60px">ASIL</th><th style="width:80px">FuSa 开发</th></tr>
+<tr><td>EPS</td><td>Electric Power Steering</td><td>电动助力转向</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>REPS</td><td>Rack-type Electric Power Steering</td><td>管柱式电动助力转向</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>RWS</td><td>Rear Wheel Steering</td><td>后轮转向</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>IBRS</td><td>Integrated Brake System</td><td>集成制动系统</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>RBU</td><td>Remote Brake Unit</td><td>远程制动单元</td><td>—</td><td>Layer 6</td></tr>
+<tr><td>SRS</td><td>Supplemental Restraint System</td><td>安全气囊系统</td><td>—</td><td>Layer 6</td></tr>
+</table>
+
+<h4>Core Control Unit</h4>
+<table>
+<tr><th style="width:80px">缩写</th><th>全称</th><th style="width:120px">中文名</th><th style="width:60px">ASIL</th><th style="width:80px">FuSa 开发</th></tr>
+<tr><td>ZCU</td><td>Zone Control Unit</td><td>区域控制器</td><td>—</td><td>Layer 6</td></tr>
+</table>
+</div>
+
+</div>
+
+<!-- ==================== TAB 1: 交付物 ==================== -->
+<div class="tab-panel" id="tab1">
+
+<!-- ============ 4. 交付物完整清单 ============ -->
+<h2 id="s4">4. 交付物完整清单（按 Phase 分组）</h2>
+<div class="card layer-sys">
+<p style="margin-bottom:12px;color:#8b949e">
+  CEA 2.0 平台交付物按 <strong>13 个 Phase</strong> 组织，覆盖系统级、组件级（HW/SW）、供应商管理、I3 确认评审等全部活动。共 <strong>84 项</strong>交付物。
+</p>
+
+<h3>Phase 总览</h3>
+<table>
+<tr><th style="width:50px">Phase</th><th>名称</th><th>ISO Part</th><th style="width:60px">交付物数</th><th style="width:120px">Owner</th><th style="width:120px">Level</th></tr>
+<tr><td>Phase 1</td><td>FuSa Initialize</td><td>ISO 26262-2 &amp; 3</td><td>6</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>Phase 2</td><td>Concept Development</td><td>ISO 26262-2 &amp; 3</td><td>4</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>Phase 3</td><td>System Development</td><td>ISO 26262-3 &amp; 4</td><td>11</td><td>VFSM / Domain</td><td>Vehicle Item / Product Group</td></tr>
+<tr><td>Phase 4</td><td>Safety Validation</td><td>ISO 26262-4</td><td>10</td><td>VFSM / Domain</td><td>Product Group</td></tr>
+<tr><td>Phase 5</td><td>Release</td><td>ISO 26262-4</td><td>1</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>Phase 6</td><td>Safety Case</td><td>ISO 26262-2</td><td>1</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>Phase 7</td><td>Supplier Management Track (Parallel)</td><td>ISO 26262-8</td><td>2</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>Phase 8</td><td>I3 Confirmation Review Track (Parallel)</td><td>ISO 26262-2</td><td>1</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>Phase 4A</td><td>Component Dev - System Level</td><td>ISO 26262-4</td><td>7</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>Phase 4B</td><td>Component Dev - Hardware</td><td>ISO 26262-5</td><td>14</td><td>Domain</td><td>Component</td></tr>
+<tr><td>Phase 4C</td><td>Component Dev - Software</td><td>ISO 26262-6</td><td>24</td><td>Domain</td><td>Component</td></tr>
+<tr><td>Phase 5S</td><td>Supplier Deliverables (per supplier)</td><td>ISO 26262-8</td><td>3</td><td>VFSM / Supplier</td><td>Supplier</td></tr>
+</table>
+
+<h3>Phase 1: FuSa Initialize（6 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th style="width:80px">Annex</th><th>ISO 参考</th><th style="width:60px">Owner</th><th style="width:100px">Level</th></tr>
+<tr><td>1.1</td><td>Item Definition</td><td>Item Definition</td><td>Annex_09</td><td class="iso-ref">ISO 26262-3, 5.5.1</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>1.2</td><td>Item Definition</td><td>Checklist - Item Definition</td><td>Annex_78</td><td class="iso-ref">ISO 26262-3</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>1.3</td><td>Impact Analysis</td><td>Impact Analysis Report (Item level)</td><td>Annex_01</td><td class="iso-ref">ISO 26262-2, 6.5.3</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>1.4</td><td>Impact Analysis</td><td>I3 CR Proof of Impact Analysis</td><td>-</td><td class="iso-ref">ISO 26262-2</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>1.5</td><td>FuSa Audit</td><td>FuSa Audit Checklist &amp; Report</td><td>Annex_05</td><td class="iso-ref">ISO 26262-2, 6.4.9</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>1.6</td><td>FuSa Assessment</td><td>FuSa Assessment Checklist &amp; Report</td><td>Annex_06</td><td class="iso-ref">ISO 26262-2, 6.4.9</td><td>VFSM</td><td>Vehicle Item</td></tr>
+</table>
+
+<h3>Phase 2: Concept Development（4 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th style="width:80px">Annex</th><th>ISO 参考</th><th style="width:60px">Owner</th><th style="width:100px">Level</th></tr>
+<tr><td>2.1</td><td>Safety Plan</td><td>Safety Plan (this document)</td><td>Annex_03</td><td class="iso-ref">ISO 26262-2, 6.5.3</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>2.2</td><td>Safety Plan</td><td>I3 CR Proof of Safety Plan</td><td>-</td><td class="iso-ref">ISO 26262-2</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>2.3</td><td>HARA</td><td>Hazard Analysis &amp; Risk Assessment (HARA)</td><td>Annex_10</td><td class="iso-ref">ISO 26262-3, 6.5.2</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>2.4</td><td>HARA</td><td>Checklist - HARA</td><td>Annex_79</td><td class="iso-ref">ISO 26262-3</td><td>VFSM</td><td>Vehicle Item</td></tr>
+</table>
+
+<h3>Phase 3: System Development（11 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th style="width:80px">Annex</th><th>ISO 参考</th><th style="width:60px">Owner</th><th style="width:100px">Level</th></tr>
+<tr><td>3.1</td><td>FSC/FSR</td><td>Functional Safety Concept (System Concept Report)</td><td>Annex_11</td><td class="iso-ref">ISO 26262-3, 7.5.1</td><td>VFSM</td><td>Product Group</td></tr>
+<tr><td>3.2</td><td>FSC/FSR</td><td>Checklist - Functional Safety Concept</td><td>Annex_80</td><td class="iso-ref">ISO 26262-3</td><td>VFSM</td><td>Product Group</td></tr>
+<tr><td>3.3</td><td>TSC/TSR</td><td>Technical Safety Requirements Specification</td><td>Annex_12</td><td class="iso-ref">ISO 26262-4, 6.5.1</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>3.4</td><td>TSC/TSR</td><td>Technical Safety Concept</td><td>Annex_13</td><td class="iso-ref">ISO 26262-4, 6.5.2</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>3.5</td><td>TSC/TSR</td><td>Checklist - Technical Safety Concept</td><td>Annex_82</td><td class="iso-ref">ISO 26262-4</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>3.6</td><td>TSC/TSR</td><td>Checklist - Technical Safety Requirement</td><td>Annex_81</td><td class="iso-ref">ISO 26262-4</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>3.7</td><td>System FMEA</td><td>System Safety FMEA</td><td>Annex_17</td><td class="iso-ref">ISO 26262-4, 6.5.7</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>3.8</td><td>System FMEA</td><td>Checklist - System FMEA</td><td>Annex_85</td><td class="iso-ref">ISO 26262-4</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>3.9</td><td>System FTA</td><td>System Safety FTA Report</td><td>Annex_19</td><td class="iso-ref">ISO 26262-4, 6.5.7</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>3.10</td><td>System FTA</td><td>Checklist - System FTA</td><td>Annex_87</td><td class="iso-ref">ISO 26262-4</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>3.11</td><td>DFA</td><td>Dependent Failure Analysis (DFA)</td><td>-</td><td class="iso-ref">ISO 26262-4</td><td>Domain</td><td>Product Group</td></tr>
+</table>
+
+<h3>Phase 4: Safety Validation（10 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th style="width:80px">Annex</th><th>ISO 参考</th><th style="width:60px">Owner</th><th style="width:100px">Level</th></tr>
+<tr><td>4.1</td><td>Integration &amp; Test Strategy</td><td>HW/SW Integration Test Plan</td><td>Annex_20</td><td class="iso-ref">ISO 26262-4, 7.4.2</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>4.2</td><td>Integration &amp; Test Strategy</td><td>Checklist - HW/SW Integration Test</td><td>Annex_88</td><td class="iso-ref">ISO 26262-4</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>4.3</td><td>Integration &amp; Test Case</td><td>System Integration Test Specification</td><td>-</td><td class="iso-ref">ISO 26262-4, 7.4.3</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>4.4</td><td>Integration &amp; Test Report</td><td>System Integration Test Report</td><td>-</td><td class="iso-ref">ISO 26262-4, 7.4.3</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>4.5</td><td>Integration &amp; Test Report</td><td>Review Protocol of System Integration Test Report</td><td>-</td><td class="iso-ref">ISO 26262-4</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>4.6</td><td>Safety Validation Plan</td><td>System Validation Plan</td><td>-</td><td class="iso-ref">ISO 26262-4, 8.4.3</td><td>VFSM</td><td>Product Group</td></tr>
+<tr><td>4.7</td><td>Safety Validation Plan</td><td>Review Protocol of Validation Plan</td><td>-</td><td class="iso-ref">ISO 26262-4</td><td>VFSM</td><td>Product Group</td></tr>
+<tr><td>4.8</td><td>Safety Validation Plan</td><td>System Validation Test Specification</td><td>-</td><td class="iso-ref">ISO 26262-4, 8.4.3</td><td>VFSM</td><td>Product Group</td></tr>
+<tr><td>4.9</td><td>Safety Validation Report</td><td>Validation Report</td><td>-</td><td class="iso-ref">ISO 26262-4, 8.4.4</td><td>VFSM</td><td>Product Group</td></tr>
+<tr><td>4.10</td><td>Safety Validation Report</td><td>Review Protocol of Validation Report</td><td>-</td><td class="iso-ref">ISO 26262-4</td><td>VFSM</td><td>Product Group</td></tr>
+</table>
+
+<h3>Phase 5: Release（1 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th>ISO 参考</th><th style="width:60px">Owner</th><th style="width:100px">Level</th></tr>
+<tr><td>5.1</td><td>Release</td><td>System Release Report</td><td class="iso-ref">ISO 26262-4</td><td>VFSM</td><td>Vehicle Item</td></tr>
+</table>
+
+<h3>Phase 6: Safety Case（1 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th style="width:80px">Annex</th><th>ISO 参考</th><th style="width:60px">Owner</th><th style="width:100px">Level</th></tr>
+<tr><td>6.1</td><td>Safety Case</td><td>Vehicle-level Safety Case</td><td>Annex_04</td><td class="iso-ref">ISO 26262-2, 6.5.4</td><td>VFSM</td><td>Vehicle Item</td></tr>
+</table>
+
+<h3>Phase 7: Supplier Management Track (Parallel)（2 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th style="width:80px">Annex</th><th>ISO 参考</th><th style="width:60px">Owner</th><th style="width:100px">Level</th></tr>
+<tr><td>7.1</td><td>Supplier Inspection</td><td>Supplier Review Report</td><td>Annex_59</td><td class="iso-ref">ISO 26262-8, 5.5.2</td><td>VFSM</td><td>Vehicle Item</td></tr>
+<tr><td>7.2</td><td>Supplier Safety Case</td><td>Supplier Safety Case Collection &amp; Assessment</td><td>Annex_04</td><td class="iso-ref">ISO 26262-8, 5.5.4</td><td>VFSM</td><td>Vehicle Item</td></tr>
+</table>
+
+<h3>Phase 8: I3 Confirmation Review Track (Parallel)（1 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th>ISO 参考</th><th style="width:60px">Owner</th><th style="width:100px">Level</th></tr>
+<tr><td>8.1</td><td>I3 CR Overview</td><td>I3 Confirmation Review Status Overview</td><td class="iso-ref">ISO 26262-2</td><td>VFSM</td><td>Vehicle Item</td></tr>
+</table>
+
+<h3>Phase 4A: Component Dev - System Level（7 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th style="width:80px">Annex</th><th>ISO 参考</th><th style="width:60px">Owner</th><th style="width:100px">Level</th></tr>
+<tr><td>4A.1</td><td>System Design</td><td>System Design Specification</td><td>Annex_14</td><td class="iso-ref">ISO 26262-4, 6.5.3</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>4A.2</td><td>System Design</td><td>Hardware/Software Interface Specification</td><td>Annex_15</td><td class="iso-ref">ISO 26262-4, 6.5.4</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>4A.3</td><td>System Design</td><td>Checklist - HW/SW Interface</td><td>Annex_84</td><td class="iso-ref">ISO 26262-4</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>4A.4</td><td>System Integration</td><td>System Integration &amp; Test Strategy</td><td>Annex_24</td><td class="iso-ref">ISO 26262-4, 7.4.3</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>4A.5</td><td>System Integration</td><td>System Integration Test Case &amp; Report</td><td>Annex_25</td><td class="iso-ref">ISO 26262-4, 7.4.3</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>4A.6</td><td>System Integration</td><td>Checklist - System Integration Test (System)</td><td>Annex_89</td><td class="iso-ref">ISO 26262-4</td><td>Domain</td><td>Product Group</td></tr>
+<tr><td>4A.7</td><td>System Integration</td><td>Checklist - System Integration Test (Vehicle)</td><td>Annex_90</td><td class="iso-ref">ISO 26262-4</td><td>Domain</td><td>Product Group</td></tr>
+</table>
+
+<h3>Phase 4B: Component Dev - Hardware（14 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th style="width:80px">Annex</th><th>ISO 参考</th></tr>
+<tr><td>4B.1</td><td>HW Requirements</td><td>Hardware Safety Requirements Specification</td><td>Annex_28</td><td class="iso-ref">ISO 26262-5, 7.5.1</td></tr>
+<tr><td>4B.2</td><td>HW Requirements</td><td>Checklist - Hardware Requirement</td><td>Annex_92</td><td class="iso-ref">ISO 26262-5</td></tr>
+<tr><td>4B.3</td><td>HW Design</td><td>Hardware Design Specification</td><td>Annex_29</td><td class="iso-ref">ISO 26262-5, 8.5.1</td></tr>
+<tr><td>4B.4</td><td>HW Design</td><td>Checklist - Hardware Design</td><td>Annex_93</td><td class="iso-ref">ISO 26262-5</td></tr>
+<tr><td>4B.5</td><td>HW Safety Analysis</td><td>Hardware Safety FMEA</td><td>Annex_30</td><td class="iso-ref">ISO 26262-5, 9.5.2</td></tr>
+<tr><td>4B.6</td><td>HW Safety Analysis</td><td>Hardware Safety FTA Report</td><td>Annex_32</td><td class="iso-ref">ISO 26262-5, 9.5.2</td></tr>
+<tr><td>4B.7</td><td>HW Safety Analysis</td><td>Checklist - Hardware Safety FMEA</td><td>Annex_94</td><td class="iso-ref">ISO 26262-5</td></tr>
+<tr><td>4B.8</td><td>HW Safety Analysis</td><td>Checklist - Hardware Safety FTA</td><td>Annex_96</td><td class="iso-ref">ISO 26262-5</td></tr>
+<tr><td>4B.9</td><td>HW Safety Analysis</td><td>Hardware FMEDA</td><td>Annex_34</td><td class="iso-ref">ISO 26262-5, 9.5.4</td></tr>
+<tr><td>4B.10</td><td>HW Safety Analysis</td><td>Checklist - Hardware FMEDA</td><td>Annex_98</td><td class="iso-ref">ISO 26262-5</td></tr>
+<tr><td>4B.11</td><td>HW Integration</td><td>Hardware Integration &amp; Verification Specification</td><td>-</td><td class="iso-ref">ISO 26262-5, 10.5.1</td></tr>
+<tr><td>4B.12</td><td>HW Integration</td><td>Hardware Integration &amp; Verification Report</td><td>-</td><td class="iso-ref">ISO 26262-5, 10.5.2</td></tr>
+<tr><td>4B.13</td><td>HW Integration</td><td>Hardware Integration Test Specification</td><td>Annex_36</td><td class="iso-ref">ISO 26262-5, 10.5.3</td></tr>
+<tr><td>4B.14</td><td>HW Integration</td><td>Checklist - Hardware Integration Test</td><td>Annex_99</td><td class="iso-ref">ISO 26262-5</td></tr>
+</table>
+
+<h3>Phase 4C: Component Dev - Software（24 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th style="width:80px">Annex</th><th>ISO 参考</th></tr>
+<tr><td>4C.1</td><td>SW Architecture</td><td>Software Architecture Design Specification</td><td>Annex_42</td><td class="iso-ref">ISO 26262-6, 7.5.1</td></tr>
+<tr><td>4C.2</td><td>SW Architecture</td><td>Checklist - Software Architecture</td><td>Annex_101</td><td class="iso-ref">ISO 26262-6</td></tr>
+<tr><td>4C.3</td><td>SW Safety Analysis</td><td>Software Safety FMEA</td><td>Annex_43</td><td class="iso-ref">ISO 26262-6, 7.5.2</td></tr>
+<tr><td>4C.4</td><td>SW Safety Analysis</td><td>Checklist - Software Safety FMEA</td><td>Annex_102</td><td class="iso-ref">ISO 26262-6</td></tr>
+<tr><td>4C.5</td><td>SW Safety Analysis</td><td>Software DFA</td><td>Annex_44</td><td class="iso-ref">ISO 26262-6, 7.5.3</td></tr>
+<tr><td>4C.6</td><td>SW Safety Analysis</td><td>Checklist - Software DFA</td><td>Annex_103</td><td class="iso-ref">ISO 26262-6</td></tr>
+<tr><td>4C.7</td><td>SW Unit Design</td><td>Software Unit Design Specification</td><td>Annex_45</td><td class="iso-ref">ISO 26262-6, 8.5.1</td></tr>
+<tr><td>4C.8</td><td>SW Unit Design</td><td>Software Test Plan</td><td>Annex_47</td><td class="iso-ref">ISO 26262-6, 8.5.2</td></tr>
+<tr><td>4C.9</td><td>SW Unit Design</td><td>Checklist - Software Unit Design</td><td>Annex_104</td><td class="iso-ref">ISO 26262-6</td></tr>
+<tr><td>4C.10</td><td>SW Unit Design</td><td>Software Design Verification Plan</td><td>Annex_46</td><td class="iso-ref">ISO 26262-6, 8.5.3</td></tr>
+<tr><td>4C.11~4C.16</td><td>SW Config</td><td>Config Data Spec / Calibration Data Spec / Verification Spec &amp; Report / SW Arch Spec (refined) / SW Dev Environment Doc (refined)</td><td>Annex_41/40</td><td class="iso-ref">ISO 26262-6, 9.5.x</td></tr>
+<tr><td>4C.17~4C.19</td><td>SW Integration</td><td>SW Integration Test Case / Specification / Report</td><td>Annex_52/51/53</td><td class="iso-ref">ISO 26262-6, 10.5.x</td></tr>
+<tr><td>4C.20~4C.21</td><td>SW V&amp;V</td><td>Testing of Embedded Software - Test Spec / Report</td><td>Annex_54/56</td><td class="iso-ref">ISO 26262-6, 11.5.x</td></tr>
+<tr><td>4C.22~4C.24</td><td>SW Release</td><td>Software Release Notes / Application Release Notes / Review Protocol</td><td>-</td><td class="iso-ref">ISO 26262-6, 12.5.x</td></tr>
+</table>
+
+<h3>Phase 5S: Supplier Deliverables（3 项）</h3>
+<table>
+<tr><th style="width:50px">ID</th><th>活动</th><th>交付物</th><th style="width:80px">Annex</th><th>ISO 参考</th><th style="width:60px">Owner</th><th style="width:100px">Level</th></tr>
+<tr><td>5S.1</td><td>DIA</td><td>Development Interface Agreement (DIA)</td><td>Annex_58</td><td class="iso-ref">ISO 26262-8, 5</td><td>VFSM</td><td>Supplier</td></tr>
+<tr><td>5S.2</td><td>Supplier Inspection</td><td>Supplier Review Report</td><td>Annex_59</td><td class="iso-ref">ISO 26262-8, 5.5.2</td><td>VFSM</td><td>Supplier</td></tr>
+<tr><td>5S.3</td><td>Supplier Safety Case</td><td>Supplier Safety Case</td><td>Annex_04</td><td class="iso-ref">ISO 26262-8, 5.5.4</td><td>Supplier</td><td>Supplier</td></tr>
+</table>
+</div>
+
+<!-- ============ 5. 评审规则 ============ -->
+<h2 id="s5">5. 评审规则（含 I3 独立性要求）</h2>
+<div class="card">
+<h3>三段式评审流程</h3>
+<p style="margin-bottom:12px">每个交付物遵循统一的评审流程：</p>
+<div class="flow-box">Draft → Verification Review → Confirmation Review → Released
+              ↓                      ↓
+           Passed?               Passed?
+          Yes / No              Yes / No
+          失败→回退              失败→回退</div>
+<ul style="margin:8px 0 8px 20px;font-size:13px">
+  <li><strong>Verification Review</strong>：技术评审（FSE + 相关工程师）</li>
+  <li><strong>Confirmation Review</strong>：管理确认（FSM 或 FSM+FSE），独立性要求按 ASIL 等级</li>
+  <li><strong>配套模板</strong>：Annex 15（Review template）+ Annex 16（Checklist）</li>
+  <li><strong>评审报告</strong>：Annex 04（Confirmation review report）</li>
+  <li><strong>Confirmation Review 须在 Production Release 前完成</strong></li>
+  <li><strong>ASIL 等级取所有安全要求中的最高 ASIL</strong></li>
+</ul>
+
+<h3>独立性等级定义（ISO 26262-2, Table 1）</h3>
+<table>
+<tr><th style="width:60px">等级</th><th>含义</th></tr>
+<tr><td><span class="i0-tag">I0</span></td><td>宜执行；如执行，须由非编写人执行</td></tr>
+<tr><td><span class="i1-tag">I1</span></td><td>须由非编写人执行</td></tr>
+<tr><td><span class="i2-tag">I2</span></td><td>须由独立于编写团队的人员执行（不同直接上级）</td></tr>
+<tr><td><span class="i3-tag">I3</span></td><td><strong>须由独立于编写部门的人员执行（管理、资源、发布权限均独立）</strong></td></tr>
+</table>
+
+<h3>系统级 14 项交付物的 Confirmation Review 独立性要求</h3>
+<table class="asil-table">
+<tr>
+  <th>序号</th>
+  <th>交付物</th>
+  <th>QM</th>
+  <th>ASIL A</th>
+  <th>ASIL B</th>
+  <th>ASIL C</th>
+  <th>ASIL D</th>
+  <th>I3 标注</th>
+</tr>
+<tr><td>01</td><td>Item Definition</td><td class="dash-tag">—</td><td class="dash-tag">—</td><td class="dash-tag">—</td><td class="dash-tag">—</td><td class="dash-tag">—</td><td>无 CR 要求</td></tr>
+<tr class="highlight-row"><td>02</td><td>Impact Analysis</td><td><span class="i3-tag">I3</span></td><td><span class="i3-tag">I3</span></td><td><span class="i3-tag">I3</span></td><td><span class="i3-tag">I3</span></td><td><span class="i3-tag">I3</span></td><td><strong>始终 I3</strong></td></tr>
+<tr class="highlight-row"><td>03</td><td>HARA</td><td><span class="i3-tag">I3</span></td><td><span class="i3-tag">I3</span></td><td><span class="i3-tag">I3</span></td><td><span class="i3-tag">I3</span></td><td><span class="i3-tag">I3</span></td><td><strong>始终 I3</strong></td></tr>
+<tr><td>04</td><td>Safety Plan</td><td class="dash-tag">—</td><td><span class="i1-tag">I1</span></td><td><span class="i1-tag">I1</span></td><td><span class="i2-tag">I2</span></td><td><span class="i3-tag">I3</span></td><td>ASIL D 时 I3</td></tr>
+<tr><td>05</td><td>FSC/TSC</td><td class="dash-tag">—</td><td><span class="i1-tag">I1</span></td><td><span class="i1-tag">I1</span></td><td><span class="i2-tag">I2</span></td><td><span class="i3-tag">I3</span></td><td>ASIL D 时 I3</td></tr>
+<tr><td>06</td><td>System FMEA</td><td class="dash-tag">—</td><td><span class="i1-tag">I1</span></td><td><span class="i1-tag">I1</span></td><td><span class="i2-tag">I2</span></td><td><span class="i3-tag">I3</span></td><td>ASIL D 时 I3</td></tr>
+<tr><td>07</td><td>System FTA</td><td class="dash-tag">—</td><td><span class="i1-tag">I1</span></td><td><span class="i1-tag">I1</span></td><td><span class="i2-tag">I2</span></td><td><span class="i3-tag">I3</span></td><td>ASIL D 时 I3</td></tr>
+<tr><td>08</td><td>DFA</td><td class="dash-tag">—</td><td><span class="i1-tag">I1</span></td><td><span class="i1-tag">I1</span></td><td><span class="i2-tag">I2</span></td><td><span class="i3-tag">I3</span></td><td>ASIL D 时 I3</td></tr>
+<tr><td>09</td><td>Integration &amp; Test Strategy</td><td class="dash-tag">—</td><td><span class="i0-tag">I0</span></td><td><span class="i1-tag">I1</span></td><td><span class="i2-tag">I2</span></td><td><span class="i2-tag">I2</span></td><td>最高 I2</td></tr>
+<tr><td>10</td><td>Integration &amp; Test Case</td><td class="dash-tag">—</td><td><span class="i0-tag">I0</span></td><td><span class="i1-tag">I1</span></td><td><span class="i2-tag">I2</span></td><td><span class="i2-tag">I2</span></td><td>最高 I2</td></tr>
+<tr><td>11</td><td>Integration &amp; Test Report</td><td class="dash-tag">—</td><td><span class="i0-tag">I0</span></td><td><span class="i1-tag">I1</span></td><td><span class="i2-tag">I2</span></td><td><span class="i2-tag">I2</span></td><td>最高 I2</td></tr>
+<tr><td>12</td><td>Safety Validation Plan</td><td class="dash-tag">—</td><td><span class="i0-tag">I0</span></td><td><span class="i1-tag">I1</span></td><td><span class="i2-tag">I2</span></td><td><span class="i2-tag">I2</span></td><td>最高 I2</td></tr>
+<tr><td>13</td><td>Safety Validation Report</td><td class="dash-tag">—</td><td><span class="i0-tag">I0</span></td><td><span class="i1-tag">I1</span></td><td><span class="i2-tag">I2</span></td><td><span class="i2-tag">I2</span></td><td>最高 I2</td></tr>
+<tr><td>14</td><td>Safety Case</td><td class="dash-tag">—</td><td><span class="i1-tag">I1</span></td><td><span class="i1-tag">I1</span></td><td><span class="i2-tag">I2</span></td><td><span class="i3-tag">I3</span></td><td>ASIL D 时 I3</td></tr>
+</table>
+
+<h3>补充：FuSa Audit &amp; Assessment</h3>
+<table class="asil-table">
+<tr><th>认可措施</th><th>QM</th><th>ASIL A</th><th>ASIL B</th><th>ASIL C</th><th>ASIL D</th></tr>
+<tr><td>Functional Safety Audit</td><td class="dash-tag">—</td><td class="dash-tag">—</td><td><span class="i0-tag">I0</span></td><td><span class="i2-tag">I2</span></td><td><span class="i3-tag">I3</span></td></tr>
+<tr><td>Functional Safety Assessment</td><td class="dash-tag">—</td><td class="dash-tag">—</td><td><span class="i0-tag">I0</span></td><td><span class="i2-tag">I2</span></td><td><span class="i3-tag">I3</span></td></tr>
+</table>
+
+<div style="background:#1c1208;border:1px solid #d29922;border-radius:6px;padding:12px;margin-top:12px;font-size:13px">
+  <strong>关键规则：</strong>
+  <ol style="margin-left:20px">
+    <li><strong>Impact Analysis 和 HARA → 始终 I3</strong>（无论 ASIL 等级，包括 QM）</li>
+    <li><strong>ASIL D 时 → 所有 Confirmation Review 升级为 I3</strong></li>
+    <li><strong>Integration &amp; Test Strategy / Safety Validation → 最高只到 I2</strong>，不需要 I3</li>
+    <li><strong>I3 含义</strong>：评审人须独立于编写部门（管理、资源、发布权限均独立）</li>
+  </ol>
+</div>
+</div>
+
+</div>
+
+<!-- ==================== TAB 2: 规则与流程 ==================== -->
+<div class="tab-panel" id="tab2">
+
+<!-- ============ 6. CEA 2.0 特有规则 ============ -->
+<h2 id="s6">6. CEA 2.0 特有规则（与 CEA 2.X 差异）</h2>
+<div class="card diff-card">
+<p style="margin-bottom:12px">
+  CEA 2.0 作为 CEA 2.X 家族的首个迭代版本，在以下两方面与后续版本（CEA 2.1+）存在规则差异：
+</p>
+
+<table>
+<tr><th style="width:60px">#</th><th style="width:250px">交付物</th><th style="width:200px">ISO 参考</th><th style="width:100px">CEA 2.0</th><th style="width:100px">CEA 2.X (2.1+)</th><th>说明</th></tr>
+<tr class="diff-row">
+  <td>1</td>
+  <td><strong>Element 级 Impact Analysis</strong></td>
+  <td class="iso-ref">ISO 26262-2, 6.5.2</td>
+  <td><span class="badge badge-red">不需要</span></td>
+  <td><span class="badge badge-green">需要</span></td>
+  <td>CEA 2.0 作为首个迭代，不需要在 Element 级别做 Impact Analysis；从 CEA 2.X (2.1+) 起需要</td>
+</tr>
+<tr class="diff-row">
+  <td>2</td>
+  <td><strong>SW Component Qualification</strong></td>
+  <td class="iso-ref">ISO 26262-8, 12.5.1~12.5.3</td>
+  <td><span class="badge badge-red">不需要</span></td>
+  <td><span class="badge badge-green">需要</span></td>
+  <td>CEA 2.0 不需要 SW Component Qualification（Doc/Report/Verification）；从 CEA 2.X (2.1+) 起需要</td>
+</tr>
+</table>
+
+<h3>CEA 迭代版本映射</h3>
+<table>
+<tr><th>CEA 版本</th><th>HO 基线迭代</th><th>说明</th></tr>
+<tr class="highlight-row"><td><strong>CEA 2.0</strong></td><td><strong>IPD 6.0</strong></td><td><strong>首个迭代版本，本文档关注范围</strong></td></tr>
+<tr><td>CEA 2.0.5</td><td>—</td><td>中间版本</td></tr>
+<tr><td>CEA 2.1</td><td>IPD 7.0</td><td>第二个迭代</td></tr>
+<tr><td>CEA 2.1.5</td><td>—</td><td>中间版本</td></tr>
+<tr><td>CEA 2.2</td><td>CEA 2.0.5</td><td>第三个迭代</td></tr>
+<tr><td>CEA 2.2.5</td><td>—</td><td>中间版本</td></tr>
+<tr><td>CEA 2.3</td><td>CEA 2.1.5</td><td>第四个迭代</td></tr>
+<tr><td>CEA 2.3.5</td><td>—</td><td>中间版本</td></tr>
+<tr><td>CEA 2.4</td><td>CEA 2.2.5</td><td>第五个迭代</td></tr>
+<tr><td>CEA 2.4.5</td><td>—</td><td>中间版本</td></tr>
+<tr><td>CEA 2.5</td><td>—</td><td>第六个迭代</td></tr>
+<tr><td>CEA 2.5.5</td><td>—</td><td>中间版本</td></tr>
+<tr><td>CEA 2.6</td><td>—</td><td>第七个迭代</td></tr>
+</table>
+</div>
+
+<!-- ============ 7. FSR 传递 ============ -->
+<h2 id="s7">7. FSR 传递机制</h2>
+<div class="card">
+<p style="margin-bottom:12px">
+  系统级完成 FSC/TSC 后，产出 <strong>FSR（功能安全需求）</strong>，传递给两个方向：
+</p>
+<table>
+<tr><th style="width:30%">接收方</th><th style="width:25%">性质</th><th>说明</th></tr>
+<tr>
+  <td><strong>嵌入式（GX / 域控制器）</strong></td>
+  <td><span class="badge badge-green">In-house 内部开发</span></td>
+  <td>域控制器是 E/E 件的一部分，GX 团队按 V 模型展开 HW/SW 全流程开发</td>
+</tr>
+<tr>
+  <td><strong>BTV（管理外部供应商）</strong></td>
+  <td><span class="badge badge-orange">外部开发</span></td>
+  <td>BTV 是 VCTC 内部管理外部供应商的角色。供应商按 DIA 约束交付，BTV 负责审核和过程管理</td>
+</tr>
+</table>
+<div class="flow-box">系统级 FSC/TSC
+       ↓
+  ┌──── FSR 传递 ──────────────────────┐
+  │                                      │
+  ▼                                      ▼
+  嵌入式（GX / 域控制器）          BTV（管理外部供应商）
+  In-house 内部开发                 外部供应商开发
+  → Part 2/4/5/6/7/8 全流程        → DIA 签署 → 9 项交付物
+  → GX Safety Case + Release       → Safety Case + Release Report
+  → 回传系统级汇总                  → 回传系统级汇总
+       ↓                                      ↓
+  ┌──── 各层 Safety Case + Release 回传 ──────┐
+  → 系统级 Safety Case 汇总（14-Safety Case）</div>
+</div>
+
+<!-- ============ 8. 嵌入式 GX ============ -->
+<h2 id="s8">8. 嵌入式（GX / 域控制器）展开</h2>
+<div class="card layer-gx">
+<h3>责任边界</h3>
+<table>
+<tr><th style="width:30%">范围</th><th style="width:20%">责任方</th><th>说明</th></tr>
+<tr><td>Concept 阶段（Item Def / HARA / FSC）</td><td>系统/子系统级 FSE<br><span class="badge badge-red">Out of GX</span></td><td>由系统级负责</td></tr>
+<tr><td>Safety Validation（Plan + Report）</td><td>系统/子系统级 FSE<br><span class="badge badge-red">Out of GX</span></td><td>由系统级负责</td></tr>
+<tr><td>Release for Production</td><td>系统级<br><span class="badge badge-red">Out of GX</span></td><td>由系统级负责</td></tr>
+<tr><td>Part 4（TSC 起步，除 Validation）</td><td><span class="badge badge-green">GX</span></td><td>接收 FSR 后展开</td></tr>
+<tr><td>Part 5（HW 全部）</td><td><span class="badge badge-green">GX</span></td><td>HW 设计→FMEDA→集成验证→Released</td></tr>
+<tr><td>Part 6（SW 全部）</td><td><span class="badge badge-green">GX</span></td><td>SW 需求→架构→单元→集成→Embedded Test→Released</td></tr>
+<tr><td>Part 7（生产运维，仅域控制器相关）</td><td><span class="badge badge-green">GX</span></td><td>按需</td></tr>
+<tr><td>Part 8（支持过程）</td><td><span class="badge badge-green">GX</span></td><td>DIA、Config/Change/Doc Mgmt、Verification</td></tr>
+<tr><td>Part 2（GX 自身的安全管理）</td><td><span class="badge badge-green">GX</span></td><td>Safety Plan(follows VCTC)、Safety Case、Confirmation Review</td></tr>
+<tr><td>Tool Qualification</td><td><span class="badge badge-blue">VCTC 负责</span></td><td>Software Tool Criteria Eval + Qualification Report</td></tr>
+</table>
+
+<h3>GX 交付物清单（按 ISO 26262 Part 分组，含 CEA 2.0 标注）</h3>
+
+<h4>Part 2 - 安全管理</h4>
+<table>
+<tr><th style="width:80px">ISO 章节</th><th>交付物</th><th style="width:180px">责任</th></tr>
+<tr><td>2-5.5.1</td><td>组织安全规则与流程</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>2-5.5.2</td><td>能力管理证据</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>2-5.5.3</td><td>质量管理体系证据</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>2-5.5.4</td><td>安全异常报告（如有）</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>2-6.5.1</td><td>Item 级 Impact Analysis</td><td><span class="badge badge-red">Out of GX</span></td></tr>
+<tr class="diff-row"><td>2-6.5.2</td><td>Element 级 Impact Analysis</td><td><strong>CEA 2.0 不需要</strong>；CEA 2.X (2.1+) 需要</td></tr>
+<tr><td>2-6.5.3</td><td>Safety Plan</td><td><span class="badge badge-green">GX</span> follows VCTC</td></tr>
+<tr><td>2-6.5.4</td><td>Safety Case</td><td><span class="badge badge-green">GX</span> generates</td></tr>
+<tr><td>2-6.5.5</td><td>Confirmation Review Report</td><td><span class="badge badge-green">GX</span> generates</td></tr>
+<tr><td>2-6.5.5</td><td>sub. Confirmation review</td><td><span class="badge badge-green">GX</span> implements</td></tr>
+<tr><td>2-6.5.5</td><td>sub. FuSa Audit</td><td><span class="badge badge-red">Out of GX</span></td></tr>
+<tr><td>2-6.5.5</td><td>sub. FuSa Assessment</td><td><span class="badge badge-red">Out of GX</span></td></tr>
+<tr><td>2-6.5.6</td><td>Release for Production Report</td><td><span class="badge badge-red">Out of GX</span></td></tr>
+<tr><td>2-7.5</td><td>生产运维安全管理证据</td><td><span class="badge badge-red">Out of GX</span></td></tr>
+</table>
+
+<h4>Part 3 - Concept（全部 Out of GX，系统级 FSE 负责）</h4>
+<table>
+<tr><th style="width:80px">ISO 章节</th><th>交付物</th><th style="width:120px">责任</th></tr>
+<tr><td>3-5.5</td><td>Item Definition</td><td><span class="badge badge-red">VCTC</span></td></tr>
+<tr><td>3-6.5.1</td><td>HARA Report</td><td><span class="badge badge-red">VCTC</span></td></tr>
+<tr><td>3-6.5.2</td><td>HARA Verification Report</td><td><span class="badge badge-red">VCTC</span></td></tr>
+<tr><td>3-7.5.1</td><td>FSC</td><td><span class="badge badge-red">VCTC</span></td></tr>
+<tr><td>3-7.5.2</td><td>FSC Verification Report</td><td><span class="badge badge-red">VCTC</span></td></tr>
+</table>
+
+<h4>Part 4 - 系统级开发</h4>
+<table>
+<tr><th style="width:80px">ISO 章节</th><th>交付物</th><th style="width:120px">责任</th></tr>
+<tr><td>4-6.5.1</td><td>TSR Specification</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>4-6.5.2</td><td>TSC</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>4-6.5.3</td><td>System Architectural Design Spec</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>4-6.5.4</td><td>HSI Specification</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>4-6.5.5</td><td>Production/Service/Decommissioning Req Spec</td><td><span class="badge badge-green">GX</span> (域控制器相关)</td></tr>
+<tr><td>4-6.5.6</td><td>Verification Report (Sys Arch + HSI + TSC)</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>4-6.5.7</td><td>Safety Analysis Report (FMEA / FTA / DFA)</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>4-7.5.1</td><td>Integration and Testing Strategy</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>4-7.5.2</td><td>Integration and Testing Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>4-8.5.1</td><td>Safety Validation Spec</td><td><span class="badge badge-red">Out of GX</span></td></tr>
+<tr><td>4-8.5.2</td><td>Safety Validation Report</td><td><span class="badge badge-red">Out of GX</span></td></tr>
+</table>
+
+<h4>Part 5 - 硬件级开发</h4>
+<table>
+<tr><th style="width:80px">ISO 章节</th><th>交付物</th><th style="width:120px">责任</th></tr>
+<tr><td>5-6.5.1</td><td>HW Safety Requirements Spec</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-6.5.2</td><td>HSI Specification (detailed)</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-6.5.3</td><td>HW Safety Requirements Verification Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-7.5.1</td><td>HW Design Specification</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-7.5.2</td><td>HW Safety Analysis Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-7.5.3</td><td>HW Design Verification Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-7.5.4</td><td>Production/Service/Decommissioning Req Spec</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-8.5.1</td><td>HW Architectural Metrics (SPFM/LFM/PMHF) Analysis</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-8.5.2</td><td>HW Architectural Metrics Verification Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-9.5.1</td><td>Safety Goal Violations Analysis</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-9.5.2</td><td>Dedicated Measures for HW (if needed)</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-9.5.3</td><td>SG Violations Evaluation Verification Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-10.5.1</td><td>HW Integration and Verification Spec</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>5-10.5.2</td><td>HW Integration and Verification Report</td><td><span class="badge badge-green">GX</span></td></tr>
+</table>
+
+<h4>Part 6 - 软件级开发</h4>
+<table>
+<tr><th style="width:80px">ISO 章节</th><th>交付物</th><th style="width:120px">责任</th></tr>
+<tr><td>6-5.5</td><td>SW Development Environment Document</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-6.5.1</td><td>SW Safety Requirements Spec</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-6.5.2</td><td>HSI Specification (detailed)</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-6.5.3</td><td>SW Requirements + Detailed HSI Verification Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-7.5.1</td><td>SW Architecture Design Specification</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-7.5.2</td><td>SW Safety Analysis Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-7.5.3</td><td>SW DFA Report (SDFA)</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-7.5.4</td><td>SW Architecture Design Verification Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-8.5.1</td><td>SW Unit Design Specification</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-8.5.2</td><td>SW Unit Implementation</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-9.5.1</td><td>SW Unit Verification Specification</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-9.5.2</td><td>SW Unit Verification Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-10.5.1</td><td>SW Integration Verification Specification</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-10.5.2</td><td>Embedded Software</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-10.5.3</td><td>SW Integration Verification Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-11.5.1</td><td>Embedded SW Verification Specification</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>6-11.5.2</td><td>Embedded SW Verification Report</td><td><span class="badge badge-green">GX</span></td></tr>
+</table>
+
+<h4>Part 8 - 支持过程（含 CEA 2.0 标注）</h4>
+<table>
+<tr><th style="width:80px">ISO 章节</th><th>交付物</th><th style="width:180px">责任</th></tr>
+<tr><td>8-5.5.1</td><td>Supplier Selection Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>8-5.5.2</td><td>DIA</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>8-5.5.3</td><td>Supplier's Safety Plan</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>8-5.5.4</td><td>FuSa Assessment Report</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>8-5.5.5</td><td>Supply Agreement</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>-</td><td>Configuration Management Plan</td><td><span class="badge badge-green">GX</span> (Safety Case 证据)</td></tr>
+<tr><td>8-8.5.1~8-8.5.4</td><td>Change Management (Plan/Request/Impact/Report)</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>8-9.5.1~8-9.5.3</td><td>Verification (Plan/Spec/Report)</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>8-10.5.1~8-10.5.2</td><td>Documentation Management (Plan/Guideline)</td><td><span class="badge badge-green">GX</span></td></tr>
+<tr><td>8-11.5.1~8-11.5.2</td><td>Software Tool Criteria Evaluation + Qualification Report</td><td><span class="badge badge-blue">VCTC 负责</span></td></tr>
+<tr class="diff-row"><td>8-12.5.1~8-12.5.3</td><td>SW Component Qualification (Doc/Report/Verification)</td><td><strong>CEA 2.0 不需要</strong>；CEA 2.X (2.1+) 需要</td></tr>
+<tr><td>8-13.5.1</td><td>HW Element Evaluation Plan</td><td><span class="badge badge-green">GX</span></td></tr>
+</table>
+</div>
+
+<!-- ============ 9. 零部件/供应商级 ============ -->
+<h2 id="s9">9. 零部件/供应商级（BTV 管理）</h2>
+<div class="card layer-sup">
+<h3>BMG 释放前 4 项前提</h3>
+<table>
+<tr><th style="width:50px">#</th><th>前提条件</th></tr>
+<tr><td>1</td><td>与供方签署的 DIA 文档</td></tr>
+<tr><td>2</td><td>基于 DIA 的供方开发过程审核记录</td></tr>
+<tr><td>3</td><td>基于 DIA 的零部件功能安全开发交付物</td></tr>
+<tr><td>4</td><td>零部件安全档案和释放报告</td></tr>
+</table>
+
+<h3>交付项 3 明细（供应商提交，BTV 审核）</h3>
+<table>
+<tr><th style="width:50px">序号</th><th>交付物</th><th style="width:200px">ISO 参考</th><th>备注</th></tr>
+<tr><td>3-1</td><td>Safety Plan</td><td class="iso-ref">ISO 26262-2, 6.5.3</td><td></td></tr>
+<tr><td>3-2</td><td>Safety Case</td><td class="iso-ref">ISO 26262-2, 6.5.4</td><td></td></tr>
+<tr><td>3-3</td><td>Release Report</td><td class="iso-ref">ISO 26262-2, 6.5.6</td><td></td></tr>
+<tr><td>3-4</td><td>Technical Safety Concept</td><td class="iso-ref">ISO 26262-4, 6.5.2</td><td>至少含主要安全机制总结</td></tr>
+<tr><td>3-5</td><td>Safety Analysis Summary Report（或 FTA + FMEA + DFA + 其他）</td><td class="iso-ref">ISO 26262-4, 6.5.7</td><td>FMEA 各层含 TOP10 EE 失效</td></tr>
+<tr><td>3-6</td><td>HW/SW Integration and Test Report</td><td class="iso-ref">ISO 26262-4, 7.5.2</td><td></td></tr>
+<tr><td>3-7</td><td>System Integration and Test Report</td><td class="iso-ref">ISO 26262-4, 7.5.2</td><td></td></tr>
+<tr><td>3-8</td><td>FMEDA Summary Report</td><td class="iso-ref">ISO 26262-5, 8.5.1</td><td></td></tr>
+<tr><td>3-9</td><td>Production/Operation/Service/Decommissioning Req Spec</td><td class="iso-ref">ISO 26262-7, 5.5</td><td>按需</td></tr>
+</table>
+
+<h3>交付项 4（安全档案和释放报告）</h3>
+<table>
+<tr><th style="width:50px">#</th><th>内容</th></tr>
+<tr><td>4-1</td><td>所有交付物名称、版本、状态、文档存储链接</td></tr>
+<tr><td>4-2</td><td>释放状态的零部件号、HW 版本号、SW 版本号</td></tr>
+<tr><td>4-3</td><td>OPL、释放结论、批准签字</td></tr>
+</table>
+
+<h3>流程逻辑</h3>
+<div class="flow-box">接收到 FSR（来自系统级）
+  ↓
+DIA 签署（BTV 管理供应商）
+  ↓
+供应商开发过程审核（BTV 负责）
+  ↓
+Safety Plan (3-1)
+  ↓
+TSC (3-4)
+  ↓
+Safety Analysis (3-5): FMEA + FTA + DFA
+  ↓
+FMEDA Summary (3-8)
+  ↓
+HW/SW Integration Test (3-6)
+System Integration Test (3-7)
+  ↓
+Production/Service Req Spec (3-9, 按需)
+  ↓
+Safety Case (3-2)
+  ↓
+Release Report (3-3)
+  ↓
+安全档案汇总 (4-1/4-2/4-3)
+  ↓
+BMG 释放</div>
+</div>
+
+</div>
+
+<!-- ==================== TAB 3: 时间线 ==================== -->
+<div class="tab-panel" id="tab3">
+
+<!-- ============ 10. PEP CEA 时间线与安全活动映射 ============ -->
+<h2 id="s10">10. PEP CEA 时间线与安全活动映射</h2>
+<div class="card">
+<h3>PEP CEA 里程碑（32 个月，PS → SOP）</h3>
+<table>
+<tr><th style="width:60px">里程碑</th><th style="width:60px">月</th><th style="width:60px">周</th><th>描述</th></tr>
+<tr><td>PS</td><td>-35M</td><td>-152W</td><td>Project Start</td></tr>
+<tr><td>AC</td><td>-32M</td><td>-139W</td><td>Architecture Concept</td></tr>
+<tr><td>AF</td><td>-28M</td><td>-119W</td><td>Architecture Freeze</td></tr>
+<tr><td>AE</td><td>-20M</td><td>-85W</td><td>Architecture Entscheid (Decision)</td></tr>
+<tr><td>C-GF</td><td>-14M</td><td>-60W</td><td>CEA Gate Freigabe</td></tr>
+<tr><td>PRS</td><td>-7M</td><td>-29W</td><td>Produktionsfreigabe Serien</td></tr>
+<tr><td>0S</td><td>-3M</td><td>-13W</td><td>0-Serie</td></tr>
+<tr><td>SOP</td><td>0M</td><td>0W</td><td>Start of Production</td></tr>
+</table>
+
+<h3>CEA 开发关键里程碑（含功能成熟度等级）</h3>
+<table>
+<tr><th style="width:180px">里程碑</th><th style="width:60px">周</th><th style="width:80px">功能等级</th><th>描述</th></tr>
+<tr><td>Strategic Req.</td><td>-165W</td><td>-</td><td>Product &amp; Function input</td></tr>
+<tr><td>HW Req. Elab.</td><td>-148W</td><td>-</td><td>R&amp;D HW requirements elaboration</td></tr>
+<tr><td>Arch. Concept</td><td>-144W</td><td>-</td><td>CEA Architecture Concept</td></tr>
+<tr><td>HW req. FREEZE</td><td>-132W</td><td>-</td><td>Hardware requirements frozen</td></tr>
+<tr><td>Arch. FREEZE</td><td>-124W</td><td>-</td><td>CEA Architecture frozen</td></tr>
+<tr><td>AGT Req. FREEZE</td><td>-105W</td><td>-</td><td>AGT requirements frozen</td></tr>
+<tr><td>Sys Design FREEZE</td><td>-100W</td><td>-</td><td>System design frozen</td></tr>
+<tr><td>SW Req. FREEZE</td><td>-90W</td><td>-</td><td>Software requirements frozen</td></tr>
+<tr><td>VP1.0 (AGT)</td><td>-88W</td><td>B1</td><td>Vehicle Prototype 1.0</td></tr>
+<tr><td>VR1.0 (AGT)</td><td>-70W</td><td>C2</td><td>Vehicle Release 1.0</td></tr>
+<tr><td>IPD 1.0 (VT)</td><td>-60W</td><td>B1</td><td>Integration &amp; Product Development 1.0</td></tr>
+<tr><td>IPD 2.0 (VT)</td><td>-52W</td><td>C1</td><td>Vehicle Control Basic Functions, ECU Diagnosis &amp; flash, Crash Functions</td></tr>
+<tr><td>IPD 3.0 (VT)</td><td>-44W</td><td>C2</td><td>Full EOL functions, Full DPS-P, All Diagnosis</td></tr>
+<tr><td>IPD 4.0 (PRS)</td><td>-36W</td><td>C2</td><td>OTA: All ECUs OTA-able 70%; Bootloader freeze</td></tr>
+<tr><td>IPD 5.0</td><td>-30W</td><td>C2</td><td>HOMO HW Freeze; OTA 90%; ADAS 100%</td></tr>
+<tr class="highlight-row"><td><strong>IPD 6.0 (Homo)</strong></td><td>-24W</td><td><strong>C2 → Release</strong></td><td><strong>Release for HOMO; 100% Function; OTA 95% — CEA 2.0 HO 基线</strong></td></tr>
+<tr><td>Homo start</td><td>-22W</td><td>-</td><td>Homologation start</td></tr>
+<tr><td>IPD 7.0 (0S)</td><td>-18W</td><td>C2</td><td>OTA Single ECU Test; Vehicle Stress 100%</td></tr>
+<tr><td>IPD 7.5</td><td>-12W</td><td>C2</td><td>Performance 100%; Environment: PROD</td></tr>
+<tr><td>IPD 8.0 (SOP)</td><td>-6W</td><td>D</td><td>Customer Ready; OTA 100%; ADAS L2++ 100%</td></tr>
+<tr><td>SOP</td><td>0W</td><td>-</td><td>Start of Production</td></tr>
+</table>
+
+<h3>安全活动与 PEP 里程碑映射</h3>
+<table>
+<tr><th style="width:180px">安全活动</th><th style="width:180px">PEP 里程碑</th><th style="width:60px">PEP 周</th><th>时间窗口</th><th>说明</th></tr>
+<tr><td>Item Definition</td><td>Strategic Req. Definition</td><td>-165W</td><td>-165W ~ -150W</td><td>Item definition must be available before safety activities can begin</td></tr>
+<tr><td>Impact Analysis</td><td>PS / Strategic Req.</td><td>-152W</td><td>-152W ~ -140W</td><td>Determine new development vs modification</td></tr>
+<tr><td>FuSa Audit &amp; Assessment Planning</td><td>AC (Architecture Concept)</td><td>-139W</td><td>-139W ~ -120W</td><td>Audit/assessment planning starts at AC</td></tr>
+<tr><td>Safety Plan</td><td>PM+ / AC</td><td>-130W</td><td>-130W ~ -115W</td><td>Safety Plan created after impact analysis</td></tr>
+<tr><td>HARA</td><td>AC → AF</td><td>-129W</td><td>-139W ~ -119W</td><td>HARA between Architecture Concept and Freeze</td></tr>
+<tr><td>FSC (Functional Safety Concept)</td><td>Arch. Concept → Arch. Freeze</td><td>-134W</td><td>-144W ~ -124W</td><td>FSC derived from safety goals</td></tr>
+<tr><td>TSC/TSR (Technical Safety Concept)</td><td>System Design Freeze</td><td>-100W</td><td>-110W ~ -95W</td><td>TSC derived from FSC</td></tr>
+<tr><td>System FMEA / FTA</td><td>Sys Design Freeze → SW Req freeze</td><td>-97W</td><td>-100W ~ -88W</td><td>System safety analyses after system design</td></tr>
+<tr><td>DFA</td><td>System Design Freeze</td><td>-100W</td><td>-100W ~ -90W</td><td>Verify independence of decomposed requirements</td></tr>
+<tr><td>HW Safety Requirements</td><td>HW req. freeze</td><td>-132W</td><td>-140W ~ -130W</td><td>HW safety requirements frozen before HW freeze</td></tr>
+<tr><td>HW Design Specification</td><td>Architecture Freeze</td><td>-124W</td><td>-130W ~ -120W</td><td>HW design aligned with arch freeze</td></tr>
+<tr><td>HW Safety Analysis (FMEA/FTA/FMEDA)</td><td>System Design Freeze</td><td>-100W</td><td>-110W ~ -92W</td><td>HW analyses between arch freeze and SW req freeze</td></tr>
+<tr><td>HW Integration &amp; Verification</td><td>VP1.0 (AGT)</td><td>-88W</td><td>-92W ~ -80W</td><td>HW integration testing aligns with VP1.0</td></tr>
+<tr><td>SW Safety Requirements</td><td>SW Req. freeze</td><td>-90W</td><td>-98W ~ -88W</td><td>SW safety requirements frozen</td></tr>
+<tr><td>SW Architecture &amp; Design</td><td>SW Req. freeze → VP1.0</td><td>-88W</td><td>-88W ~ -78W</td><td>SW architecture after SW req freeze</td></tr>
+<tr><td>SW Safety Analysis (FMEA/DFA)</td><td>VP1.0 → VR1.0</td><td>-79W</td><td>-85W ~ -72W</td><td>SW safety analyses between VP1.0 and VR1.0</td></tr>
+<tr><td>SW Unit Design &amp; Verification</td><td>VR1.0</td><td>-70W</td><td>-75W ~ -65W</td><td>SW unit design aligned with VR1.0</td></tr>
+<tr><td>SW Config &amp; Calibration</td><td>VR1.0 → IPD 1.0</td><td>-65W</td><td>-70W ~ -58W</td><td>SW config between VR1.0 and IPD 1.0</td></tr>
+<tr><td>SW Integration Testing</td><td>IPD 1.0 → IPD 2.0</td><td>-56W</td><td>-60W ~ -50W</td><td>SW integration testing</td></tr>
+<tr><td>SW V&amp;V (Embedded SW Testing)</td><td>IPD 2.0 → IPD 3.0</td><td>-48W</td><td>-52W ~ -44W</td><td>SW verification and validation</td></tr>
+<tr><td>SW Release</td><td>IPD 4.0 → IPD 5.0</td><td>-33W</td><td>-36W ~ -30W</td><td>SW release aligned with IPD 4.0 to 5.0</td></tr>
+<tr><td>HW/SW Integration Test Plan</td><td>System Design Freeze</td><td>-100W</td><td>-105W ~ -95W</td><td>Integration test plan at system design freeze</td></tr>
+<tr><td>System Integration Test</td><td>VP1.0 → IPD 3.0</td><td>-60W</td><td>-88W ~ -44W</td><td>System integration testing spans VP1.0 through IPD 3.0</td></tr>
+<tr><td>Validation Plan</td><td>IPD 2.0 → IPD 4.0</td><td>-44W</td><td>-52W ~ -36W</td><td>Validation planning</td></tr>
+<tr><td>Validation Report</td><td>IPD 5.0 → IPD 7.0</td><td>-24W</td><td>-30W ~ -18W</td><td>Validation report compiled</td></tr>
+<tr><td>System Release Report</td><td>IPD 8.0</td><td>-6W</td><td>-12W ~ -3W</td><td>System release at IPD 8.0, before SOP</td></tr>
+<tr><td>Vehicle-level Safety Case</td><td>IPD 7.0 → IPD 8.0</td><td>-12W</td><td>-18W ~ -6W</td><td>Safety case compiled between IPD 7.0 and 8.0</td></tr>
+<tr><td>DIA &amp; Supplier Inspection</td><td>VR1.0 → IPD 2.0</td><td>-61W</td><td>-70W ~ -52W</td><td>Supplier inspections between VR1.0 and IPD 2.0</td></tr>
+<tr><td>Supplier Safety Case Collection</td><td>IPD 4.0 → IPD 7.0</td><td>-27W</td><td>-36W ~ -18W</td><td>Supplier safety cases collected</td></tr>
+<tr><td>I3 CR Proof of Impact Analysis</td><td>PS → AC</td><td>-145W</td><td>-152W ~ -139W</td><td>I3 confirmation review of impact analysis at project start</td></tr>
+<tr><td>I3 CR Proof of Safety Plan</td><td>AC → AF</td><td>-129W</td><td>-139W ~ -119W</td><td>I3 confirmation review of safety plan</td></tr>
+<tr><td>FuSa Audit &amp; Assessment Execution</td><td>IPD 7.0 → IPD 8.0</td><td>-12W</td><td>-18W ~ -6W</td><td>FuSa audit and assessment finalized before SOP</td></tr>
+</table>
+
+<h3>AGT 阶段</h3>
+<table>
+<tr><th>阶段</th><th style="width:80px">起始周</th><th style="width:80px">结束周</th><th>说明</th></tr>
+<tr><td>AGT Wave I</td><td>-88W</td><td>-80W</td><td>Readiness for starting tests for B-release</td></tr>
+<tr><td>AGT Wave II</td><td>-65W</td><td>-58W</td><td>Based on P-release data, for crash tests</td></tr>
+</table>
+
+<h3>同步点</h3>
+<table>
+<tr><th>来源</th><th>目标</th><th style="width:60px">周</th><th>说明</th></tr>
+<tr><td>Platform</td><td>CEA</td><td>-144W</td><td>Input for architecture freeze must be completed</td></tr>
+</table>
+</div>
+
+<!-- ============ 11. 端到端流程 ============ -->
+<h2 id="s11">11. 端到端完整流程</h2>
+<div class="card">
+<div class="flow-box">┌─────────────────────────────────────────────────────────────┐
+│  系统/子系统级（系统/子系统级 FSE / VFSM）                    │
+│                                                              │
+│  Phase 1: FuSa Initialize                                    │
+│    01-Item Definition（识别 Item）                            │
+│    ├── 新 Item → 03-HARA                                     │
+│    └── 老 Item → 02-Impact Analysis（看哪些可以复用）         │
+│         ↓（合流）                                            │
+│  Phase 2: Concept Development                                │
+│    04-Safety Plan                                            │
+│    03-HARA                                                   │
+│         ↓                                                    │
+│  Phase 3: System Development                                 │
+│    05-FSC/TSC                                                │
+│    06-System FMEA / 07-System FTA / 08-DFA                   │
+│         ↓                                                    │
+│  Phase 4: Safety Validation                                 │
+│    09-Integration and Test Strategy                          │
+│    10-Integration and Test Case                              │
+│         ↓                                                    │
+│  ┌──── FSR 传递 ────────────────────────────────────┐       │
+│  │                                                    │       │
+│  ▼                          ▼                        │       │
+│  嵌入式(GX)              BTV(管理供应商)            │       │
+│  域控制器                                                 │       │
+│  In-house                  外部供应商                  │       │
+│  ┌────────────────┐   ┌────────────────┐             │       │
+│  │ Part 2: Safety Mgmt│   │ DIA 签署        │             │       │
+│  │ Part 4: TSR→TSC    │   │ 3-1 Safety Plan │             │       │
+│  │   →Sys Arch→HSI    │   │ 3-4 TSC         │             │       │
+│  │   →Safety Analysis │   │ 3-5 Safety      │             │       │
+│  │ Part 5: HW 全流程   │   │   Analysis      │             │       │
+│  │   Req→Design→FMEDA │   │ 3-8 FMEDA       │             │       │
+│  │   →Integration      │   │ 3-6 HW/SW Integ │             │       │
+│  │   →HW Released      │   │ 3-7 System Integ│              │       │
+│  │ Part 6: SW 全流程   │   │ 3-9 Prod Spec   │             │       │
+│  │   Req→Arch→Unit     │   │ 3-2 Safety Case │             │       │
+│  │   →Verification     │   │ 3-3 Release     │              │       │
+│  │   →Integration      │   │ 4-1/4-2/4-3 档案│             │       │
+│  │   →SW Released      │   │ → BMG 释放      │             │       │
+│  │ Part 7: 生产运维    │   └────────────────┘             │       │
+│  │ Part 8: 支持过程    │                                   │       │
+│  │  (CEA 2.0: 不需要    │                                   │       │
+│  │   SW Component Qual) │                                   │       │
+│  │ GX Safety Case      │                                   │       │
+│  └────────────────┘                                   │       │
+│         ↓                          ↓                   │       │
+│  ┌──── 各层 Safety Case + Release 回传 ─────────────┐  │       │
+│  ▼                                                    │  │       │
+│  11-Integration and Test Report（VFF 后）              │       │
+│         ↓                                              │       │
+│  12-Safety Validation Plan                             │       │
+│  13-Safety Validation Report                            │       │
+│         ↓                                              │       │
+│  14-Safety Case（汇总所有层级工作产品，0S 前释放）      │       │
+│                                                        │       │
+└─────────────────────────────────────────────────────────────┘</div>
+</div>
+
+</div>
+
+<!-- ==================== TAB 4: 角色与对照 ==================== -->
+<div class="tab-panel" id="tab4">
+
+<!-- ============ 12. 角色职责矩阵 ============ -->
+<h2 id="s12">12. 角色职责矩阵</h2>
+<div class="card">
+<table>
+<tr><th>角色</th><th>缩写</th><th>系统级职责</th><th>嵌入式（GX）职责</th><th>供应商职责</th></tr>
+<tr><td>Safety Manager</td><td>FSM / VFSM</td><td>Confirmation Review, Safety Plan, 组织 joint review; Item Definition, Impact Analysis, HARA, Safety Plan, Safety Case 编写</td><td>—</td><td>Supplier Review, Safety Case Collection</td></tr>
+<tr><td>System/Subsystem FSE</td><td>FSE</td><td>全部 14 项交付物编写</td><td>—</td><td>—</td></tr>
+<tr><td>Function Owner</td><td>FO</td><td>Item 编制或起草输入；参与评审, 支持 HARA</td><td>—</td><td>—</td></tr>
+<tr><td>HW-FSE</td><td>—</td><td>—</td><td>HW 安全需求/设计/FMEDA</td><td>—</td></tr>
+<tr><td>SW-FSE</td><td>—</td><td>—</td><td>SW 安全需求/架构/分析</td><td>—</td></tr>
+<tr><td>Sys-FSE</td><td>—</td><td>—</td><td>参与系统级评审及开发</td><td>—</td></tr>
+<tr><td>HW Engineer</td><td>—</td><td>—</td><td>HW 设计实现</td><td>HW 设计实现</td></tr>
+<tr><td>SW Engineer</td><td>—</td><td>—</td><td>SW 设计实现</td><td>SW 设计实现</td></tr>
+<tr><td>HW/SW Test Engineer</td><td>—</td><td>—</td><td>集成验证执行</td><td>集成验证执行</td></tr>
+<tr><td>GX（域控制器团队）</td><td>GX</td><td>—</td><td>Part 2/4/5/6/7/8 全部</td><td>—</td></tr>
+<tr><td>BTV（零部件负责人）</td><td>BTV</td><td>—</td><td>—</td><td>管理供应商，审核交付物</td></tr>
+<tr><td>供应商</td><td>Supplier</td><td>—</td><td>—</td><td>3-1~3-9 全部交付</td></tr>
+</table>
+
+<h3>CEA 2.0 组件 FSM/BTV 分配摘要</h3>
+<table>
+<tr><th>域</th><th>FSM</th><th>BTV</th><th>典型组件</th></tr>
+<tr><td>ADAS System L2</td><td>Chen, Yili (C|GF-4)</td><td>Zhang, Wanyao (VCTC-AFH)</td><td>FLC</td></tr>
+<tr><td>ADAS System L2++</td><td>Chen, Yili (C|GF-4)</td><td>Yu, Jiabo (C|GF-5) / Zeng, Zijie / Chen, Renjie / Lu, Yuchen</td><td>ADS_NGXM, LIDAR, MRR, USS, Topview Camera</td></tr>
+<tr><td>ADAS System L3</td><td>Chen, Yili (C|GF-4)</td><td>—</td><td>ADS_NGXFB, LRR_F/R, CR_xxx</td></tr>
+<tr><td>Body System</td><td>—</td><td>—</td><td>FDM, FID, FSL, LHCM, RHCM, RSL, SMLS, HUD, DMS/OMS Camera, etc.</td></tr>
+<tr><td>Chassis System</td><td>—</td><td>—</td><td>EPS, REPS, RWS, IBRS, RBU, SRS</td></tr>
+<tr><td>Core Control Unit</td><td>—</td><td>—</td><td>ZCU</td></tr>
+<tr><td>Powertrain</td><td>—</td><td>—</td><td>—</td></tr>
+</table>
+</div>
+
+<!-- ============ 13. 交付物编号统一对照 ============ -->
+<h2 id="s13">13. 交付物编号统一对照</h2>
+<div class="card">
+<table>
+<tr>
+  <th style="width:50px">系统级编号</th>
+  <th>交付物</th>
+  <th>嵌入式（GX）对应</th>
+  <th>供应商对应</th>
+</tr>
+<tr><td>01</td><td>Item Definition</td><td><span class="badge badge-red">Out of GX</span></td><td>—</td></tr>
+<tr><td>02</td><td>Impact Analysis</td><td><span class="badge badge-red">Out of GX</span></td><td>—</td></tr>
+<tr><td>03</td><td>HARA</td><td><span class="badge badge-red">Out of GX</span></td><td>—</td></tr>
+<tr><td>04</td><td>Safety Plan</td><td>2-6.5.3 (follows VCTC)</td><td>3-1</td></tr>
+<tr><td>05</td><td>FSC/TSC</td><td>4-6.5.1 / 4-6.5.2 (GX 起步)</td><td>3-4</td></tr>
+<tr><td>06</td><td>System FMEA</td><td>4-6.5.7 sub. FMEA</td><td>3-5 (含 FMEA)</td></tr>
+<tr><td>07</td><td>System FTA</td><td>4-6.5.7 sub. FTA</td><td>3-5 (含 FTA)</td></tr>
+<tr><td>08</td><td>DFA</td><td>4-6.5.7 sub. DFA</td><td>3-5 (含 DFA)</td></tr>
+<tr><td>09</td><td>Integration &amp; Test Strategy</td><td>4-7.5.1</td><td>—</td></tr>
+<tr><td>10</td><td>Integration &amp; Test Case</td><td>4-7.5.2 (spec)</td><td>3-6 / 3-7</td></tr>
+<tr><td>11</td><td>Integration &amp; Test Report</td><td>4-7.5.2 (report)</td><td>3-6 / 3-7</td></tr>
+<tr><td>12</td><td>Safety Validation Plan</td><td><span class="badge badge-red">Out of GX</span></td><td>—</td></tr>
+<tr><td>13</td><td>Safety Validation Report</td><td><span class="badge badge-red">Out of GX</span></td><td>—</td></tr>
+<tr><td>14</td><td>Safety Case</td><td>2-6.5.4 (GX generates)</td><td>3-2</td></tr>
+<tr><td>—</td><td>Release Report</td><td>2-6.5.6 (Out of GX)</td><td>3-3</td></tr>
+<tr><td>—</td><td>FMEDA Summary</td><td>5-8.5.1 / 5-9.5.1 (GX)</td><td>3-8</td></tr>
+</table>
+
+<h3>Phase 交付物与系统级 14 项映射</h3>
+<table>
+<tr><th>Phase</th><th>Phase 交付物 ID</th><th>对应系统级编号</th><th>交付物</th></tr>
+<tr><td>Phase 1</td><td>1.1 / 1.2</td><td>01</td><td>Item Definition</td></tr>
+<tr><td>Phase 1</td><td>1.3 / 1.4</td><td>02</td><td>Impact Analysis + I3 CR</td></tr>
+<tr><td>Phase 1</td><td>1.5 / 1.6</td><td>—</td><td>FuSa Audit &amp; Assessment</td></tr>
+<tr><td>Phase 2</td><td>2.1 / 2.2</td><td>04</td><td>Safety Plan + I3 CR</td></tr>
+<tr><td>Phase 2</td><td>2.3 / 2.4</td><td>03</td><td>HARA + Checklist</td></tr>
+<tr><td>Phase 3</td><td>3.1 / 3.2</td><td>05 (FSC 部分)</td><td>FSC + Checklist</td></tr>
+<tr><td>Phase 3</td><td>3.3~3.6</td><td>05 (TSC 部分)</td><td>TSC/TSR + Checklists</td></tr>
+<tr><td>Phase 3</td><td>3.7 / 3.8</td><td>06</td><td>System FMEA + Checklist</td></tr>
+<tr><td>Phase 3</td><td>3.9 / 3.10</td><td>07</td><td>System FTA + Checklist</td></tr>
+<tr><td>Phase 3</td><td>3.11</td><td>08</td><td>DFA</td></tr>
+<tr><td>Phase 4</td><td>4.1 / 4.2</td><td>09</td><td>Integration &amp; Test Strategy</td></tr>
+<tr><td>Phase 4</td><td>4.3</td><td>10</td><td>Integration &amp; Test Case</td></tr>
+<tr><td>Phase 4</td><td>4.4 / 4.5</td><td>11</td><td>Integration &amp; Test Report</td></tr>
+<tr><td>Phase 4</td><td>4.6~4.8</td><td>12</td><td>Safety Validation Plan</td></tr>
+<tr><td>Phase 4</td><td>4.9 / 4.10</td><td>13</td><td>Safety Validation Report</td></tr>
+<tr><td>Phase 5</td><td>5.1</td><td>—</td><td>System Release Report</td></tr>
+<tr><td>Phase 6</td><td>6.1</td><td>14</td><td>Vehicle-level Safety Case</td></tr>
+<tr><td>Phase 4A</td><td>4A.1~4A.7</td><td>—</td><td>Component Dev - System Level</td></tr>
+<tr><td>Phase 4B</td><td>4B.1~4B.14</td><td>—</td><td>Component Dev - Hardware (Part 5)</td></tr>
+<tr><td>Phase 4C</td><td>4C.1~4C.24</td><td>—</td><td>Component Dev - Software (Part 6)</td></tr>
+<tr><td>Phase 5S</td><td>5S.1~5S.3</td><td>—</td><td>Supplier Deliverables</td></tr>
+</table>
+</div>
+
+<!-- ============ 待确认事项 ============ -->
+<h2 style="color:#d29922;border-left-color:#d29922">待确认事项</h2>
+<div class="card" style="background:#1c1208;border:1px solid #d29922">
+<ul style="margin-left:20px;line-height:2">
+  <li>CEA 2.0 各 HUT 的具体 ASIL 等级分布（当前组件数据中大部分 ASIL 为空，仅 ADAS 域标注 ASIL B）</li>
+  <li>CEA 2.0 涉及的完整零部件清单（当前数据含 100+ 组件，部分组件可能仅适用于后续 CEA 版本）</li>
+  <li>GX（域控制器）In-house 的规则仍在确认中</li>
+  <li>嵌入式（GX）和供应商在 Part 4 的 TSC 是否有内容重叠或分工差异</li>
+  <li>CEA 2.0 各 HUT 的 FuSa 活动与 IPD 里程碑的具体映射（当前标记为 "To be filled"）</li>
+  <li>Body System / Chassis System / Core Control Unit / Powertrain 域的 FSM/BTV 分配待补充</li>
+</ul>
+</div>
+
+<hr style="margin:32px 0;border:none;border-top:1px solid #30363d">
+<p style="text-align:center;color:#484f58;font-size:12px">
+  CEA 2.0 平台功能安全信息汇总<br>
+  数据来源：Fusa Risk Radar 项目 (webapp/public/safety-plan/data.json, hut-overview.js, upstream-timeline.js)<br>
+  参考结构：fusa_logic_review.html (CEA 2.X 功能安全流程逻辑)<br>
+  生成日期：2026-09-14
+</p>
+
+</div>
+
+</div>
+
+<script>
+function switchTab(index) {
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('tab' + index).classList.add('active');
+  document.querySelectorAll('.tab-btn')[index].classList.add('active');
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
