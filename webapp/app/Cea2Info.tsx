@@ -488,7 +488,7 @@ function TimelineTab({ milestones, pepCeaMilestones, mapping }: {
       <Card title="安全活动与 PEP 里程碑映射（甘特图）" accent="#d29922">
         <Table>
           <thead><tr><Th style={{ width: 160 }}>安全活动</Th><Th style={{ width: 150 }}>PEP 里程碑</Th><Th style={{ width: 90 }}>相对 SOP</Th><Th style={{ width: 80 }}>开始</Th><Th style={{ width: 80 }}>结束</Th><Th style={{ minWidth: 200 }}>时间窗口（SOP{minW}w ~ SOP{maxW}w）</Th><Th>说明</Th></tr></thead>
-          <tbody>{mapping.map((m, i) => (<tr key={i}><Td style={{ fontWeight: 600, fontSize: 12 }}>{m.safetyActivity}</Td><Td style={{ fontSize: 12, color: "#bc8cff" }}>{m.pepMilestone}</Td><Td style={{ fontSize: 11, color: "#d29922", fontWeight: 600 }}>{weekLabel(m.pepWeek)}</Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{fmtDate(weekToDate(m.startWeek))}</Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{fmtDate(weekToDate(m.endWeek))}</Td><Td><GanttBar startWeek={m.startWeek} endWeek={m.endWeek} minW={minW} range={range} /></Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{m.notes}</Td></tr>))}</tbody>
+          <tbody>{mapping.map((m, i) => (<tr key={i}><Td style={{ fontWeight: 600, fontSize: 12 }}>{m.safetyActivity}</Td><Td style={{ fontSize: 12, color: "#bc8cff" }}>{m.pepMilestone.replace(/\s*\?\s*/g, " → ")}</Td><Td style={{ fontSize: 11, color: "#d29922", fontWeight: 600 }}>{weekLabel(m.pepWeek)}</Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{fmtDate(weekToDate(m.startWeek))}</Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{fmtDate(weekToDate(m.endWeek))}</Td><Td><GanttBar startWeek={m.startWeek} endWeek={m.endWeek} minW={minW} range={range} /></Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{m.notes}</Td></tr>))}</tbody>
         </Table>
       </Card>
     </div>
