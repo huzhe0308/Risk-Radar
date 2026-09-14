@@ -434,7 +434,18 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
   const activeVehicleInfo = CEA2_VEHICLES.find((v) => v.shortCode === activeVehicle);
 
   if (subView === "tailoring") {
-    return <TailoringMatrix spData={spData} onTailoringChange={onTailoringChange} />;
+    return (
+      <div>
+        <div style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 0, borderRadius: 6, overflow: "hidden", border: "1px solid #30363d" }}>
+            {subTabs.map((st) => (
+              <button key={st.key} onClick={() => setSubView(st.key)} style={{ background: subView === st.key ? "#1f6feb" : "#161b22", color: subView === st.key ? "#fff" : "#8b949e", border: "none", padding: "6px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>{st.label} ({st.count})</button>
+            ))}
+          </div>
+        </div>
+        <TailoringMatrix spData={spData} onTailoringChange={onTailoringChange} />
+      </div>
+    );
   }
 
   return (
