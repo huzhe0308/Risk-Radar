@@ -775,49 +775,148 @@ function monthLabel(week: number) {
   return `SOP${m}m`;
 }
 
-function VisualTimeline({ items }: { items: Array<{ name: string; week: number; color?: string; desc?: string }> }) {
-  const minW = Math.min(...items.map((i) => i.week));
-  const maxW = Math.max(...items.map((i) => i.week, 0));
+function FullTimeline({ pepMilestones, ceaMilestones }: {
+  pepMilestones: DataJson["pepCeaMilestones"]; ceaMilestones: DataJson["ceaKeyMilestones"];
+}) {
+  const all = [...pepMilestones.map((m) => m.week), ...ceaMilestones.map((m) => m.week)];
+  const minW = Math.min(...all);
+  const maxW = Math.max(...all);
   const range = maxW - minW || 1;
   const sopPct = ((0 - minW) / range) * 100;
   const ticks: number[] = [];
-  for (let w = Math.ceil(minW / 26) * 26; w <= maxW; w += 26) ticks.push(w);
+  const tickStep = Math.ceil(range / 8 / 13) * 13;
+  for (let w = Math.ceil(minW / tickStep) * tickStep; w <= maxW; w += tickStep) ticks.push(w);
+
+  const fnLevelColor = (lvl: string) => {
+    if (lvl.includes("Release") || lvl.includes("?")) return "#238636";
+    if (lvl.startsWith("C")) return "#3fb950";
+    if (lvl.startsWith("B")) return "#1f6feb";
+    return "#8b949e";
+  };
+
+  const rowHeight = 44;
+  const totalRows = 2;
+  const containerHeight = totalRows * rowHeight + 50;
+
+  const placeItem = (week: number, rowIndex: number) => {
+    const pct = ((week - minW) / range) * 100;
+    return { left: `${Math.max(2, Math.min(96, pct))}%`, top: 10 + rowIndex * rowHeight };
+  };
+
+  const pepWithPos = pepMilestones.map((m, i) => ({ ...m, ...placeItem(m.week, 0), idx: i }));
+  const ceaWithPos = ceaMilestones.map((m, i) => ({ ...m, ...placeItem(m.week, 1), idx: i, color: m.isFreeze ? "#d29922" : m.isHomoFreeze ? "#da3633" : m.name === "IPD 6.0 (Homo)" ? "#3fb950" : "#8957e5" }));
+
   return (
-    <div style={{ position: "relative", margin: "20px 0 8px", height: 58, userSelect: "none" }}>
-      <div style={{ position: "absolute", top: 28, left: 0, right: 0, height: 2, background: "#30363d" }} />
+    <div style={{ position: "relative", margin: "12px 0 4px", minHeight: containerHeight, background: "#0d1117", border: "1px solid #30363d", borderRadius: 8, padding: "36px 20px 16px" }}>
+      <div style={{ position: "absolute", top: 12, left: 20, fontSize: 11, color: "#6e7681", fontWeight: 600 }}>PEP CEA</div>
+      <div style={{ position: "absolute", top: 12, left: 100, fontSize: 11, color: "#8957e5", fontWeight: 600 }}>CEA Key</div>
+
+      <div style={{ position: "absolute", top: 32, left: 20, right: 20, height: 2, background: "#30363d" }} />
+
       {sopPct >= 0 && sopPct <= 100 && (
-        <div style={{ position: "absolute", top: 14, left: `${sopPct}%`, height: 30, width: 2, background: "#f85149" }}>
-          <span style={{ position: "absolute", top: -2, left: 4, fontSize: 10, color: "#f85149", fontWeight: 700, whiteSpace: "nowrap" }}>SOP</span>
+        <div style={{ position: "absolute", top: 10, bottom: 10, left: `${sopPct}%`, width: 2, background: "#f85149", zIndex: 2 }}>
+          <span style={{ position: "absolute", top: -8, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: "#f85149", fontWeight: 700, whiteSpace: "nowrap", background: "#0d1117", padding: "0 4px" }}>SOP</span>
         </div>
       )}
+
       {ticks.map((w) => {
         const pct = ((w - minW) / range) * 100;
         return (
-          <div key={w} style={{ position: "absolute", top: 28, left: `${pct}%`, transform: "translateX(-50%)" }}>
-            <div style={{ width: 1, height: 6, background: "#484f58", margin: "0 auto" }} />
-            <span style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", fontSize: 9, color: "#6e7681", whiteSpace: "nowrap" }}>{weekLabel(w)}</span>
+          <div key={w} style={{ position: "absolute", top: 32, left: `calc(${pct}% + 20px - ${pct * 0.4}px)`, transform: "translateX(-50%)" }}>
+            <div style={{ width: 1, height: 4, background: "#30363d", margin: "0 auto" }} />
+            <span style={{ position: "absolute", top: 6, left: "50%", transform: "translateX(-50%)", fontSize: 8, color: "#484f58", whiteSpace: "nowrap" }}>{monthLabel(w)}</span>
           </div>
         );
       })}
-      {items.map((item, i) => {
-        const pct = ((item.week - minW) / range) * 100;
-        const col = item.color || (item.week === 0 ? "#f85149" : "#58a6ff");
-        const above = i % 2 === 0;
-        return (
-          <div key={i} style={{ position: "absolute", left: `${pct}%`, top: above ? 0 : 36, transform: "translateX(-50%)" }}>
-            <div style={{ width: 10, height: 10, borderRadius: "50%", background: col, border: "2px solid #0d1117", margin: "0 auto", cursor: "pointer" }} title={`${item.name}: ${weekLabel(item.week)} (${fmtDate(weekToDate(item.week))})`} />
-            <span style={{ position: "absolute", top: above ? 12 : -16, left: "50%", transform: "translateX(-50%)", fontSize: 9, color: col, fontWeight: 700, whiteSpace: "nowrap" }}>{item.name}</span>
+
+      {pepWithPos.map((m) => (
+        <div key={m.name} style={{ position: "absolute", left: m.left, top: m.top, transform: "translateX(-50%)", zIndex: 3 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#58a6ff", whiteSpace: "nowrap", marginBottom: 2, textShadow: "0 0 4px #0d1117" }}>{m.name}</span>
+            <div style={{ width: 10, height: 10, borderRadius: "50%", background: m.name === "SOP" ? "#f85149" : "#58a6ff", border: "2px solid #0d1117", boxShadow: `0 0 4px ${m.name === "SOP" ? "#f85149" : "#58a6ff"}` }} />
+            <span style={{ fontSize: 8, color: "#8b949e", marginTop: 2, whiteSpace: "nowrap" }}>{monthLabel(m.week)}</span>
           </div>
-        );
-      })}
+        </div>
+      ))}
+
+      {ceaWithPos.map((m) => (
+        <div key={m.name} style={{ position: "absolute", left: m.left, top: m.top, transform: "translateX(-50%)", zIndex: 3 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ width: 9, height: 9, borderRadius: 2, background: m.color, border: `2px solid ${m.isFreeze || m.isHomoFreeze ? "#0d1117" : "transparent"}`, boxShadow: m.isFreeze || m.isHomoFreeze ? `0 0 4px ${m.color}` : "none" }} />
+            <span style={{ fontSize: 8, fontWeight: 600, color: m.color, whiteSpace: "nowrap", marginTop: 2, textShadow: "0 0 4px #0d1117", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis" }}>{m.name.replace(/\(.*?\)/g, "").trim()}</span>
+            <span style={{ fontSize: 8, color: "#6e7681", whiteSpace: "nowrap" }}>{monthLabel(m.week)}</span>
+            {m.fnLevel && <span style={{ fontSize: 7, color: fnLevelColor(m.fnLevel), fontWeight: 700 }}>{m.fnLevel.replace(/\?/g, "")}</span>}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-function GanttBar({ startWeek, endWeek, minW, range }: { startWeek: number; endWeek: number; minW: number; range: number }) {
-  const left = ((startWeek - minW) / range) * 100;
-  const width = Math.max(((endWeek - startWeek) / range) * 100, 1);
-  return <div style={{ position: "relative", height: 16, background: "#21262d", borderRadius: 3, overflow: "hidden" }}><div style={{ position: "absolute", left: `${left}%`, top: 0, height: "100%", width: `${width}%`, background: "linear-gradient(90deg,#1f6feb33,#1f6feb88)", borderLeft: "2px solid #58a6ff", borderRight: "2px solid #58a6ff" }} /></div>;
+function MilestoneCard({ ms, isLast, isSOP }: { ms: { name: string; week: number; desc: string; fnLevel?: string; isFreeze?: boolean; isHomoFreeze?: boolean }; isLast: boolean; isSOP: boolean }) {
+  const fnLevelColor = (lvl: string) => {
+    if (lvl.includes("Release") || lvl.includes("?")) return "#238636";
+    if (lvl.startsWith("C")) return "#3fb950";
+    if (lvl.startsWith("B")) return "#1f6feb";
+    return "#8b949e";
+  };
+  const accent = isSOP ? "#f85149" : ms.isFreeze ? "#d29922" : ms.isHomoFreeze ? "#da3633" : ms.fnLevel ? fnLevelColor(ms.fnLevel) : "#30363d";
+  return (
+    <div style={{ display: "flex", gap: 0, position: "relative" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 28, flexShrink: 0 }}>
+        <div style={{ width: 12, height: 12, borderRadius: isSOP ? "50%" : 3, background: accent, border: "2px solid #0d1117", boxShadow: `0 0 6px ${accent}66`, zIndex: 2, flexShrink: 0 }} />
+        {!isLast && <div style={{ width: 2, flex: 1, background: "#30363d", marginTop: 2 }} />}
+      </div>
+      <div style={{ flex: 1, paddingBottom: isLast ? 0 : 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: isSOP ? "#f85149" : "#e6edf3" }}>{ms.name}</span>
+          {ms.fnLevel && <span style={{ background: fnLevelColor(ms.fnLevel), color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 10, fontWeight: 700 }}>{ms.fnLevel.replace(/\?/g, " → ")}</span>}
+          {ms.isFreeze && <span style={{ color: "#d29922", fontSize: 10, fontWeight: 600 }}>🔒 Freeze</span>}
+          {ms.isHomoFreeze && <span style={{ color: "#da3633", fontSize: 10, fontWeight: 600 }}>🔒 Homo HW Freeze</span>}
+        </div>
+        <div style={{ display: "flex", gap: 12, fontSize: 11, marginBottom: 4 }}>
+          <span style={{ color: "#d29922", fontWeight: 600 }}>{weekLabel(ms.week)}</span>
+          <span style={{ color: "#bc8cff" }}>{fmtDate(weekToDate(ms.week))}</span>
+          <span style={{ color: "#8b949e" }}>{monthLabel(ms.week)}</span>
+        </div>
+        <div style={{ fontSize: 11, color: "#8b949e" }}>{ms.desc}</div>
+      </div>
+    </div>
+  );
+}
+
+function GanttRow({ activity, mapping, minW, range, phaseColor, pepMilestone }: {
+  activity: string; mapping: DataJson["safetyPepMapping"]; minW: number; range: number; phaseColor: string; pepMilestone: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const items = mapping.filter((m) => m.safetyActivity === activity);
+  if (items.length === 0) return null;
+  const first = items[0];
+  const left = ((first.startWeek - minW) / range) * 100;
+  const width = Math.max(((first.endWeek - first.startWeek) / range) * 100, 2);
+  const duration = first.endWeek - first.startWeek;
+
+  return (
+    <div style={{ borderBottom: "1px solid #30363d", padding: "6px 0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => setExpanded(!expanded)}>
+        <span style={{ fontSize: 9, color: expanded ? "#58a6ff" : "#484f58", width: 12, flexShrink: 0 }}>{expanded ? "▼" : "▶"}</span>
+        <div style={{ width: 180, flexShrink: 0, fontSize: 12, fontWeight: 600, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activity}</div>
+        <div style={{ flex: 1, position: "relative", height: 18, background: "#21262d", borderRadius: 3, minWidth: 200 }}>
+          <div style={{ position: "absolute", left: `${left}%`, top: 0, height: "100%", width: `${width}%`, background: `linear-gradient(90deg, ${phaseColor}22, ${phaseColor}88)`, borderRadius: 3, borderLeft: `2px solid ${phaseColor}`, borderRight: `2px solid ${phaseColor}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 9, color: "#e6edf3", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden" }}>{duration > 15 ? `${fmtDate(weekToDate(first.startWeek))} → ${fmtDate(weekToDate(first.endWeek))}` : `${duration}w`}</span>
+          </div>
+        </div>
+        <span style={{ fontSize: 10, color: "#8b949e", width: 50, textAlign: "right", flexShrink: 0 }}>{monthLabel(first.pepWeek)}</span>
+      </div>
+      {expanded && (
+        <div style={{ marginLeft: 204, marginTop: 6, padding: "8px 12px", background: "#0d1117", border: "1px solid #30363d", borderRadius: 6 }}>
+          <div style={{ fontSize: 11, color: "#bc8cff", marginBottom: 4 }}>PEP: {first.pepMilestone.replace(/\s*\?\s*/g, " → ")}</div>
+          <div style={{ fontSize: 11, color: "#8b949e" }}>{first.notes}</div>
+          <div style={{ fontSize: 10, color: "#6e7681", marginTop: 4 }}>{fmtDate(weekToDate(first.startWeek))} — {fmtDate(weekToDate(first.endWeek))} · {duration} weeks</div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function TimelineTab({ milestones, pepCeaMilestones, mapping }: {
@@ -828,37 +927,68 @@ function TimelineTab({ milestones, pepCeaMilestones, mapping }: {
   const maxW = Math.max(...allWeeks);
   const range = maxW - minW || 1;
 
-  const fnLevelColor = (lvl: string) => {
-    if (lvl.includes("Release") || lvl.includes("?")) return "#238636";
-    if (lvl.startsWith("C")) return "#3fb950";
-    if (lvl.startsWith("B")) return "#1f6feb";
-    return "#8b949e";
+  const phaseColors: Record<string, string> = {
+    "Phase 1: FuSa Initialize": "#f85149",
+    "Phase 2: Concept Development": "#d29922",
+    "Phase 3: System Development": "#58a6ff",
+    "Phase 4: Safety Validation": "#8957e5",
+    "Phase 5: Release": "#3fb950",
+    "Phase 6: Safety Case": "#238636",
   };
+
+  const safetyPhases = Array.from(new Set(mapping.map((m) => m.safetyPhase)));
+  const allActivities = Array.from(new Set(mapping.map((m) => m.safetyActivity)));
 
   return (
     <div>
-      <Card title="PEP CEA 里程碑（35 个月，PS → SOP）" accent="#58a6ff">
-        <div style={{ marginBottom: 12, fontSize: 12, color: "#8b949e" }}>SOP 基准日：{fmtDate(SOP_DATE)} · 所有时间相对 SOP 计算</div>
-        <VisualTimeline items={pepCeaMilestones.map((m) => ({ name: m.name, week: m.week, desc: m.desc }))} />
-        <Table>
-          <thead><tr><Th style={{ width: 120 }}>里程碑</Th><Th style={{ width: 80 }}>相对 SOP</Th><Th style={{ width: 70 }}>月</Th><Th style={{ width: 70 }}>周</Th><Th style={{ width: 90 }}>日历日期</Th><Th>描述</Th></tr></thead>
-          <tbody>{pepCeaMilestones.map((m) => (<tr key={m.name} style={m.name === "SOP" ? { background: "#1c2128" } : undefined}><Td style={{ fontWeight: 700, color: m.name === "SOP" ? "#f85149" : "#e6edf3" }}>{m.name}</Td><Td style={{ fontSize: 12, color: "#d29922", fontWeight: 600 }}>{weekLabel(m.week)}</Td><Td style={{ fontSize: 12 }}>{monthLabel(m.week)}</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>{m.week}w</Td><Td style={{ fontSize: 12, color: "#bc8cff" }}>{fmtDate(weekToDate(m.week))}</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>{m.desc}</Td></tr>))}</tbody>
-        </Table>
+      <Card title="CEA 2.0 总时间线（PS → SOP, 35 个月）" accent="#58a6ff">
+        <div style={{ marginBottom: 8, fontSize: 12, color: "#8b949e" }}>
+          SOP 基准日：<span style={{ color: "#f85149", fontWeight: 700 }}>{fmtDate(SOP_DATE)}</span> · PEP CEA 里程碑（蓝）+ CEA 开发关键里程碑（紫）
+        </div>
+        <FullTimeline pepMilestones={pepCeaMilestones} ceaMilestones={milestones} />
+        <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 10, color: "#6e7681" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#58a6ff", display: "inline-block" }} />PEP CEA 里程碑</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "#8957e5", display: "inline-block" }} />CEA 开发里程碑</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "#d29922", display: "inline-block" }} />🔒 Freeze</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "#da3633", display: "inline-block" }} />🔒 Homo HW Freeze</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "#3fb950", display: "inline-block" }} />IPD 6.0 HO 基线</span>
+        </div>
       </Card>
 
-      <Card title="CEA 开发关键里程碑（至 IPD 6.0 = CEA 2.0 HO 基线）" accent="#238636">
-        <VisualTimeline items={milestones.map((m) => ({ name: m.name.replace(/\(.*?\)/g, "").trim(), week: m.week, desc: m.desc, color: m.isFreeze ? "#d29922" : m.isHomoFreeze ? "#da3633" : m.name === "IPD 6.0 (Homo)" ? "#3fb950" : "#58a6ff" }))} />
-        <Table>
-          <thead><tr><Th style={{ width: 160 }}>里程碑</Th><Th style={{ width: 80 }}>相对 SOP</Th><Th style={{ width: 70 }}>月</Th><Th style={{ width: 70 }}>周</Th><Th style={{ width: 90 }}>日历日期</Th><Th style={{ width: 90 }}>功能等级</Th><Th>描述</Th></tr></thead>
-          <tbody>{milestones.map((m) => (<tr key={m.name} style={m.name === "IPD 6.0 (Homo)" ? { background: "#1c2128" } : undefined}><Td style={{ fontWeight: m.name === "IPD 6.0 (Homo)" ? 700 : 400, color: m.name === "IPD 6.0 (Homo)" ? "#3fb950" : "#e6edf3" }}>{m.name}</Td><Td style={{ fontSize: 12, color: "#d29922", fontWeight: 600 }}>{weekLabel(m.week)}</Td><Td style={{ fontSize: 12 }}>{monthLabel(m.week)}</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>{m.week}w</Td><Td style={{ fontSize: 12, color: "#bc8cff" }}>{fmtDate(weekToDate(m.week))}</Td><Td>{m.fnLevel ? <span style={{ background: fnLevelColor(m.fnLevel), color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 11, fontWeight: 700 }}>{m.fnLevel.replace(/\?/g, " → ")}</span> : <span style={{ color: "#484f58" }}>—</span>}</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>{m.desc}{m.isFreeze && <span style={{ marginLeft: 6, color: "#d29922", fontSize: 11 }}>🔒 Freeze</span>}{m.isHomoFreeze && <span style={{ marginLeft: 6, color: "#da3633", fontSize: 11 }}>🔒 Homo HW Freeze</span>}</Td></tr>))}</tbody>
-        </Table>
-      </Card>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <Card title="PEP CEA 里程碑时间轴" accent="#58a6ff">
+          <div style={{ paddingLeft: 4 }}>
+            {pepCeaMilestones.map((m, i) => (
+              <MilestoneCard key={m.name} ms={m} isLast={i === pepCeaMilestones.length - 1} isSOP={m.name === "SOP"} />
+            ))}
+          </div>
+        </Card>
+        <Card title="CEA 开发关键里程碑时间轴" accent="#8957e5">
+          <div style={{ paddingLeft: 4 }}>
+            {milestones.map((m, i) => (
+              <MilestoneCard key={m.name} ms={m} isLast={i === milestones.length - 1} isSOP={m.name === "SOP"} />
+            ))}
+          </div>
+        </Card>
+      </div>
 
-      <Card title="安全活动与 PEP 里程碑映射（甘特图）" accent="#d29922">
-        <Table>
-          <thead><tr><Th style={{ width: 160 }}>安全活动</Th><Th style={{ width: 150 }}>PEP 里程碑</Th><Th style={{ width: 90 }}>相对 SOP</Th><Th style={{ width: 80 }}>开始</Th><Th style={{ width: 80 }}>结束</Th><Th style={{ minWidth: 200 }}>时间窗口（SOP{minW}w ~ SOP{maxW}w）</Th><Th>说明</Th></tr></thead>
-          <tbody>{mapping.map((m, i) => (<tr key={i}><Td style={{ fontWeight: 600, fontSize: 12 }}>{m.safetyActivity}</Td><Td style={{ fontSize: 12, color: "#bc8cff" }}>{m.pepMilestone.replace(/\s*\?\s*/g, " → ")}</Td><Td style={{ fontSize: 11, color: "#d29922", fontWeight: 600 }}>{weekLabel(m.pepWeek)}</Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{fmtDate(weekToDate(m.startWeek))}</Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{fmtDate(weekToDate(m.endWeek))}</Td><Td><GanttBar startWeek={m.startWeek} endWeek={m.endWeek} minW={minW} range={range} /></Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{m.notes}</Td></tr>))}</tbody>
-        </Table>
+      <Card title="安全活动甘特图（点击展开详情）" accent="#d29922">
+        <div style={{ marginBottom: 8, fontSize: 11, color: "#6e7681" }}>SOP{minW}w ({fmtDate(weekToDate(minW))}) ~ SOP{maxW > 0 ? "+" : ""}{maxW}w ({fmtDate(weekToDate(maxW))})</div>
+        {safetyPhases.map((phase) => {
+          const phaseColor = phaseColors[phase] || "#8b949e";
+          const phaseActivities = Array.from(new Set(mapping.filter((m) => m.safetyPhase === phase).map((m) => m.safetyActivity)));
+          return (
+            <div key={phase} style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                <span style={{ width: 4, height: 14, background: phaseColor, borderRadius: 2, display: "inline-block" }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: phaseColor }}>{phase}</span>
+              </div>
+              {phaseActivities.map((act) => (
+                <GanttRow key={act} activity={act} mapping={mapping} minW={minW} range={range} phaseColor={phaseColor} pepMilestone="" />
+              ))}
+            </div>
+          );
+        })}
       </Card>
     </div>
   );
