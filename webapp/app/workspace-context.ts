@@ -42,11 +42,11 @@ const MODE_INFO: Record<WorkspaceMode, { label: string; description: string }> =
   },
   "safety-plan": {
     label: "Safety Plan",
-    description: "功能安全计划面板（iframe 嵌入），包含 upstream 上游活动和 components 组件管理两个子页签。",
+    description: "功能安全计划面板（iframe 嵌入），包含四个子页签：1. Project Plan（项目计划时间线甘特图，展示平台里程碑和各车型 SOP 分组）2. Safety Plan（按项目展示安全交付物 Status/Remark，含 General 和 Per-Component 4B/4C/5S 视图）3. System & Subsystem（按系统分组展示 System-Level Safety Activities Phase 4A）4. Component Safety Plan（按组件展示 ISO 26262 Work Products，支持批量修改 Status）。此面板数据存储在 Neon 数据库，修改后自动保存。",
   },
   "safety-components": {
     label: "Components",
-    description: "功能安全组件管理面板（iframe 嵌入），展示安全相关组件的分配和状态。",
+    description: "功能安全组件管理面板（iframe 嵌入），包含组件矩阵（Component Matrix）、Per-Vehicle Detail（按车型筛选组件适用性）、ECU 变体（ECU Variants）等视图，展示安全相关组件的分配和状态。",
   },
 };
 
