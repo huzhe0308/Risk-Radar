@@ -461,6 +461,25 @@ function DeliverablesTab({ deliverables, deletedNos, spData, onStatusChange, onR
 }) {
   const [activeVehicle, setActiveVehicle] = useState(CEA2_VEHICLES[0].shortCode);
   const [subView, setSubView] = useState<"tailoring" | "general" | "compdev" | "supplier">("tailoring");
+  const [undoInfo, setUndoInfo] = useState<{ no: string; isCustom: boolean; label: string } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDelete = useCallback((no: string, isCustom: boolean, label: string) => {
+    if (!window.confirm(`确认删除交付物 ${no}（${label}）？\n\n删除后可在底部"已删除"区恢复，或点击右下角撤消。`)) return;
+    onDeleteDeliverable(no, isCustom);
+    setUndoInfo({ no, isCustom, label });
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setUndoInfo(null), 8000);
+  }, [onDeleteDeliverable]);
+
+  const handleUndo = useCallback(() => {
+    if (!undoInfo) return;
+    if (!undoInfo.isCustom) {
+      onRestoreDeliverable(undoInfo.no);
+    }
+    setUndoInfo(null);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+  }, [undoInfo, onRestoreDeliverable]);
 
   const isGeneral = (name: string) => !name.includes("4A") && !name.includes("5S") && !name.includes("Custom");
   const isCompDev = (name: string) => name.includes("4A");
@@ -577,7 +596,7 @@ function DeliverablesTab({ deliverables, deletedNos, spData, onStatusChange, onR
                       <Td><StatusBadge status={status} onClick={noEdit ? undefined : () => onStatusChange(activeVehicle, key, nextStatus)} /></Td>
                       <Td>{noEdit ? <span style={{ color: "#484f58" }}>—</span> : <EditableCell value={link} type="url" onSave={(v) => onLinkChange(activeVehicle, key, v)} placeholder="—" />}</Td>
                       <Td>{noEdit ? <span style={{ color: "#484f58" }}>—</span> : <EditableCell value={remark} onSave={(v) => onRemarkChange(activeVehicle, key, v)} placeholder="点击编辑…" />}</Td>
-                      <Td><button onClick={() => onDeleteDeliverable(item.no, itemIsCustom)} title="删除此行" style={{ background: "none", border: "none", color: "#f85149", cursor: "pointer", fontSize: 14, padding: 0 }}>&times;</button></Td>
+                      <Td><button onClick={() => handleDelete(item.no, itemIsCustom, item.deliverable)} title="删除此行" style={{ background: "none", border: "none", color: "#f85149", cursor: "pointer", fontSize: 14, padding: 0 }}>&times;</button></Td>
                     </tr>
                   );
                 })}
@@ -600,6 +619,18 @@ function DeliverablesTab({ deliverables, deletedNos, spData, onStatusChange, onR
             </span>
           ))}
         </Card>
+      )}
+
+      {undoInfo && (
+        <div style={{ position: "fixed", bottom: 24, right: 24, background: "#161b22", border: "1px solid #30363d", borderRadius: 8, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 4px 12px rgba(0,0,0,.4)", zIndex: 9999 }}>
+          <span style={{ fontSize: 12, color: "#8b949e" }}>已删除 <span style={{ color: "#f85149", fontWeight: 700 }}>{undoInfo.no}</span> — {undoInfo.label}</span>
+          {undoInfo.isCustom ? (
+            <span style={{ fontSize: 11, color: "#6e7681" }}>自定义行无法恢复</span>
+          ) : (
+            <button onClick={handleUndo} style={{ background: "#1f6feb", border: "none", color: "#fff", borderRadius: 4, padding: "4px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>撤消</button>
+          )}
+          <button onClick={() => setUndoInfo(null)} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, padding: 0 }}>&times;</button>
+        </div>
       )}
     </div>
   );
