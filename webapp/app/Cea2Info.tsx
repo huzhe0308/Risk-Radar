@@ -235,7 +235,21 @@ export function Cea2Info() {
   const updateRemark = useCallback((vc: string, key: string, val: string) => mutateEntry(vc, (e) => { e.remarks[key] = val; return e; }), [mutateEntry]);
   const updateLink = useCallback((vc: string, key: string, val: string) => mutateEntry(vc, (e) => { e.links = e.links || {}; e.links[key] = val; return e; }), [mutateEntry]);
   const updateDate = useCallback((vc: string, key: string, field: "plannedDates" | "actualDates", val: string) => mutateEntry(vc, (e) => { e[field] = e[field] || {}; e[field][key] = val; return e; }), [mutateEntry]);
-  const updateTailoring = useCallback((vc: string, key: string, val: string) => mutateEntry(vc, (e) => { e.tailoring = e.tailoring || {}; e.tailoring[key] = val; return e; }), [mutateEntry]);
+  const updateTailoring = useCallback((vc: string, key: string, val: string) => mutateEntry(vc, (e) => {
+    e.tailoring = e.tailoring || {};
+    e.tailoring[key] = val;
+    e.statuses = e.statuses || {};
+    if (val === "Carry-over") {
+      e.statuses[key] = "done";
+    } else if (val === "N/A") {
+      e.statuses[key] = "na";
+    } else if (val === "Applicable" || val === "Delta") {
+      if (e.statuses[key] === "done" || e.statuses[key] === "na") {
+        e.statuses[key] = "";
+      }
+    }
+    return e;
+  }), [mutateEntry]);
 
   const cea2Impact = useMemo(() => (data?.impactAnalysis || []).filter((ia) => CEA2_PGS.includes(ia.pg)), [data]);
   const cea2PGs = useMemo(() => (data?.productGroups || []).filter((pg) => CEA2_PGS.includes(pg.name)), [data]);
@@ -465,7 +479,7 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
 
       {activeVehicleInfo && (
         <div style={{ marginBottom: 12, padding: "8px 12px", background: "#0d1117", border: "1px solid #30363d", borderRadius: 6, fontSize: 12, color: "#8b949e" }}>
-          当前车型：<span style={{ color: "#58a6ff", fontWeight: 700 }}>{activeVehicleInfo.shortCode}</span> · {activeVehicleInfo.name} · OEM: {activeVehicleInfo.oem} · SOP: {activeVehicleInfo.sopDate} · Change Level: {activeVehicleInfo.changeLevel} ({CLS_TAG[activeVehicleInfo.cls].label}) · 共 {totalCount} 项交付物 · Tailoring Matrix: All Applicable
+          当前车型：<span style={{ color: "#58a6ff", fontWeight: 700 }}>{activeVehicleInfo.shortCode}</span> · {activeVehicleInfo.name} · OEM: {activeVehicleInfo.oem} · SOP: {activeVehicleInfo.sopDate} · Change Level: {activeVehicleInfo.changeLevel} ({CLS_TAG[activeVehicleInfo.cls].label}) · 共 {totalCount} 项交付物
         </div>
       )}
 
@@ -482,6 +496,7 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
                   <Th style={{ width: 130 }}>ISO 26262 Ref.</Th>
                   <Th style={{ width: 70 }}>Owner</Th>
                   <Th style={{ width: 110 }}>Level</Th>
+                  <Th style={{ width: 95 }}>Tailoring</Th>
                   <Th style={{ width: 110 }}>Planned Date</Th>
                   <Th style={{ width: 110 }}>Actual Date</Th>
                   <Th style={{ width: 100 }}>Status</Th>
@@ -497,9 +512,16 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
                   const link = vd.links?.[key] || "";
                   const planned = vd.plannedDates?.[key] || "";
                   const actual = vd.actualDates?.[key] || "";
+                  const tailoring = vd.tailoring?.[key] || "Applicable";
+                  const isNA = tailoring === "N/A";
+                  const isCarryOver = tailoring === "Carry-over";
+                  const isDelta = tailoring === "Delta";
+                  const tMeta = TAILORING_META[tailoring] || TAILORING_META["Applicable"];
                   const nextStatus = STATUS_CYCLE[(STATUS_CYCLE.indexOf(status) + 1) % STATUS_CYCLE.length];
+                  const rowStyle: React.CSSProperties = isNA ? { opacity: 0.4 } : {};
+                  const noEdit = isNA;
                   return (
-                    <tr key={item.no}>
+                    <tr key={item.no} style={rowStyle}>
                       <Td style={{ fontWeight: 700, color: "#58a6ff" }}>{item.no}</Td>
                       <Td style={{ fontSize: 12 }}>{item.activity}</Td>
                       <Td>{item.deliverable}</Td>
@@ -507,11 +529,12 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
                       <Td style={{ fontSize: 11, color: "#bc8cff" }}>{item.isoRef}</Td>
                       <Td style={{ fontSize: 11 }}>{item.owner}</Td>
                       <Td style={{ fontSize: 11, color: "#8b949e" }}>{item.level}</Td>
-                      <Td><EditableCell value={planned} type="date" onSave={(v) => onDateChange(activeVehicle, key, "plannedDates", v)} placeholder="—" /></Td>
-                      <Td><EditableCell value={actual} type="date" onSave={(v) => onDateChange(activeVehicle, key, "actualDates", v)} placeholder="—" /></Td>
-                      <Td><StatusBadge status={status} onClick={() => onStatusChange(activeVehicle, key, nextStatus)} /></Td>
-                      <Td><EditableCell value={link} type="url" onSave={(v) => onLinkChange(activeVehicle, key, v)} placeholder="—" /></Td>
-                      <Td><EditableCell value={remark} onSave={(v) => onRemarkChange(activeVehicle, key, v)} placeholder="点击编辑…" /></Td>
+                      <Td><span style={{ display: "inline-block", background: tMeta.bg, color: tMeta.color, padding: "1px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700 }}>{tMeta.label}</span></Td>
+                      <Td>{noEdit ? <span style={{ color: "#484f58" }}>—</span> : <EditableCell value={planned} type="date" onSave={(v) => onDateChange(activeVehicle, key, "plannedDates", v)} placeholder="—" />}</Td>
+                      <Td>{noEdit ? <span style={{ color: "#484f58" }}>—</span> : <EditableCell value={actual} type="date" onSave={(v) => onDateChange(activeVehicle, key, "actualDates", v)} placeholder="—" />}</Td>
+                      <Td><StatusBadge status={status} onClick={noEdit ? undefined : () => onStatusChange(activeVehicle, key, nextStatus)} /></Td>
+                      <Td>{noEdit ? <span style={{ color: "#484f58" }}>—</span> : <EditableCell value={link} type="url" onSave={(v) => onLinkChange(activeVehicle, key, v)} placeholder="—" />}</Td>
+                      <Td>{noEdit ? <span style={{ color: "#484f58" }}>—</span> : <EditableCell value={remark} onSave={(v) => onRemarkChange(activeVehicle, key, v)} placeholder="点击编辑…" />}</Td>
                     </tr>
                   );
                 })}
