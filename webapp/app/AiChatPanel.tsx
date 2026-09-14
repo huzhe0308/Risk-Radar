@@ -43,9 +43,9 @@ const MODE_WELCOME: Record<WorkspaceMode, string> = {
   "change-feed":
     "当前界面：变更提醒\n这里实时监控飞书多维表格的数据变更。我可以帮你：\n\n• 查看最近有哪些数据变更\n• 了解未读的变更提醒\n• 说明字段级差异对比\n\n注意：此界面为变更监控，修改计划请切换到时间线。",
   "safety-plan":
-    "当前界面：Safety Plan\n这是功能安全计划面板，包含上游活动和组件管理两个页签。此面板由 iframe 嵌入，我无法读取其内部数据。\n\n如果你需要修改项目计划，请切换到时间线界面。",
+    "当前界面：Safety Plan\n这是功能安全计划面板，包含四个子页签：\n\n1. Project Plan — 项目计划时间线甘特图，展示平台里程碑和各车型（Hut）的 SOP 分组里程碑节点\n2. Safety Plan — 按项目展示安全交付物（Deliverables）的 Status/Remark，支持自动保存。包含 General 和 Per-Component (4B/4C/5S) 两个视图\n3. System & Subsystem — 按系统分组展示 System-Level Safety Activities（Phase 4A），每个系统有独立的 Status/Remark\n4. Component Safety Plan — 按组件展示 ISO 26262 工作产品（Work Products），支持批量修改 Status\n\n此面板由 iframe 嵌入，我无法读取其内部数据。如果你需要修改项目计划，请切换到时间线界面。",
   "safety-components":
-    "当前界面：Components\n这是功能安全组件管理面板。此面板由 iframe 嵌入，我无法读取其内部数据。\n\n如果你需要修改项目计划，请切换到时间线界面。",
+    "当前界面：Components\n这是功能安全组件管理面板，包含：组件矩阵（Component Matrix）、Per-Vehicle Detail（按车型筛选组件适用性）、ECU 变体（ECU Variants）等视图。此面板由 iframe 嵌入，我无法读取其内部数据。\n\n如果你需要修改项目计划，请切换到时间线界面。",
 };
 
 const MODE_SUGGESTIONS: Record<WorkspaceMode, string[]> = {
@@ -54,8 +54,8 @@ const MODE_SUGGESTIONS: Record<WorkspaceMode, string[]> = {
   cea: ["按版本分组说明里程碑", "IPD 迭代有哪些？", "量产节点有哪些？"],
   "feishu-table": ["飞书表格里有什么数据？", "有多少条同步记录？"],
   "change-feed": ["最近有什么变更？", "有哪些未读变更？"],
-  "safety-plan": ["Safety Plan 是什么？", "如何修改安全计划？"],
-  "safety-components": ["组件管理是什么？", "如何修改组件数据？"],
+  "safety-plan": ["四个子页面分别是什么？", "如何修改安全计划 Status？", "Per-Component 视图是什么？"],
+  "safety-components": ["组件管理有哪些视图？", "Per-Vehicle Detail 是什么？"],
 };
 
 export function AiChatPanel({
