@@ -21,6 +21,74 @@ function id() {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function summarizeSafetyPlanData(data: Record<string, unknown>, mode: string): string {
+  const lines: string[] = [];
+  lines.push("【Safety Plan 面板实际数据】");
+
+  const deliverables = data.deliverables as Array<{ phase: string; isoPart: string; items: Array<{ id: string; activity: string; deliverable: string; owner: string; level: string }> }> | undefined;
+  if (deliverables && Array.isArray(deliverables)) {
+    let totalItems = 0;
+    deliverables.forEach(ph => { totalItems += (ph.items?.length || 0); });
+    lines.push(`- 安全交付物阶段数：${deliverables.length}，总交付物数：${totalItems}`);
+    deliverables.forEach(ph => {
+      lines.push(`  • ${ph.phase} (${ph.isoPart}) — ${ph.items?.length || 0} 项`);
+    });
+  }
+
+  const cm = data.componentManagement as { components?: unknown[]; vehicles?: unknown[]; domains?: unknown[]; suppliers?: unknown[] } | undefined;
+  if (cm) {
+    lines.push(`- 组件管理：${cm.components?.length || 0} 个组件，${cm.vehicles?.length || 0} 个车型，${cm.domains?.length || 0} 个域，${cm.suppliers?.length || 0} 个供应商`);
+  }
+
+  const upstream = data.upstreamPlan as { views?: Record<string, { projects?: unknown[] }> } | undefined;
+  if (upstream?.views) {
+    const viewNames = Object.keys(upstream.views);
+    lines.push(`- 上游计划视图：${viewNames.join("、")}`);
+    viewNames.forEach(vn => {
+      const projects = upstream.views![vn]?.projects;
+      if (Array.isArray(projects)) lines.push(`  • ${vn}：${projects.length} 个项目`);
+    });
+  }
+
+  const sp = data.safetyPlanPerProject as Record<string, { statuses?: Record<string, string>; remarks?: Record<string, string> }> | undefined;
+  if (sp && Object.keys(sp).length > 0) {
+    const projects = Object.keys(sp);
+    lines.push(`- Safety Plan per Project 已编辑数据：${projects.length} 个项目`);
+    projects.slice(0, 10).forEach(p => {
+      const statuses = sp[p]?.statuses || {};
+      const statusValues = Object.values(statuses);
+      const done = statusValues.filter(s => s === "done").length;
+      const progress = statusValues.filter(s => s === "progress").length;
+      const planned = statusValues.filter(s => s === "planned").length;
+      lines.push(`  • ${p.substring(0, 50)}：${done} Done, ${progress} In Progress, ${planned} Planned`);
+    });
+  }
+
+  const csp = data.compSafetyPlan as Record<string, { statuses?: Record<string, string> }> | undefined;
+  if (csp && Object.keys(csp).length > 0) {
+    const keys = Object.keys(csp);
+    lines.push(`- Component Safety Plan 已编辑数据：${keys.length} 个项目×组件组合`);
+  }
+
+  const tpl = data.componentSafetyTemplate as { isoGroups?: Record<string, unknown[]> } | undefined;
+  if (tpl?.isoGroups) {
+    const parts = Object.keys(tpl.isoGroups);
+    let totalWp = 0;
+    parts.forEach(p => { totalWp += (tpl.isoGroups![p]?.length || 0); });
+    lines.push(`- 组件安全模板：${parts.length} 个 ISO 部分，${totalWp} 个工作产品`);
+  }
+
+  if (mode === "safety-components" && cm?.components) {
+    const comps = cm.components as Array<{ abbreviation?: string; fullName?: string; domain?: string; asil?: string; supplier?: string }>;
+    lines.push(`- 组件列表（前 20 个）：`);
+    comps.slice(0, 20).forEach(c => {
+      lines.push(`  • ${c.abbreviation || ""} — ${c.fullName || ""} [Domain: ${c.domain || ""}, ASIL: ${c.asil || "—"}]`);
+    });
+  }
+
+  return lines.join("\n");
+}
+
 const MODE_LABELS: Record<WorkspaceMode, string> = {
   overview: "管理概览",
   timeline: "时间线",
@@ -104,7 +172,7 @@ export function AiChatPanel({
     setInput("");
     setSending(true);
     try {
-      const wsContext = buildWorkspaceContext({
+      let wsContext = buildWorkspaceContext({
         mode: workspaceMode,
         view,
         visibleProjects: visibleProjects || view.projects,
@@ -112,6 +180,21 @@ export function AiChatPanel({
         tagFilter,
         sortMode,
       });
+
+      if (workspaceMode === "safety-plan" || workspaceMode === "safety-components") {
+        try {
+          const resp = await fetch(`/api/safety-plan?token=123456`);
+          if (resp.ok) {
+            const payload = await resp.json();
+            const spData = payload.data;
+            if (spData) {
+              const summary = summarizeSafetyPlanData(spData, workspaceMode);
+              if (summary) wsContext += "\n\n" + summary;
+            }
+          }
+        } catch { /* ignore fetch errors */ }
+      }
+
       const payload = await callAi({ message: content, view, history, workspaceContext: wsContext });
       setMessages((current) => [...current, {
         id: id(),
