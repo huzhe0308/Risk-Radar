@@ -116,15 +116,6 @@ export function Cea2Info() {
   );
 }
 
-function StatCard({ value, label, color }: { value: string | number; label: string; color: string }) {
-  return (
-    <div style={{ display: "inline-block", background: "#161b22", border: "1px solid #30363d", borderRadius: 8, padding: "12px 20px", margin: 4, textAlign: "center" }}>
-      <div style={{ fontSize: 28, fontWeight: 700, color }}>{value}</div>
-      <div style={{ fontSize: 12, color: "#8b949e", marginTop: 2 }}>{label}</div>
-    </div>
-  );
-}
-
 function Th({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return <th style={{ background: "#21262d", color: "#f0f6fc", padding: "8px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap", fontSize: 13, ...style }}>{children}</th>;
 }
@@ -155,13 +146,6 @@ function HutTab({ huts, pgs, impacts, pepComparison }: {
   }, {});
   return (
     <div>
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <StatCard value={huts.length} label="CEA 2.0 HUTs" color="#58a6ff" />
-        <StatCard value={pgs.length} label="产品组" color="#238636" />
-        <StatCard value={3} label="合资方" color="#d29922" />
-        <StatCard value={Object.keys(sopGroups).length} label="SOP 节点" color="#8957e5" />
-      </div>
-
       <Card title="CEA 2.0 HUT 明细" accent="#58a6ff">
         <Table>
           <thead>
@@ -276,13 +260,6 @@ function ComponentsTab({ components, domains, domainFilter, setDomainFilter, com
   const grouped = domains.map((d) => ({ domain: d, items: components.filter((c) => c.domain === d) })).filter((g) => g.items.length > 0);
   return (
     <div>
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <StatCard value={components.length} label="组件总数" color="#58a6ff" />
-        <StatCard value={domains.length} label="域" color="#238636" />
-        <StatCard value={new Set(components.map((c) => c.supplier).filter(Boolean)).size} label="供应商" color="#d29922" />
-        <StatCard value={components.filter((c) => c.asil).length} label="有 ASIL 标注" color="#da3633" />
-      </div>
-
       <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
         <select value={domainFilter} onChange={(e) => setDomainFilter(e.target.value)} style={{ background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>
           <option value="all">全部域 ({components.length})</option>
@@ -333,11 +310,6 @@ function DeliverablesTab({ deliverables }: { deliverables: DataJson["deliverable
   const totalItems = deliverables.reduce((s, p) => s + p.items.length, 0);
   return (
     <div>
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <StatCard value={deliverables.length} label="Phase 数" color="#58a6ff" />
-        <StatCard value={totalItems} label="交付物总数" color="#238636" />
-      </div>
-
       <div style={{ marginBottom: 16 }}>
         <select value={phaseFilter} onChange={(e) => setPhaseFilter(e.target.value)} style={{ background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>
           <option value="all">全部 Phase ({totalItems} 项)</option>
