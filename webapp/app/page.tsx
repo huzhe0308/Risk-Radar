@@ -22,6 +22,7 @@ import FeishuTableView from "./FeishuTableView";
 import { ChangeFeed } from "./ChangeFeed";
 import { SafetyPlanPanel } from "./SafetyPlanPanel";
 import { SafetyPlanTimeline } from "./SafetyPlanTimeline";
+import { Cea2Info } from "./Cea2Info";
 
 const STORAGE_KEY = "time-plan-viewer-v4";
 
@@ -825,7 +826,7 @@ export default function Home() {
           ) : workspaceMode === "safety-components" ? (
             <SafetyPlanPanel initialTab="components" />
           ) : workspaceMode === "cea2-info" ? (
-            <iframe src="/cea2-info/index.html" style={{ width: "100%", height: "calc(100vh - 80px)", border: "none" }} title="CEA 2.0 Info" />
+            <Cea2Info />
           ) : <>
           <div className="toolbar">
             <div className="search-field"><Icon>⌕</Icon><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目、里程碑或备注…" /><kbd>⌘ K</kbd></div>
