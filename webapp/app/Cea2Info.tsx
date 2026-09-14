@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const CEA2_VEHICLES = [
   { code: "VW316/9CS_B1 2ECV6H", shortCode: "VW316/9CS_B1", name: "CMP21 CS A SUV MY27", changeLevel: "Facelift", role: "Leading", oem: "SVW", sopDate: "2027-06-18", prev: "CEA 1.3 → 1.4", cls: "carryover", desc: "2026 first ALS1(1.3) to ALS2(1.4) to MY27 upgrade CEA2.0" },
@@ -27,6 +27,15 @@ const STATUS_META: Record<string, { label: string; bg: string; color: string }> 
   progress: { label: "In Progress", bg: "rgba(31,111,235,.12)", color: "#58a6ff" },
   done: { label: "Done", bg: "rgba(35,134,54,.12)", color: "#3fb950" },
   na: { label: "N/A", bg: "rgba(139,148,158,.1)", color: "#8b949e" },
+};
+
+const TAILORING_CYCLE = ["Applicable", "Carry-over", "N/A", "Delta"];
+
+const TAILORING_META: Record<string, { label: string; bg: string; color: string }> = {
+  "Applicable": { label: "Applicable", bg: "rgba(35,134,54,.15)", color: "#3fb950" },
+  "Carry-over": { label: "Carry-over", bg: "rgba(31,111,235,.15)", color: "#58a6ff" },
+  "N/A": { label: "N/A", bg: "rgba(139,148,158,.12)", color: "#8b949e" },
+  "Delta": { label: "Delta", bg: "rgba(210,153,34,.15)", color: "#d29922" },
 };
 
 const API = "/api/safety-plan?token=123456";
@@ -154,6 +163,7 @@ type SpEntry = {
   links?: Record<string, string>;
   plannedDates?: Record<string, string>;
   actualDates?: Record<string, string>;
+  tailoring?: Record<string, string>;
 };
 
 type Component = { domain: string; abbreviation: string; fullName: string; chineseName: string; fsm?: string; btv?: string; supplier?: string; asil?: string; fuSaDevelopedBy?: string; loadType?: string; powerSupply?: string; remark?: string };
@@ -215,7 +225,7 @@ export function Cea2Info() {
       if (!prev) return prev;
       const spp = { ...(prev.safetyPlanPerProject || {}) };
       const old = spp[vehicleCode] || { statuses: {}, remarks: {} };
-      spp[vehicleCode] = fn({ ...old, statuses: { ...old.statuses }, remarks: { ...old.remarks }, links: { ...(old.links || {}) }, plannedDates: { ...(old.plannedDates || {}) }, actualDates: { ...(old.actualDates || {}) } });
+      spp[vehicleCode] = fn({ ...old, statuses: { ...old.statuses }, remarks: { ...old.remarks }, links: { ...(old.links || {}) }, plannedDates: { ...(old.plannedDates || {}) }, actualDates: { ...(old.actualDates || {}) }, tailoring: { ...(old.tailoring || {}) } });
       return { ...prev, safetyPlanPerProject: spp };
     });
     autoSave();
@@ -225,6 +235,7 @@ export function Cea2Info() {
   const updateRemark = useCallback((vc: string, key: string, val: string) => mutateEntry(vc, (e) => { e.remarks[key] = val; return e; }), [mutateEntry]);
   const updateLink = useCallback((vc: string, key: string, val: string) => mutateEntry(vc, (e) => { e.links = e.links || {}; e.links[key] = val; return e; }), [mutateEntry]);
   const updateDate = useCallback((vc: string, key: string, field: "plannedDates" | "actualDates", val: string) => mutateEntry(vc, (e) => { e[field] = e[field] || {}; e[field][key] = val; return e; }), [mutateEntry]);
+  const updateTailoring = useCallback((vc: string, key: string, val: string) => mutateEntry(vc, (e) => { e.tailoring = e.tailoring || {}; e.tailoring[key] = val; return e; }), [mutateEntry]);
 
   const cea2Impact = useMemo(() => (data?.impactAnalysis || []).filter((ia) => CEA2_PGS.includes(ia.pg)), [data]);
   const cea2PGs = useMemo(() => (data?.productGroups || []).filter((pg) => CEA2_PGS.includes(pg.name)), [data]);
@@ -268,7 +279,7 @@ export function Cea2Info() {
           <ComponentsTab components={filteredComponents} domains={data.componentManagement.domains} domainFilter={domainFilter} setDomainFilter={setDomainFilter} compSearch={compSearch} setCompSearch={setCompSearch} />
         )}
         {tab === "deliverables" && (
-          <DeliverablesTab spData={data.safetyPlanPerProject || {}} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} />
+          <DeliverablesTab spData={data.safetyPlanPerProject || {}} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} />
         )}
         {tab === "timeline" && <TimelineTab milestones={cea2Milestones} pepCeaMilestones={data.pepCeaMilestones} mapping={data.safetyPepMapping} />}
       </div>
@@ -388,37 +399,43 @@ function ComponentsTab({ components, domains, domainFilter, setDomainFilter, com
   );
 }
 
-function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange, onDateChange }: {
+function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange, onDateChange, onTailoringChange }: {
   spData: Record<string, SpEntry>;
   onStatusChange: (vc: string, key: string, val: string) => void;
   onRemarkChange: (vc: string, key: string, val: string) => void;
   onLinkChange: (vc: string, key: string, val: string) => void;
   onDateChange: (vc: string, key: string, field: "plannedDates" | "actualDates", val: string) => void;
+  onTailoringChange: (vc: string, key: string, val: string) => void;
 }) {
   const [activeVehicle, setActiveVehicle] = useState(CEA2_VEHICLES[0].shortCode);
-  const [subView, setSubView] = useState<"general" | "compdev" | "supplier">("general");
+  const [subView, setSubView] = useState<"tailoring" | "general" | "compdev" | "supplier">("tailoring");
 
   const isGeneral = (name: string) => !name.includes("4A") && !name.includes("5S");
   const isCompDev = (name: string) => name.includes("4A");
   const isSupplier = (name: string) => name.includes("5S");
 
-  const phasesByView: Record<typeof subView, Cea2Phase[]> = {
+  const phasesByView = {
     general: CEA2_DELIVERABLES.filter((p) => isGeneral(p.name)),
     compdev: CEA2_DELIVERABLES.filter((p) => isCompDev(p.name)),
     supplier: CEA2_DELIVERABLES.filter((p) => isSupplier(p.name)),
   };
 
-  const phasesToShow = phasesByView[subView];
+  const phasesToShow = subView === "tailoring" ? CEA2_DELIVERABLES : (phasesByView as Record<string, Cea2Phase[]>)[subView];
   const totalCount = phasesToShow.reduce((s, p) => s + p.items.length, 0);
   const vd = spData[activeVehicle] || { statuses: {}, remarks: {} };
 
   const subTabs: Array<{ key: typeof subView; label: string; count: number }> = [
+    { key: "tailoring", label: "Tailoring Matrix", count: CEA2_DELIVERABLES.reduce((s, p) => s + p.items.length, 0) },
     { key: "general", label: "General (Phase 1-8)", count: phasesByView.general.reduce((s, p) => s + p.items.length, 0) },
     { key: "compdev", label: "Component Dev (4A)", count: phasesByView.compdev.reduce((s, p) => s + p.items.length, 0) },
     { key: "supplier", label: "Supplier (5S)", count: phasesByView.supplier.reduce((s, p) => s + p.items.length, 0) },
   ];
 
   const activeVehicleInfo = CEA2_VEHICLES.find((v) => v.shortCode === activeVehicle);
+
+  if (subView === "tailoring") {
+    return <TailoringMatrix spData={spData} onTailoringChange={onTailoringChange} />;
+  }
 
   return (
     <div>
@@ -492,6 +509,104 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
           </div>
         </Card>
       ))}
+    </div>
+  );
+}
+
+function TailoringMatrix({ spData, onTailoringChange }: {
+  spData: Record<string, SpEntry>;
+  onTailoringChange: (vc: string, key: string, val: string) => void;
+}) {
+  const legendItems = TAILORING_CYCLE.map((t) => ({ key: t, ...TAILORING_META[t] }));
+
+  const tailoringCounts = CEA2_VEHICLES.map((v) => {
+    const td = spData[v.shortCode]?.tailoring || {};
+    const counts: Record<string, number> = { Applicable: 0, "Carry-over": 0, "N/A": 0, Delta: 0 };
+    CEA2_DELIVERABLES.forEach((p) => p.items.forEach((item) => { counts[td[item.no] || "Applicable"]++; }));
+    return { vehicle: v, counts };
+  });
+
+  return (
+    <div>
+      <Card title="Tailoring Matrix — 裁剪矩阵（4 vehicles × 49 deliverables）" accent="#8957e5">
+        <div style={{ display: "flex", gap: 16, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 12, color: "#8b949e" }}>Legend:</span>
+          {legendItems.map((l) => (
+            <span key={l.key} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span style={{ width: 12, height: 12, borderRadius: 3, background: l.bg, border: `1px solid ${l.color}`, display: "inline-block" }} />
+              <span style={{ fontSize: 12, color: l.color, fontWeight: 600 }}>{l.label}</span>
+            </span>
+          ))}
+          <span style={{ fontSize: 11, color: "#6e7681", marginLeft: 8 }}>点击单元格循环切换状态</span>
+        </div>
+
+        <div style={{ overflowX: "auto" }}>
+          <Table>
+            <thead>
+              <tr>
+                <Th style={{ width: 50 }}>No.</Th>
+                <Th style={{ width: 140 }}>Activity</Th>
+                <Th style={{ minWidth: 200 }}>Deliverable / Document</Th>
+                {CEA2_VEHICLES.map((v) => (
+                  <Th key={v.shortCode} style={{ textAlign: "center", fontSize: 11, maxWidth: 120 }}>
+                    <div style={{ fontWeight: 700 }}>{v.shortCode}</div>
+                    <div style={{ fontSize: 10, color: "#8b949e", fontWeight: 400 }}>{v.name}</div>
+                    <div style={{ marginTop: 2 }}>
+                      <span style={{ background: JV_COLOR[v.oem] || "#484f58", color: "#fff", padding: "0 4px", borderRadius: 3, fontSize: 9 }}>{v.oem}</span>
+                      <span style={{ marginLeft: 3, fontSize: 9, color: CLS_TAG[v.cls].color }}>{CLS_TAG[v.cls].label}</span>
+                    </div>
+                  </Th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {CEA2_DELIVERABLES.map((phase) => (
+                <React.Fragment key={phase.name}>
+                  <tr key={phase.name}>
+                    <td colSpan={3 + CEA2_VEHICLES.length} style={{ background: "#21262d", color: "#79c0ff", padding: "6px 10px", fontSize: 12, fontWeight: 700, borderBottom: "1px solid #30363d" }}>{phase.name}</td>
+                  </tr>
+                  {phase.items.map((item) => (
+                    <tr key={item.no}>
+                      <Td style={{ fontWeight: 700, color: "#58a6ff", fontSize: 11 }}>{item.no}</Td>
+                      <Td style={{ fontSize: 11 }}>{item.activity}</Td>
+                      <Td style={{ fontSize: 12 }}>{item.deliverable}</Td>
+                      {CEA2_VEHICLES.map((v) => {
+                        const td = spData[v.shortCode]?.tailoring || {};
+                        const val = td[item.no] || "Applicable";
+                        const meta = TAILORING_META[val] || TAILORING_META["Applicable"];
+                        const nextVal = TAILORING_CYCLE[(TAILORING_CYCLE.indexOf(val) + 1) % TAILORING_CYCLE.length];
+                        return (
+                          <td key={v.shortCode} style={{ textAlign: "center", borderBottom: "1px solid #30363d", padding: "4px 6px" }}>
+                            <span onClick={() => onTailoringChange(v.shortCode, item.no, nextVal)} style={{ display: "inline-block", background: meta.bg, color: meta.color, padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>{meta.label}</span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      </Card>
+
+      <Card title="裁剪统计" accent="#238636">
+        <Table>
+          <thead><tr><Th>Vehicle</Th><Th>OEM</Th><Th style={{ textAlign: "center" }}>Applicable</Th><Th style={{ textAlign: "center" }}>Carry-over</Th><Th style={{ textAlign: "center" }}>N/A</Th><Th style={{ textAlign: "center" }}>Delta</Th></tr></thead>
+          <tbody>
+            {tailoringCounts.map(({ vehicle, counts }) => (
+              <tr key={vehicle.shortCode}>
+                <Td style={{ fontWeight: 700, color: "#58a6ff", fontSize: 12 }}>{vehicle.shortCode} — {vehicle.name}</Td>
+                <Td><span style={{ background: JV_COLOR[vehicle.oem] || "#484f58", color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 11 }}>{vehicle.oem}</span></Td>
+                <Td style={{ textAlign: "center" }}><span style={{ color: "#3fb950", fontWeight: 700 }}>{counts.Applicable}</span></Td>
+                <Td style={{ textAlign: "center" }}><span style={{ color: "#58a6ff", fontWeight: 700 }}>{counts["Carry-over"]}</span></Td>
+                <Td style={{ textAlign: "center" }}><span style={{ color: "#8b949e", fontWeight: 700 }}>{counts["N/A"]}</span></Td>
+                <Td style={{ textAlign: "center" }}><span style={{ color: "#d29922", fontWeight: 700 }}>{counts.Delta}</span></Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </Card>
     </div>
   );
 }
