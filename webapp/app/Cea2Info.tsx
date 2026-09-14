@@ -186,8 +186,6 @@ type SpEntry = {
   tailoring?: Record<string, string>;
 };
 
-type Component = { domain: string; abbreviation: string; fullName: string; chineseName: string; fsm?: string; btv?: string; supplier?: string; asil?: string; fuSaDevelopedBy?: string; loadType?: string; powerSupply?: string; remark?: string };
-
 type DataJson = {
   productGroups: Array<{ name: string; platform: string; powertrain: string; leading: string; derivatives: string[] }>;
   impactAnalysis: Array<{ pg: string; classification: string; ref: string; refCar: string; rationale: string }>;
@@ -195,15 +193,12 @@ type DataJson = {
   pepCeaMilestones: Array<{ name: string; week: number; month: number; desc: string }>;
   ceaKeyMilestones: Array<{ name: string; week: number; desc: string; fnLevel?: string; isFreeze?: boolean; isHomoFreeze?: boolean }>;
   safetyPepMapping: Array<{ safetyPhase: string; safetyActivity: string; pepMilestone: string; pepWeek: number; startWeek: number; endWeek: number; notes: string }>;
-  componentManagement: { vehicles: string[]; domains: string[]; components: Component[] };
   safetyPlanPerProject?: Record<string, SpEntry>;
 };
 
 export function Cea2Info() {
   const [data, setData] = useState<DataJson | null>(null);
-  const [tab, setTab] = useState<"huts" | "components" | "deliverables" | "timeline">("huts");
-  const [domainFilter, setDomainFilter] = useState<string>("all");
-  const [compSearch, setCompSearch] = useState("");
+  const [tab, setTab] = useState<"huts" | "deliverables" | "timeline">("huts");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dataRef = useRef<DataJson | null>(null);
@@ -274,22 +269,11 @@ export function Cea2Info() {
   const cea2Impact = useMemo(() => (data?.impactAnalysis || []).filter((ia) => CEA2_PGS.includes(ia.pg)), [data]);
   const cea2PGs = useMemo(() => (data?.productGroups || []).filter((pg) => CEA2_PGS.includes(pg.name)), [data]);
   const cea2Milestones = useMemo(() => (data?.ceaKeyMilestones || []).filter((m) => m.week <= -22 || m.name === "SOP"), [data]);
-  const filteredComponents = useMemo(() => {
-    if (!data) return [];
-    let list = data.componentManagement.components;
-    if (domainFilter !== "all") list = list.filter((c) => c.domain === domainFilter);
-    if (compSearch.trim()) {
-      const q = compSearch.toLowerCase();
-      list = list.filter((c) => [c.abbreviation, c.fullName, c.chineseName, c.supplier, c.fsm, c.btv].join(" ").toLowerCase().includes(q));
-    }
-    return list;
-  }, [data, domainFilter, compSearch]);
 
   if (!data) return <div style={{ padding: 40, color: "#8b949e" }}>Loading CEA 2.0 data…</div>;
 
   const tabs: Array<{ key: typeof tab; label: string; icon: string }> = [
     { key: "huts", label: "HUT 清单", icon: "📋" },
-    { key: "components", label: "组件", icon: "⊞" },
     { key: "deliverables", label: "交付物", icon: "📄" },
     { key: "timeline", label: "时间线", icon: "📅" },
   ];
@@ -309,9 +293,6 @@ export function Cea2Info() {
 
       <div style={{ flex: 1, overflow: "auto", padding: "16px 24px" }}>
         {tab === "huts" && <HutTab vehicles={CEA2_VEHICLES} pgs={cea2PGs} impacts={cea2Impact} pepComparison={data.pepComparison} />}
-        {tab === "components" && (
-          <ComponentsTab components={filteredComponents} domains={data.componentManagement.domains} domainFilter={domainFilter} setDomainFilter={setDomainFilter} compSearch={compSearch} setCompSearch={setCompSearch} />
-        )}
         {tab === "deliverables" && (
           <DeliverablesTab spData={data.safetyPlanPerProject || {}} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} />
         )}
@@ -404,31 +385,6 @@ function HutTab({ vehicles, pgs, impacts, pepComparison }: {
       <Card title="PEP 类型对比" accent="#1f6feb">
         <Table><thead><tr><Th>PEP 类型</Th><Th>范围</Th><Th>周期</Th><Th>状态</Th></tr></thead><tbody>{pepComparison.map((p) => (<tr key={p.type} style={p.type === "PEP CEA" ? { background: "#1c2128" } : undefined}><Td style={{ fontWeight: p.type === "PEP CEA" ? 700 : 400 }}>{p.type}</Td><Td>{p.scope}</Td><Td>{p.duration}</Td><Td>{p.status}</Td></tr>))}</tbody></Table>
       </Card>
-    </div>
-  );
-}
-
-function ComponentsTab({ components, domains, domainFilter, setDomainFilter, compSearch, setCompSearch }: {
-  components: Component[]; domains: string[]; domainFilter: string; setDomainFilter: (v: string) => void; compSearch: string; setCompSearch: (v: string) => void;
-}) {
-  const grouped = domains.map((d) => ({ domain: d, items: components.filter((c) => c.domain === d) })).filter((g) => g.items.length > 0);
-  return (
-    <div>
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-        <select value={domainFilter} onChange={(e) => setDomainFilter(e.target.value)} style={{ background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>
-          <option value="all">全部域 ({components.length})</option>
-          {domains.map((d) => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <input value={compSearch} onChange={(e) => setCompSearch(e.target.value)} placeholder="搜索缩写/名称/供应商/FSM/BTV…" style={{ background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 6, padding: "6px 10px", fontSize: 13, flex: 1, minWidth: 250 }} />
-      </div>
-      {grouped.map((g) => (
-        <Card key={g.domain} title={`${g.domain} (${g.items.length})`} accent="#1f6feb">
-          <Table>
-            <thead><tr><Th style={{ width: 90 }}>缩写</Th><Th>全称</Th><Th style={{ width: 100 }}>中文名</Th><Th style={{ width: 50 }}>ASIL</Th><Th style={{ width: 110 }}>FSM</Th><Th style={{ width: 110 }}>BTV</Th><Th style={{ width: 120 }}>供应商</Th><Th style={{ width: 70 }}>FuSa</Th></tr></thead>
-            <tbody>{g.items.map((c) => (<tr key={c.abbreviation}><Td style={{ fontWeight: 700, color: "#58a6ff" }}>{c.abbreviation}</Td><Td style={{ fontSize: 12 }}>{c.fullName}</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>{c.chineseName}</Td><Td>{c.asil ? <span style={{ background: "#da3633", color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 11, fontWeight: 700 }}>{c.asil}</span> : <span style={{ color: "#484f58" }}>—</span>}</Td><Td style={{ fontSize: 11 }}>{c.fsm || "—"}</Td><Td style={{ fontSize: 11 }}>{c.btv || "—"}</Td><Td style={{ fontSize: 11 }}>{c.supplier || "—"}</Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{c.fuSaDevelopedBy || "—"}</Td></tr>))}</tbody>
-          </Table>
-        </Card>
-      ))}
     </div>
   );
 }
