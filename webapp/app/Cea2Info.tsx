@@ -383,19 +383,113 @@ function DeliverablesTab({ deliverables, projects, spData, onStatusChange, onRem
   );
 }
 
+const SOP_DATE = new Date("2027-05-01");
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function weekToDate(week: number) {
+  const d = new Date(SOP_DATE);
+  d.setTime(d.getTime() + week * WEEK_MS);
+  return d;
+}
+function fmtDate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+function weekLabel(week: number) {
+  if (week === 0) return "SOP";
+  if (week > 0) return `SOP+${week}w`;
+  return `SOP${week}w`;
+}
+function monthLabel(week: number) {
+  const m = Math.round(week / 4.345);
+  if (m === 0) return "SOP";
+  if (m > 0) return `SOP+${m}m`;
+  return `SOP${m}m`;
+}
+
+function VisualTimeline({ items }: { items: Array<{ name: string; week: number; color?: string; desc?: string }> }) {
+  const minW = Math.min(...items.map((i) => i.week));
+  const maxW = Math.max(...items.map((i) => i.week, 0));
+  const range = maxW - minW || 1;
+  const sopPct = ((0 - minW) / range) * 100;
+  const ticks: number[] = [];
+  for (let w = Math.ceil(minW / 26) * 26; w <= maxW; w += 26) ticks.push(w);
+  return (
+    <div style={{ position: "relative", margin: "20px 0 8px", height: 58, userSelect: "none" }}>
+      <div style={{ position: "absolute", top: 28, left: 0, right: 0, height: 2, background: "#30363d" }} />
+      {sopPct >= 0 && sopPct <= 100 && (
+        <div style={{ position: "absolute", top: 14, left: `${sopPct}%`, height: 30, width: 2, background: "#f85149" }}>
+          <span style={{ position: "absolute", top: -2, left: 4, fontSize: 10, color: "#f85149", fontWeight: 700, whiteSpace: "nowrap" }}>SOP</span>
+        </div>
+      )}
+      {ticks.map((w) => {
+        const pct = ((w - minW) / range) * 100;
+        return (
+          <div key={w} style={{ position: "absolute", top: 28, left: `${pct}%`, transform: "translateX(-50%)" }}>
+            <div style={{ width: 1, height: 6, background: "#484f58", margin: "0 auto" }} />
+            <span style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", fontSize: 9, color: "#6e7681", whiteSpace: "nowrap" }}>{weekLabel(w)}</span>
+          </div>
+        );
+      })}
+      {items.map((item, i) => {
+        const pct = ((item.week - minW) / range) * 100;
+        const col = item.color || (item.week === 0 ? "#f85149" : "#58a6ff");
+        const above = i % 2 === 0;
+        return (
+          <div key={i} style={{ position: "absolute", left: `${pct}%`, top: above ? 0 : 36, transform: "translateX(-50%)" }}>
+            <div style={{ width: 10, height: 10, borderRadius: "50%", background: col, border: "2px solid #0d1117", margin: "0 auto", cursor: "pointer" }} title={`${item.name}: ${weekLabel(item.week)} (${fmtDate(weekToDate(item.week))})`} />
+            <span style={{ position: "absolute", top: above ? 12 : -16, left: "50%", transform: "translateX(-50%)", fontSize: 9, color: col, fontWeight: 700, whiteSpace: "nowrap" }}>{item.name}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function GanttBar({ startWeek, endWeek, minW, range }: { startWeek: number; endWeek: number; minW: number; range: number }) {
+  const left = ((startWeek - minW) / range) * 100;
+  const width = Math.max(((endWeek - startWeek) / range) * 100, 1);
+  return <div style={{ position: "relative", height: 16, background: "#21262d", borderRadius: 3, overflow: "hidden" }}><div style={{ position: "absolute", left: `${left}%`, top: 0, height: "100%", width: `${width}%`, background: "linear-gradient(90deg,#1f6feb33,#1f6feb88)", borderLeft: "2px solid #58a6ff", borderRight: "2px solid #58a6ff" }} /></div>;
+}
+
 function TimelineTab({ milestones, pepCeaMilestones, mapping }: {
   milestones: DataJson["ceaKeyMilestones"]; pepCeaMilestones: DataJson["pepCeaMilestones"]; mapping: DataJson["safetyPepMapping"];
 }) {
+  const allWeeks = [...pepCeaMilestones.map((m) => m.week), ...milestones.map((m) => m.week), ...mapping.flatMap((m) => [m.startWeek, m.endWeek])];
+  const minW = Math.min(...allWeeks);
+  const maxW = Math.max(...allWeeks);
+  const range = maxW - minW || 1;
+
+  const fnLevelColor = (lvl: string) => {
+    if (lvl.includes("Release") || lvl.includes("?")) return "#238636";
+    if (lvl.startsWith("C")) return "#3fb950";
+    if (lvl.startsWith("B")) return "#1f6feb";
+    return "#8b949e";
+  };
+
   return (
     <div>
-      <Card title="PEP CEA 里程碑（32 个月，PS → SOP）" accent="#58a6ff">
-        <Table><thead><tr><Th style={{ width: 80 }}>里程碑</Th><Th style={{ width: 60 }}>月</Th><Th style={{ width: 60 }}>周</Th><Th>描述</Th></tr></thead><tbody>{pepCeaMilestones.map((m) => (<tr key={m.name}><Td style={{ fontWeight: 700 }}>{m.name}</Td><Td>{m.month}M</Td><Td>{m.week}W</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>{m.desc}</Td></tr>))}</tbody></Table>
+      <Card title="PEP CEA 里程碑（35 个月，PS → SOP）" accent="#58a6ff">
+        <div style={{ marginBottom: 12, fontSize: 12, color: "#8b949e" }}>SOP 基准日：{fmtDate(SOP_DATE)}（2027-05）· 所有时间相对 SOP 计算</div>
+        <VisualTimeline items={pepCeaMilestones.map((m) => ({ name: m.name, week: m.week, desc: m.desc }))} />
+        <Table>
+          <thead><tr><Th style={{ width: 120 }}>里程碑</Th><Th style={{ width: 80 }}>相对 SOP</Th><Th style={{ width: 70 }}>月</Th><Th style={{ width: 70 }}>周</Th><Th style={{ width: 90 }}>日历日期</Th><Th>描述</Th></tr></thead>
+          <tbody>{pepCeaMilestones.map((m) => (<tr key={m.name} style={m.name === "SOP" ? { background: "#1c2128" } : undefined}><Td style={{ fontWeight: 700, color: m.name === "SOP" ? "#f85149" : "#e6edf3" }}>{m.name}</Td><Td style={{ fontSize: 12, color: "#d29922", fontWeight: 600 }}>{weekLabel(m.week)}</Td><Td style={{ fontSize: 12 }}>{monthLabel(m.week)}</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>{m.week}w</Td><Td style={{ fontSize: 12, color: "#bc8cff" }}>{fmtDate(weekToDate(m.week))}</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>{m.desc}</Td></tr>))}</tbody>
+        </Table>
       </Card>
+
       <Card title="CEA 开发关键里程碑（至 IPD 6.0 = CEA 2.0 HO 基线）" accent="#238636">
-        <Table><thead><tr><Th style={{ width: 160 }}>里程碑</Th><Th style={{ width: 60 }}>周</Th><Th style={{ width: 80 }}>功能等级</Th><Th>描述</Th></tr></thead><tbody>{milestones.map((m) => (<tr key={m.name} style={m.name === "IPD 6.0 (Homo)" ? { background: "#1c2128" } : undefined}><Td style={{ fontWeight: m.name === "IPD 6.0 (Homo)" ? 700 : 400, color: m.name === "IPD 6.0 (Homo)" ? "#58a6ff" : "#e6edf3" }}>{m.name}</Td><Td>{m.week}W</Td><Td>{m.fnLevel ? <span style={{ background: m.fnLevel.includes("Release") ? "#238636" : "#1f6feb", color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 11, fontWeight: 700 }}>{m.fnLevel}</span> : <span style={{ color: "#484f58" }}>—</span>}</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>{m.desc}{m.isFreeze && <span style={{ marginLeft: 6, color: "#d29922", fontSize: 11 }}>🔒 Freeze</span>}{m.isHomoFreeze && <span style={{ marginLeft: 6, color: "#da3633", fontSize: 11 }}>🔒 Homo HW Freeze</span>}</Td></tr>))}</tbody></Table>
+        <VisualTimeline items={milestones.map((m) => ({ name: m.name.replace(/\(.*?\)/g, "").trim(), week: m.week, desc: m.desc, color: m.isFreeze ? "#d29922" : m.isHomoFreeze ? "#da3633" : m.name === "IPD 6.0 (Homo)" ? "#3fb950" : "#58a6ff" }))} />
+        <Table>
+          <thead><tr><Th style={{ width: 160 }}>里程碑</Th><Th style={{ width: 80 }}>相对 SOP</Th><Th style={{ width: 70 }}>月</Th><Th style={{ width: 70 }}>周</Th><Th style={{ width: 90 }}>日历日期</Th><Th style={{ width: 90 }}>功能等级</Th><Th>描述</Th></tr></thead>
+          <tbody>{milestones.map((m) => (<tr key={m.name} style={m.name === "IPD 6.0 (Homo)" ? { background: "#1c2128" } : undefined}><Td style={{ fontWeight: m.name === "IPD 6.0 (Homo)" ? 700 : 400, color: m.name === "IPD 6.0 (Homo)" ? "#3fb950" : "#e6edf3" }}>{m.name}</Td><Td style={{ fontSize: 12, color: "#d29922", fontWeight: 600 }}>{weekLabel(m.week)}</Td><Td style={{ fontSize: 12 }}>{monthLabel(m.week)}</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>{m.week}w</Td><Td style={{ fontSize: 12, color: "#bc8cff" }}>{fmtDate(weekToDate(m.week))}</Td><Td>{m.fnLevel ? <span style={{ background: fnLevelColor(m.fnLevel), color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 11, fontWeight: 700 }}>{m.fnLevel}</span> : <span style={{ color: "#484f58" }}>—</span>}</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>{m.desc}{m.isFreeze && <span style={{ marginLeft: 6, color: "#d29922", fontSize: 11 }}>🔒 Freeze</span>}{m.isHomoFreeze && <span style={{ marginLeft: 6, color: "#da3633", fontSize: 11 }}>🔒 Homo HW Freeze</span>}</Td></tr>))}</tbody>
+        </Table>
       </Card>
-      <Card title="安全活动与 PEP 里程碑映射" accent="#d29922">
-        <Table><thead><tr><Th style={{ width: 160 }}>安全活动</Th><Th style={{ width: 160 }}>PEP 里程碑</Th><Th style={{ width: 60 }}>PEP 周</Th><Th>时间窗口</Th><Th>说明</Th></tr></thead><tbody>{mapping.map((m, i) => (<tr key={i}><Td style={{ fontWeight: 600 }}>{m.safetyActivity}</Td><Td style={{ fontSize: 12 }}>{m.pepMilestone}</Td><Td>{m.pepWeek}W</Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{m.startWeek}W ~ {m.endWeek}W</Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{m.notes}</Td></tr>))}</tbody></Table>
+
+      <Card title="安全活动与 PEP 里程碑映射（甘特图）" accent="#d29922">
+        <Table>
+          <thead><tr><Th style={{ width: 160 }}>安全活动</Th><Th style={{ width: 150 }}>PEP 里程碑</Th><Th style={{ width: 90 }}>相对 SOP</Th><Th style={{ width: 80 }}>开始</Th><Th style={{ width: 80 }}>结束</Th><Th style={{ minWidth: 200 }}>时间窗口（SOP{minW}w ~ SOP{maxW}w）</Th><Th>说明</Th></tr></thead>
+          <tbody>{mapping.map((m, i) => (<tr key={i}><Td style={{ fontWeight: 600, fontSize: 12 }}>{m.safetyActivity}</Td><Td style={{ fontSize: 12, color: "#bc8cff" }}>{m.pepMilestone}</Td><Td style={{ fontSize: 11, color: "#d29922", fontWeight: 600 }}>{weekLabel(m.pepWeek)}</Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{fmtDate(weekToDate(m.startWeek))}</Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{fmtDate(weekToDate(m.endWeek))}</Td><Td><GanttBar startWeek={m.startWeek} endWeek={m.endWeek} minW={minW} range={range} /></Td><Td style={{ fontSize: 11, color: "#8b949e" }}>{m.notes}</Td></tr>))}</tbody>
+        </Table>
       </Card>
     </div>
   );
