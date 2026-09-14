@@ -204,23 +204,6 @@ export function Cea2Info() {
       });
   }, []);
 
-  useEffect(() => {
-    if (!data?.safetyPlanPerProject) return;
-    let needsSync = false;
-    const synced = { ...data.safetyPlanPerProject };
-    for (const [vc, entry] of Object.entries(synced)) {
-      if (!entry.tailoring) continue;
-      const newStatuses = { ...entry.statuses };
-      for (const [key, val] of Object.entries(entry.tailoring)) {
-        if (val === "Carry-over" && newStatuses[key] !== "done") { newStatuses[key] = "done"; needsSync = true; }
-        else if (val === "N/A" && newStatuses[key] !== "na") { newStatuses[key] = "na"; needsSync = true; }
-        else if ((val === "Applicable" || val === "Delta") && (newStatuses[key] === "done" || newStatuses[key] === "na") && entry.tailoring[key] !== "Carry-over" && entry.tailoring[key] !== "N/A") { newStatuses[key] = ""; needsSync = true; }
-      }
-      if (needsSync) synced[vc] = { ...entry, statuses: newStatuses };
-    }
-    if (needsSync) { setData((prev) => prev ? { ...prev, safetyPlanPerProject: synced } : prev); autoSave(); }
-  }, [data?.safetyPlanPerProject, autoSave]);
-
   const autoSave = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus("saving");
@@ -524,15 +507,14 @@ function DeliverablesTab({ spData, onStatusChange, onRemarkChange, onLinkChange,
               <tbody>
                 {p.items.map((item) => {
                   const key = item.no;
-                  const status = vd.statuses[key] || "";
+                  const tailoring = vd.tailoring?.[key] || "Applicable";
+                  const rawStatus = vd.statuses[key] || "";
+                  const status = tailoring === "Carry-over" ? "done" : tailoring === "N/A" ? "na" : rawStatus;
                   const remark = vd.remarks[key] || "";
                   const link = vd.links?.[key] || "";
                   const planned = vd.plannedDates?.[key] || "";
                   const actual = vd.actualDates?.[key] || "";
-                  const tailoring = vd.tailoring?.[key] || "Applicable";
                   const isNA = tailoring === "N/A";
-                  const isCarryOver = tailoring === "Carry-over";
-                  const isDelta = tailoring === "Delta";
                   const tMeta = TAILORING_META[tailoring] || TAILORING_META["Applicable"];
                   const nextStatus = STATUS_CYCLE[(STATUS_CYCLE.indexOf(status) + 1) % STATUS_CYCLE.length];
                   const rowStyle: React.CSSProperties = isNA ? { opacity: 0.4 } : {};
