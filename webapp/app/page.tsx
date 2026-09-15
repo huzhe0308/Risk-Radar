@@ -23,6 +23,7 @@ import { ChangeFeed } from "./ChangeFeed";
 import { SafetyPlanPanel } from "./SafetyPlanPanel";
 import { SafetyPlanTimeline } from "./SafetyPlanTimeline";
 import { Cea2Info } from "./Cea2Info";
+import { EquipmentMatrixView } from "./EquipmentMatrixView";
 
 const STORAGE_KEY = "time-plan-viewer-v4";
 
@@ -754,7 +755,7 @@ export default function Home() {
             </button>
             <button className={`view-item ${workspaceMode === "safety-components" ? "active" : ""}`} onClick={() => { setWorkspaceMode("safety-components"); setSelectedProjectId(""); setSelectedMilestone(null); }}>
               <span className="view-icon">⊞</span>
-              <span className="view-copy"><strong>Components</strong></span>
+              <span className="view-copy"><strong>Equipment Matrix</strong></span>
               {workspaceMode === "safety-components" && <span className="active-dot" />}
             </button>
             <button className={`view-item ${workspaceMode === "cea2-info" ? "active" : ""}`} onClick={() => { setWorkspaceMode("cea2-info"); setCea2Expanded(!cea2Expanded); setSelectedProjectId(""); setSelectedMilestone(null); }}>
@@ -833,7 +834,7 @@ export default function Home() {
           ) : workspaceMode === "safety-plan" ? (
             <SafetyPlanPanel initialTab="upstream" />
           ) : workspaceMode === "safety-components" ? (
-            <SafetyPlanPanel initialTab="components" />
+            <EquipmentMatrixView />
           ) : workspaceMode === "cea2-info" ? (
             <Cea2Info ceaVersion={cea2Version} />
           ) : <>
