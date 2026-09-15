@@ -59,6 +59,45 @@ const CEA_VERSIONS: Array<{
   { version: "2.6", label: "CEA 2.6", productGroups: [], vehicles: [] },
 ];
 
+const RACI_DATA: Array<{ no: string; workproduct: string; activity: string; vctc: string; jv: string }> = [
+  { no: "1", workproduct: "Impact Analysis", activity: "Creation / Update", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Impact Analysis", activity: "Confirmation Review - I0 / I1", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Impact Analysis", activity: "Confirmation Review - I2", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Impact Analysis", activity: "Confirmation Review - I3", vctc: "R", jv: "I" },
+  { no: "2", workproduct: "Safety Plan", activity: "Creation / Update", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Plan", activity: "Verification Review", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Plan", activity: "Confirmation Review - I0 / I1", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Plan", activity: "Confirmation Review - I2", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Plan", activity: "Confirmation Review - I3", vctc: "R", jv: "I" },
+  { no: "3", workproduct: "ItemDefinition requirement from JV (PRD)", activity: "Creation / Update", vctc: "I", jv: "R" },
+  { no: "4", workproduct: "ItemDefinition adaption of JV PRD into VCTC form", activity: "Adaption", vctc: "R", jv: "I" },
+  { no: "5", workproduct: "Hazard Analysis & Risk Assessment", activity: "Creation / Update", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Hazard Analysis & Risk Assessment", activity: "Verification Review", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Hazard Analysis & Risk Assessment", activity: "Confirmation Review - I0 / I1", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Hazard Analysis & Risk Assessment", activity: "Confirmation Review - I2", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Hazard Analysis & Risk Assessment", activity: "Confirmation Review - I3", vctc: "R", jv: "I" },
+  { no: "6", workproduct: "Safety Concept (Functional / Technical)", activity: "Creation / Update", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Concept (Functional / Technical)", activity: "Verification Review", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Concept (Functional / Technical)", activity: "Confirmation Review - I0 / I1", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Concept (Functional / Technical)", activity: "Confirmation Review - I2", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Concept (Functional / Technical)", activity: "Confirmation Review - I3", vctc: "R", jv: "I" },
+  { no: "7", workproduct: "Safety Analyses", activity: "Creation / Update", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Analyses", activity: "Verification Review", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Analyses", activity: "Confirmation Review - I0 / I1", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Analyses", activity: "Confirmation Review - I2", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Analyses", activity: "Confirmation Review - I3", vctc: "R", jv: "I" },
+  { no: "8", workproduct: "Safety Case", activity: "Creation / Update", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Case", activity: "Verification Review", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Case", activity: "Confirmation Review - I0 / I1", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Case", activity: "Confirmation Review - I2", vctc: "R", jv: "I" },
+  { no: "", workproduct: "Safety Case", activity: "Confirmation Review - I3", vctc: "R", jv: "I" },
+  { no: "9", workproduct: "Safety Anomaly Report", activity: "Creation / Update", vctc: "R", jv: "I" },
+  { no: "", workproduct: "", activity: "Collection of evidences", vctc: "R", jv: "I" },
+  { no: "", workproduct: "", activity: "Management of Anomalies", vctc: "R", jv: "I" },
+  { no: "10", workproduct: "Release for Production (As per ISO26262)", activity: "Creation / Update", vctc: "R", jv: "I" },
+  { no: "", workproduct: "", activity: "Review and Release", vctc: "R", jv: "I" },
+];
+
 const CLS_TAG: Record<string, { label: string; color: string }> = {
   carryover: { label: "CARRY-OVER", color: "#238636" },
   newvar: { label: "NEW VARIANT", color: "#d29922" },
@@ -502,6 +541,49 @@ function HutTab({ vehicles, versionLabel, pgs, impacts, pepComparison }: {
       </Card>
       <Card title="PEP 类型对比" accent="#1f6feb">
         <Table><thead><tr><Th>PEP 类型</Th><Th>范围</Th><Th>周期</Th><Th>状态</Th></tr></thead><tbody>{pepComparison.map((p) => (<tr key={p.type} style={p.type === "PEP CEA" ? { background: "#1c2128" } : undefined}><Td style={{ fontWeight: p.type === "PEP CEA" ? 700 : 400 }}>{p.type}</Td><Td>{p.scope}</Td><Td>{p.duration}</Td><Td>{p.status}</Td></tr>))}</tbody></Table>
+      </Card>
+
+      <Card title="Change Level 定义" accent="#8957e5">
+        <Table>
+          <thead><tr><Th style={{ width: 120 }}>级别</Th><Th style={{ width: 140 }}>标签</Th><Th>说明</Th></tr></thead>
+          <tbody>
+            <tr><Td style={{ fontWeight: 700, color: "#da3633" }}>All-New</Td><Td><span style={{ background: CLS_TAG.allnew.color, color: "#fff", padding: "1px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>ALL-NEW</span></Td><Td style={{ fontSize: 12, color: "#8b949e" }}>New platform or new powertrain — full ISO 26262 lifecycle</Td></tr>
+            <tr><Td style={{ fontWeight: 700, color: "#238636" }}>Facelift</Td><Td><span style={{ background: CLS_TAG.carryover.color, color: "#fff", padding: "1px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>CARRY-OVER</span></Td><Td style={{ fontSize: 12, color: "#8b949e" }}>Major change on existing platform — delta impact analysis</Td></tr>
+            <tr><Td style={{ fontWeight: 700, color: "#d29922" }}>New Variant</Td><Td><span style={{ background: CLS_TAG.newvar.color, color: "#fff", padding: "1px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>NEW VARIANT</span></Td><Td style={{ fontSize: 12, color: "#8b949e" }}>New powertrain or export market on existing platform — new HARA scope for specific hazards, platform-level safety cases reused with deltas</Td></tr>
+            <tr><Td style={{ fontWeight: 700, color: "#8b949e" }}>MY (Year Model)</Td><Td><span style={{ background: "#484f58", color: "#fff", padding: "1px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>MY</span></Td><Td style={{ fontSize: 12, color: "#8b949e" }}>Smallest change — delta validation only</Td></tr>
+          </tbody>
+        </Table>
+      </Card>
+
+      <Card title="Reference Car 逻辑（Carry-over 来源）" accent="#238636">
+        <Table>
+          <thead><tr><Th style={{ width: 120 }}>车型类型</Th><Th>Carry-over 来源</Th></tr></thead>
+          <tbody>
+            <tr><Td style={{ fontWeight: 700, color: "#238636" }}>Facelift 车型</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>Carry-over from CEA 1.X（architecture upgraded）<br/><span style={{ color: "#6e7681" }}>CMP21 BEV → from CEA 1.X CMP 21D BEV · MEB31 BEV → from CEA 1.X MEB 31</span></Td></tr>
+            <tr><Td style={{ fontWeight: 700, color: "#d29922" }}>Derivative 车型</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>Carry-over from their product group Leading Car</Td></tr>
+            <tr><Td style={{ fontWeight: 700, color: "#da3633" }}>All-New 车型</Td><Td style={{ fontSize: 12, color: "#8b949e" }}>No reference (N/A) — full development</Td></tr>
+          </tbody>
+        </Table>
+      </Card>
+
+      <Card title="功能安全开发分工（RACI 矩阵）" accent="#d29922">
+        <div style={{ marginBottom: 8, fontSize: 12, color: "#8b949e" }}>
+          <span style={{ background: "rgba(31,111,235,.15)", color: "#58a6ff", padding: "1px 6px", borderRadius: 3, fontWeight: 700 }}>R</span> = Responsible（执行方） · <span style={{ background: "rgba(139,148,158,.12)", color: "#8b949e", padding: "1px 6px", borderRadius: 3, fontWeight: 700 }}>I</span> = Informed（知会方）
+        </div>
+        <Table>
+          <thead><tr><Th style={{ width: 30 }}>#</Th><Th style={{ width: 200 }}>Workproduct</Th><Th>Activity</Th><Th style={{ width: 100, textAlign: "center" }}>VCTC / One Team</Th><Th style={{ width: 100, textAlign: "center" }}>JV (SVW/FAW/VWA)</Th></tr></thead>
+          <tbody>
+            {RACI_DATA.map((r, i) => (
+              <tr key={i} style={r.activity === "" ? { background: "#21262d" } : undefined}>
+                <Td style={{ fontWeight: 700, color: "#58a6ff", fontSize: 11 }}>{r.no || ""}</Td>
+                <Td style={{ fontSize: 12, fontWeight: r.activity === "" ? 700 : 400, color: r.activity === "" ? "#79c0ff" : "#e6edf3" }}>{r.workproduct}</Td>
+                <Td style={{ fontSize: 12, color: "#8b949e" }}>{r.activity}</Td>
+                <Td style={{ textAlign: "center" }}><span style={{ background: r.vctc === "R" ? "rgba(31,111,235,.15)" : "rgba(139,148,158,.12)", color: r.vctc === "R" ? "#58a6ff" : "#8b949e", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>{r.vctc || "—"}</span></Td>
+                <Td style={{ textAlign: "center" }}><span style={{ background: r.jv === "R" ? "rgba(31,111,235,.15)" : r.jv === "I" ? "rgba(139,148,158,.12)" : "transparent", color: r.jv === "R" ? "#58a6ff" : r.jv === "I" ? "#8b949e" : "#484f58", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>{r.jv || "—"}</span></Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
       </Card>
     </div>
   );
