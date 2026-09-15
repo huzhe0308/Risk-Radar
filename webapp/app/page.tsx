@@ -93,6 +93,8 @@ export default function Home() {
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<"overview" | "timeline" | "cea" | "feishu-table" | "change-feed" | "safety-plan" | "safety-components" | "cea2-info">("safety-plan");
   const [ceaExpanded, setCeaExpanded] = useState(false);
+  const [cea2Expanded, setCea2Expanded] = useState(false);
+  const [cea2Version, setCea2Version] = useState("2.0");
   const inputRef = useRef<HTMLInputElement>(null);
   const changePreviewRef = useRef(false);
 
@@ -755,11 +757,18 @@ export default function Home() {
               <span className="view-copy"><strong>Components</strong></span>
               {workspaceMode === "safety-components" && <span className="active-dot" />}
             </button>
-            <button className={`view-item ${workspaceMode === "cea2-info" ? "active" : ""}`} onClick={() => { setWorkspaceMode("cea2-info"); setSelectedProjectId(""); setSelectedMilestone(null); }}>
-              <span className="view-icon">◈</span>
-              <span className="view-copy"><strong>CEA 2.0</strong></span>
+            <button className={`view-item ${workspaceMode === "cea2-info" ? "active" : ""}`} onClick={() => { setWorkspaceMode("cea2-info"); setCea2Expanded(!cea2Expanded); setSelectedProjectId(""); setSelectedMilestone(null); }}>
+              <span className="view-icon">{cea2Expanded ? "▾" : "▸"}</span>
+              <span className="view-copy"><strong>CEA Safety Plan</strong></span>
               {workspaceMode === "cea2-info" && <span className="active-dot" />}
             </button>
+            {cea2Expanded && ["2.0", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6"].map((ver) => (
+              <button key={ver} className={`view-item view-sub-item ${workspaceMode === "cea2-info" && cea2Version === ver ? "active" : ""}`} onClick={() => { setWorkspaceMode("cea2-info"); setCea2Version(ver); setSelectedProjectId(""); setSelectedMilestone(null); }}>
+                <span className="view-icon">◈</span>
+                <span className="view-copy"><strong>CEA {ver}</strong></span>
+                {workspaceMode === "cea2-info" && cea2Version === ver && <span className="active-dot" />}
+              </button>
+            ))}
           </div>
           <div className="sidebar-foot">
             <p>{changePreview ? "变更预览不会覆盖当前计划" : "本地自动保存已开启"}</p>
@@ -826,7 +835,7 @@ export default function Home() {
           ) : workspaceMode === "safety-components" ? (
             <SafetyPlanPanel initialTab="components" />
           ) : workspaceMode === "cea2-info" ? (
-            <Cea2Info />
+            <Cea2Info ceaVersion={cea2Version} />
           ) : <>
           <div className="toolbar">
             <div className="search-field"><Icon>⌕</Icon><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目、里程碑或备注…" /><kbd>⌘ K</kbd></div>
