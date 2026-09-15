@@ -2,14 +2,62 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const CEA2_VEHICLES = [
-  { code: "VW316/9CS_B1 2ECV6H", shortCode: "VW316/9CS_B1", name: "CMP21 CS A SUV MY27", changeLevel: "Facelift", role: "Leading", oem: "SVW", sopDate: "2027-06-18", prev: "CEA 1.3 → 1.4", cls: "carryover", desc: "2026 first ALS1(1.3) to ALS2(1.4) to MY27 upgrade CEA2.0" },
-  { code: "VW316/8CM_B1 11H001", shortCode: "VW316/8CM_B1", name: "MEB31 CM A SUVe MY28", changeLevel: "Facelift", role: "Leading", oem: "VWA", sopDate: "2027-06-18", prev: "CEA 1.3 (from 1.0 ACOSe)", cls: "carryover", desc: "2026 first ALS1(1.3) to MY28 upgrade CEA2.0" },
-  { code: "VW316/9CN_B 2EGV6H", shortCode: "VW316/9CN_B", name: "CMP21 CN A Main SUV BEV", changeLevel: "TBD", role: "Derivative", oem: "FAW", sopDate: "2027-07-30", prev: "-", cls: "newvar", desc: "FAW CMP21 Main SUV, new JV variant" },
-  { code: "VW311/1CN_P 2EFV6H", shortCode: "VW311/1CN_P", name: "CMP21 CN A NB PHEV", changeLevel: "New Variant", role: "Leading", oem: "FAW", sopDate: "2027-09-03", prev: "-", cls: "newvar", desc: "New powertrain PHEV, CMP21 platform first PHEV" },
-];
+type CeaVehicle = {
+  code: string; shortCode: string; name: string; changeLevel: string; role: string; oem: string; sopDate: string; prev: string; cls: string; desc: string;
+};
 
-const CEA2_PGS = ["CMP21 BEV", "CMP21 PHEV", "MEB31 BEV"];
+const CLS_MAP: Record<string, string> = {
+  "All-New": "allnew", "Facelift": "carryover", "New Variant": "newvar", "TBD": "newvar", "MY": "newvar",
+};
+
+const CEA_VERSIONS: Array<{
+  version: string; label: string; vehicles: CeaVehicle[]; productGroups: string[];
+}> = [
+  {
+    version: "2.0", label: "CEA 2.0", productGroups: ["CMP21 BEV", "CMP21 PHEV", "MEB31 BEV"],
+    vehicles: [
+      { code: "VW316/9CS_B1 2ECV6H", shortCode: "VW316/9CS_B1", name: "CMP21 CS A SUV MY27", changeLevel: "Facelift", role: "Leading", oem: "SVW", sopDate: "2027-06-18", prev: "CEA 1.3 → 1.4", cls: "carryover", desc: "2026 first ALS1(1.3) to ALS2(1.4) to MY27 upgrade CEA2.0" },
+      { code: "VW316/8CM_B1 11H001", shortCode: "VW316/8CM_B1", name: "MEB31 CM A SUVe MY28", changeLevel: "Facelift", role: "Leading", oem: "VWA", sopDate: "2027-06-18", prev: "CEA 1.3 (from 1.0 ACOSe)", cls: "carryover", desc: "2026 first ALS1(1.3) to MY28 upgrade CEA2.0" },
+      { code: "VW316/9CN_B 2EGV6H", shortCode: "VW316/9CN_B", name: "CMP21 CN A Main SUV BEV", changeLevel: "TBD", role: "Derivative", oem: "FAW", sopDate: "2027-07-30", prev: "-", cls: "newvar", desc: "FAW CMP21 Main SUV, new JV variant" },
+      { code: "VW311/1CN_P 2EFV6H", shortCode: "VW311/1CN_P", name: "CMP21 CN A NB PHEV", changeLevel: "New Variant", role: "Leading", oem: "FAW", sopDate: "2027-09-03", prev: "-", cls: "newvar", desc: "New powertrain PHEV, CMP21 platform first PHEV" },
+    ],
+  },
+  {
+    version: "2.1", label: "CEA 2.1", productGroups: ["CSP31 BEV", "MEB31 BEV", "CMP21 BEV"],
+    vehicles: [
+      { code: "VW423/1CS_B CS0V6K", shortCode: "VW423/1CS_B", name: "CSP31 CS B NB BEV", changeLevel: "All-New", role: "Leading", oem: "SVW", sopDate: "2027-10-01", prev: "-", cls: "allnew", desc: "All-New CSP31 platform, first BEV variant" },
+      { code: "VW316/6CN_B1 CN0001", shortCode: "VW316/6CN_B1", name: "MEB31 CN ID4 PA MY28", changeLevel: "TBD", role: "Derivative", oem: "FAW", sopDate: "2027-09-10", prev: "MEB31 CM A SUVe", cls: "newvar", desc: "FAW MEB31 derivative, ID4 PA variant" },
+      { code: "VW311/1CN_B1 2EF001", shortCode: "VW311/1CN_B1", name: "CMP21 CN A NB BEV MY27", changeLevel: "TBD", role: "Derivative", oem: "FAW", sopDate: "2027-09-10", prev: "CMP21 CN A Main SUV BEV", cls: "newvar", desc: "FAW CMP21 NB BEV variant" },
+      { code: "VW416/6CN_B CN5V6I", shortCode: "VW416/6CN_B", name: "CSP31 CN B SUV BEV 5S", changeLevel: "TBD", role: "Derivative", oem: "FAW", sopDate: "2027-10-29", prev: "CSP31 CS B NB BEV", cls: "newvar", desc: "FAW CSP31 derivative, 5S SUV BEV" },
+      { code: "VW313/2CM_B1 11M001", shortCode: "VW313/2CM_B1", name: "MEB31 CM A COSe MY28", changeLevel: "TBD", role: "Derivative", oem: "VWA", sopDate: "2027-09-10", prev: "MEB31 CM A SUVe", cls: "newvar", desc: "VWA MEB31 derivative, COSe variant" },
+    ],
+  },
+  {
+    version: "2.2", label: "CEA 2.2", productGroups: ["CSP31 EREV", "CMP21 PHEV"],
+    vehicles: [
+      { code: "VW416/5CN_E CN2V6I", shortCode: "VW416/5CN_E", name: "CSP31 CN B SUV EREV 6S", changeLevel: "TBD", role: "Derivative", oem: "FAW", sopDate: "2027-12-31", prev: "CSP31 CN B SUV BEV 5S", cls: "newvar", desc: "FAW CSP31 EREV 6S derivative" },
+      { code: "VW316/9CS_P 2EPV6K", shortCode: "VW316/9CS_P", name: "CMP21 CS A SUV PHEV", changeLevel: "TBD", role: "Derivative", oem: "SVW", sopDate: "2027-12-03", prev: "CMP21 CS A SUV MY27", cls: "newvar", desc: "SVW CMP21 PHEV derivative" },
+      { code: "VW423/1CS_E CS0V6I", shortCode: "VW423/1CS_E", name: "CSP31 CS B NB EREV", changeLevel: "TBD", role: "Derivative", oem: "SVW", sopDate: "2027-12-31", prev: "CSP31 CS B NB BEV", cls: "newvar", desc: "SVW CSP31 EREV derivative" },
+      { code: "VW416/6CN_E CN5001", shortCode: "VW416/6CN_E", name: "CSP31 CN B SUV EREV 5S", changeLevel: "All-New", role: "Leading", oem: "FAW", sopDate: "2028-01-28", prev: "-", cls: "allnew", desc: "All-New CSP31 EREV 5S Leading variant" },
+    ],
+  },
+  {
+    version: "2.3", label: "CEA 2.3", productGroups: ["CSP31 BEV", "CSP31 EREV"],
+    vehicles: [
+      { code: "VW326/6CS_B CS2V6E", shortCode: "VW326/6CS_B", name: "CSP31 CS A+ SUV BEV", changeLevel: "TBD", role: "Derivative", oem: "SVW", sopDate: "2028-03-03", prev: "CSP31 CS B NB BEV", cls: "newvar", desc: "SVW CSP31 A+ SUV BEV derivative" },
+      { code: "VW326/6CS_E CS2001", shortCode: "VW326/6CS_E", name: "CSP31 CS A+ SUV EREV", changeLevel: "TBD", role: "Derivative", oem: "SVW", sopDate: "2028-04-28", prev: "CSP31 CS B NB EREV", cls: "newvar", desc: "SVW CSP31 A+ SUV EREV derivative" },
+      { code: "VW423/1CN_B CN4V6E", shortCode: "VW423/1CN_B", name: "CSP31 CN B NB BEV", changeLevel: "TBD", role: "Derivative", oem: "FAW", sopDate: "2028-06-02", prev: "CSP31 CN B SUV BEV 5S", cls: "newvar", desc: "FAW CSP31 NB BEV derivative" },
+    ],
+  },
+  {
+    version: "2.4", label: "CEA 2.4", productGroups: ["CSP31 EREV"],
+    vehicles: [
+      { code: "VW423/1CN_E CN4V6F", shortCode: "VW423/1CN_E", name: "CSP31 CN B NB EREV", changeLevel: "TBD", role: "Derivative", oem: "FAW", sopDate: "2028-06-30", prev: "CSP31 CN B SUV EREV 5S", cls: "newvar", desc: "FAW CSP31 NB EREV derivative" },
+    ],
+  },
+  { version: "2.5", label: "CEA 2.5", productGroups: [], vehicles: [] },
+  { version: "2.6", label: "CEA 2.6", productGroups: [], vehicles: [] },
+];
 
 const CLS_TAG: Record<string, { label: string; color: string }> = {
   carryover: { label: "CARRY-OVER", color: "#238636" },
@@ -198,7 +246,10 @@ type DataJson = {
   cea2DeletedDeliverables?: string[];
 };
 
-export function Cea2Info() {
+export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
+  const versionConfig = CEA_VERSIONS.find((v) => v.version === ceaVersion) || CEA_VERSIONS[0];
+  const vehicles = versionConfig.vehicles;
+  const versionKey = `cea${ceaVersion}_`;
   const [data, setData] = useState<DataJson | null>(null);
   const [tab, setTab] = useState<"huts" | "deliverables" | "timeline">("huts");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -238,15 +289,16 @@ export function Cea2Info() {
   }, []);
 
   const mutateEntry = useCallback((vehicleCode: string, fn: (e: SpEntry) => SpEntry) => {
+    const nsKey = versionKey + vehicleCode;
     setData((prev) => {
       if (!prev) return prev;
       const spp = { ...(prev.safetyPlanPerProject || {}) };
-      const old = spp[vehicleCode] || { statuses: {}, remarks: {} };
-      spp[vehicleCode] = fn({ ...old, statuses: { ...old.statuses }, remarks: { ...old.remarks }, links: { ...(old.links || {}) }, plannedDates: { ...(old.plannedDates || {}) }, actualDates: { ...(old.actualDates || {}) }, tailoring: { ...(old.tailoring || {}) } });
+      const old = spp[nsKey] || { statuses: {}, remarks: {} };
+      spp[nsKey] = fn({ ...old, statuses: { ...old.statuses }, remarks: { ...old.remarks }, links: { ...(old.links || {}) }, plannedDates: { ...(old.plannedDates || {}) }, actualDates: { ...(old.actualDates || {}) }, tailoring: { ...(old.tailoring || {}) } });
       return { ...prev, safetyPlanPerProject: spp };
     });
     autoSave();
-  }, [autoSave]);
+  }, [autoSave, versionKey]);
 
   const updateStatus = useCallback((vc: string, key: string, val: string) => mutateEntry(vc, (e) => { e.statuses[key] = val; return e; }), [mutateEntry]);
   const updateRemark = useCallback((vc: string, key: string, val: string) => mutateEntry(vc, (e) => { e.remarks[key] = val; return e; }), [mutateEntry]);
@@ -268,8 +320,8 @@ export function Cea2Info() {
     return e;
   }), [mutateEntry]);
 
-  const cea2Impact = useMemo(() => (data?.impactAnalysis || []).filter((ia) => CEA2_PGS.includes(ia.pg)), [data]);
-  const cea2PGs = useMemo(() => (data?.productGroups || []).filter((pg) => CEA2_PGS.includes(pg.name)), [data]);
+  const cea2Impact = useMemo(() => (data?.impactAnalysis || []).filter((ia) => versionConfig.productGroups.includes(ia.pg)), [data, versionConfig]);
+  const cea2PGs = useMemo(() => (data?.productGroups || []).filter((pg) => versionConfig.productGroups.includes(pg.name)), [data, versionConfig]);
   const cea2Milestones = useMemo(() => (data?.ceaKeyMilestones || []).filter((m) => m.week <= -22 || m.name === "SOP"), [data]);
 
   const cea2Deliverables = useMemo<Cea2Phase[]>(() => {
@@ -327,7 +379,16 @@ export function Cea2Info() {
     autoSave();
   }, [autoSave]);
 
-  if (!data) return <div style={{ padding: 40, color: "#8b949e" }}>Loading CEA 2.0 data…</div>;
+  if (!data) return <div style={{ padding: 40, color: "#8b949e" }}>Loading {versionConfig.label} data…</div>;
+
+  const versionSpData: Record<string, SpEntry> = {};
+  if (data.safetyPlanPerProject) {
+    for (const [k, v] of Object.entries(data.safetyPlanPerProject)) {
+      if (k.startsWith(versionKey)) {
+        versionSpData[k.slice(versionKey.length)] = v;
+      }
+    }
+  }
 
   const tabs: Array<{ key: typeof tab; label: string; icon: string }> = [
     { key: "huts", label: "HUT 清单", icon: "📋" },
@@ -349,11 +410,11 @@ export function Cea2Info() {
       </div>
 
       <div style={{ flex: 1, overflow: "auto", padding: "16px 24px" }}>
-        {tab === "huts" && <HutTab vehicles={CEA2_VEHICLES} pgs={cea2PGs} impacts={cea2Impact} pepComparison={data.pepComparison} />}
+        {tab === "huts" && <HutTab vehicles={vehicles} versionLabel={versionConfig.label} pgs={cea2PGs} impacts={cea2Impact} pepComparison={data.pepComparison} />}
         {tab === "deliverables" && (
-          <DeliverablesTab deliverables={cea2Deliverables} deletedNos={data.cea2DeletedDeliverables || []} spData={data.safetyPlanPerProject || {}} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} onAddDeliverable={addDeliverable} onDeleteDeliverable={deleteDeliverable} onRestoreDeliverable={restoreDeliverable} />
+          <DeliverablesTab deliverables={cea2Deliverables} deletedNos={data.cea2DeletedDeliverables || []} spData={versionSpData} vehicles={vehicles} versionLabel={versionConfig.label} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} onAddDeliverable={addDeliverable} onDeleteDeliverable={deleteDeliverable} onRestoreDeliverable={restoreDeliverable} />
         )}
-        {tab === "timeline" && <TimelineTab milestones={cea2Milestones} pepCeaMilestones={data.pepCeaMilestones} mapping={data.safetyPepMapping} />}
+        {tab === "timeline" && <TimelineTab milestones={cea2Milestones} pepCeaMilestones={data.pepCeaMilestones} mapping={data.safetyPepMapping} versionLabel={versionConfig.label} />}
       </div>
     </div>
   );
@@ -405,13 +466,13 @@ function Table({ children }: { children: React.ReactNode }) {
   return <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>{children}</table>;
 }
 
-function HutTab({ vehicles, pgs, impacts, pepComparison }: {
-  vehicles: typeof CEA2_VEHICLES; pgs: DataJson["productGroups"]; impacts: DataJson["impactAnalysis"]; pepComparison: DataJson["pepComparison"];
+function HutTab({ vehicles, versionLabel, pgs, impacts, pepComparison }: {
+  vehicles: CeaVehicle[]; versionLabel: string; pgs: DataJson["productGroups"]; impacts: DataJson["impactAnalysis"]; pepComparison: DataJson["pepComparison"];
 }) {
   const sopGroups = vehicles.reduce<Record<string, typeof vehicles>>((acc, v) => { (acc[v.sopDate] = acc[v.sopDate] || []).push(v); return acc; }, {});
   return (
     <div>
-      <Card title="CEA 2.0 车型明细（4 Vehicles in Scope）" accent="#58a6ff">
+      <Card title={`${versionLabel} 车型明细（${vehicles.length} Vehicles in Scope）`} accent="#58a6ff">
         <Table>
           <thead><tr><Th style={{ width: 30 }}>#</Th><Th style={{ width: 120 }}>Vehicle Code</Th><Th style={{ width: 50 }}>OEM</Th><Th>Vehicle Name</Th><Th style={{ width: 100 }}>Change Level</Th><Th style={{ width: 80 }}>Role</Th><Th style={{ width: 90 }}>SOP Date</Th><Th style={{ width: 110 }}>前序平台</Th><Th style={{ width: 110 }}>分类</Th><Th>说明</Th></tr></thead>
           <tbody>
@@ -446,10 +507,12 @@ function HutTab({ vehicles, pgs, impacts, pepComparison }: {
   );
 }
 
-function DeliverablesTab({ deliverables, deletedNos, spData, onStatusChange, onRemarkChange, onLinkChange, onDateChange, onTailoringChange, onAddDeliverable, onDeleteDeliverable, onRestoreDeliverable }: {
+function DeliverablesTab({ deliverables, deletedNos, spData, vehicles, versionLabel, onStatusChange, onRemarkChange, onLinkChange, onDateChange, onTailoringChange, onAddDeliverable, onDeleteDeliverable, onRestoreDeliverable }: {
   deliverables: Cea2Phase[];
   deletedNos: string[];
   spData: Record<string, SpEntry>;
+  vehicles: CeaVehicle[];
+  versionLabel: string;
   onStatusChange: (vc: string, key: string, val: string) => void;
   onRemarkChange: (vc: string, key: string, val: string) => void;
   onLinkChange: (vc: string, key: string, val: string) => void;
@@ -459,7 +522,7 @@ function DeliverablesTab({ deliverables, deletedNos, spData, onStatusChange, onR
   onDeleteDeliverable: (no: string, isCustom: boolean) => void;
   onRestoreDeliverable: (no: string) => void;
 }) {
-  const [activeVehicle, setActiveVehicle] = useState(CEA2_VEHICLES[0].shortCode);
+  const [activeVehicle, setActiveVehicle] = useState(vehicles[0]?.shortCode || "");
   const [subView, setSubView] = useState<"tailoring" | "general" | "compdev" | "supplier">("tailoring");
   const [undoInfo, setUndoInfo] = useState<{ no: string; isCustom: boolean; label: string } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -503,7 +566,32 @@ function DeliverablesTab({ deliverables, deletedNos, spData, onStatusChange, onR
     { key: "supplier", label: "Supplier (5S)", count: phasesByView.supplier.reduce((s, p) => s + p.items.length, 0) },
   ];
 
-  const activeVehicleInfo = CEA2_VEHICLES.find((v) => v.shortCode === activeVehicle);
+  const activeVehicleInfo = vehicles.find((v) => v.shortCode === activeVehicle);
+
+  if (vehicles.length === 0) {
+    return (
+      <div>
+        <Card title={`${versionLabel} — 无车型（仅 IPD 里程碑）`} accent="#484f58">
+          <p style={{ color: "#8b949e", fontSize: 14 }}>{versionLabel} 没有分配车型，仅作为 IPD 里程碑节点存在。</p>
+          <p style={{ color: "#6e7681", fontSize: 12, marginTop: 8 }}>交付物模板（49 项）仍然可用作参考，但不进行车型级别的跟踪。</p>
+        </Card>
+        <Card title="交付物模板参考" accent="#58a6ff">
+          {deliverables.map((p) => (
+            <div key={p.name} style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#79c0ff", marginBottom: 4 }}>{p.name}</div>
+              {p.items.map((item) => (
+                <div key={item.no} style={{ display: "flex", gap: 8, fontSize: 12, color: "#8b949e", padding: "2px 0" }}>
+                  <span style={{ color: "#58a6ff", fontWeight: 700, width: 40 }}>{item.no}</span>
+                  <span style={{ width: 130 }}>{item.activity}</span>
+                  <span>{item.deliverable}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </Card>
+      </div>
+    );
+  }
 
   if (subView === "tailoring") {
     return (
@@ -515,7 +603,7 @@ function DeliverablesTab({ deliverables, deletedNos, spData, onStatusChange, onR
             ))}
           </div>
         </div>
-        <TailoringMatrix deliverables={deliverables} spData={spData} onTailoringChange={onTailoringChange} />
+        <TailoringMatrix deliverables={deliverables} spData={spData} vehicles={vehicles} onTailoringChange={onTailoringChange} />
       </div>
     );
   }
@@ -524,7 +612,7 @@ function DeliverablesTab({ deliverables, deletedNos, spData, onStatusChange, onR
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
         <select value={activeVehicle} onChange={(e) => setActiveVehicle(e.target.value)} style={{ background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 6, padding: "6px 10px", fontSize: 13, minWidth: 280 }}>
-          {CEA2_VEHICLES.map((v) => (
+          {vehicles.map((v) => (
             <option key={v.shortCode} value={v.shortCode}>{v.shortCode} — {v.name} ({v.oem}, SOP {v.sopDate})</option>
           ))}
         </select>
@@ -677,9 +765,10 @@ function AddRowForm({ onAdd, existingNos }: { onAdd: (item: Cea2Deliverable) => 
   );
 }
 
-function TailoringMatrix({ deliverables, spData, onTailoringChange }: {
+function TailoringMatrix({ deliverables, spData, vehicles, onTailoringChange }: {
   deliverables: Cea2Phase[];
   spData: Record<string, SpEntry>;
+  vehicles: CeaVehicle[];
   onTailoringChange: (vc: string, key: string, val: string) => void;
 }) {
   const legendItems = TAILORING_CYCLE.map((t) => ({ key: t, ...TAILORING_META[t] }));
@@ -687,7 +776,7 @@ function TailoringMatrix({ deliverables, spData, onTailoringChange }: {
 
   return (
     <div>
-      <Card title={`Tailoring Matrix — 裁剪矩阵（4 vehicles × ${totalDeliverables} deliverables）`} accent="#8957e5">
+      <Card title={`Tailoring Matrix — 裁剪矩阵（${vehicles.length} vehicles × ${totalDeliverables} deliverables）`} accent="#8957e5">
         <div style={{ display: "flex", gap: 16, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ fontSize: 12, color: "#8b949e" }}>Legend:</span>
           {legendItems.map((l) => (
@@ -706,7 +795,7 @@ function TailoringMatrix({ deliverables, spData, onTailoringChange }: {
                 <Th style={{ width: 50 }}>No.</Th>
                 <Th style={{ width: 140 }}>Activity</Th>
                 <Th style={{ minWidth: 200 }}>Deliverable / Document</Th>
-                {CEA2_VEHICLES.map((v) => (
+                {vehicles.map((v) => (
                   <Th key={v.shortCode} style={{ textAlign: "center", fontSize: 11, maxWidth: 120 }}>
                     <div style={{ fontWeight: 700 }}>{v.shortCode}</div>
                     <div style={{ fontSize: 10, color: "#8b949e", fontWeight: 400 }}>{v.name}</div>
@@ -722,14 +811,14 @@ function TailoringMatrix({ deliverables, spData, onTailoringChange }: {
               {deliverables.map((phase) => (
                 <React.Fragment key={phase.name}>
                   <tr key={phase.name}>
-                    <td colSpan={3 + CEA2_VEHICLES.length} style={{ background: "#21262d", color: "#79c0ff", padding: "6px 10px", fontSize: 12, fontWeight: 700, borderBottom: "1px solid #30363d" }}>{phase.name}</td>
+                    <td colSpan={3 + vehicles.length} style={{ background: "#21262d", color: "#79c0ff", padding: "6px 10px", fontSize: 12, fontWeight: 700, borderBottom: "1px solid #30363d" }}>{phase.name}</td>
                   </tr>
                   {phase.items.map((item) => (
                     <tr key={item.no}>
                       <Td style={{ fontWeight: 700, color: "#58a6ff", fontSize: 11 }}>{item.no}</Td>
                       <Td style={{ fontSize: 11 }}>{item.activity}</Td>
                       <Td style={{ fontSize: 12 }}>{item.deliverable}</Td>
-                      {CEA2_VEHICLES.map((v) => {
+                      {vehicles.map((v) => {
                         const td = spData[v.shortCode]?.tailoring || {};
                         const val = td[item.no] || getTailoringPreset(item, v.cls);
                         const meta = TAILORING_META[val] || TAILORING_META["Applicable"];
@@ -919,8 +1008,8 @@ function GanttRow({ activity, mapping, minW, range, phaseColor, pepMilestone }: 
   );
 }
 
-function TimelineTab({ milestones, pepCeaMilestones, mapping }: {
-  milestones: DataJson["ceaKeyMilestones"]; pepCeaMilestones: DataJson["pepCeaMilestones"]; mapping: DataJson["safetyPepMapping"];
+function TimelineTab({ milestones, pepCeaMilestones, mapping, versionLabel }: {
+  milestones: DataJson["ceaKeyMilestones"]; pepCeaMilestones: DataJson["pepCeaMilestones"]; mapping: DataJson["safetyPepMapping"]; versionLabel: string;
 }) {
   const allWeeks = [...pepCeaMilestones.map((m) => m.week), ...milestones.map((m) => m.week), ...mapping.flatMap((m) => [m.startWeek, m.endWeek])];
   const minW = Math.min(...allWeeks);
@@ -941,7 +1030,7 @@ function TimelineTab({ milestones, pepCeaMilestones, mapping }: {
 
   return (
     <div>
-      <Card title="CEA 2.0 总时间线（PS → SOP, 35 个月）" accent="#58a6ff">
+      <Card title={`${versionLabel} 总时间线（PS → SOP, 35 个月）`} accent="#58a6ff">
         <div style={{ marginBottom: 8, fontSize: 12, color: "#8b949e" }}>
           SOP 基准日：<span style={{ color: "#f85149", fontWeight: 700 }}>{fmtDate(SOP_DATE)}</span> · PEP CEA 里程碑（蓝）+ CEA 开发关键里程碑（紫）
         </div>
