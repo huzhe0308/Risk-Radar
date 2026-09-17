@@ -241,29 +241,6 @@ export function EquipmentMatrixView() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8, marginBottom: 16 }}>
-        <div style={{ background: "#0d1117", border: "1px solid #30363d", borderRadius: 6, padding: "8px 12px" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#58a6ff" }}>{totalComps}</div>
-          <div style={{ fontSize: 11, color: "#8b949e" }}>FuSa Components</div>
-        </div>
-        <div style={{ background: "#0d1117", border: "1px solid #30363d", borderRadius: 6, padding: "8px 12px" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#3fb950" }}>{totalVeh}</div>
-          <div style={{ fontSize: 11, color: "#8b949e" }}>Vehicle Projects</div>
-        </div>
-        <div style={{ background: "#0d1117", border: "1px solid #30363d", borderRadius: 6, padding: "8px 12px" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#8957e5" }}>{compData.domains.length}</div>
-          <div style={{ fontSize: 11, color: "#8b949e" }}>Domains</div>
-        </div>
-        <div style={{ background: "#0d1117", border: "1px solid #30363d", borderRadius: 6, padding: "8px 12px" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#d29922" }}>{assigned}</div>
-          <div style={{ fontSize: 11, color: "#8b949e" }}>Supplier Assigned</div>
-        </div>
-        <div style={{ background: "#0d1117", border: "1px solid #30363d", borderRadius: 6, padding: "8px 12px" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#f85149" }}>{totalComps - assigned}</div>
-          <div style={{ fontSize: 11, color: "#8b949e" }}>Unassigned</div>
-        </div>
-      </div>
-
       {view === "matrix" && (
         <Card title={`Equipment Matrix — ${filteredComponents.length} components × ${displayVehicles.length} vehicles`} accent="#58a6ff">
           <div style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
