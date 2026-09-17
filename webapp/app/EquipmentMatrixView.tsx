@@ -286,58 +286,47 @@ export function EquipmentMatrixView() {
             <span><span style={{ color: "#484f58" }}>·</span> = Not defined</span>
           </div>
 
-          <div style={{ overflow: "auto", maxHeight: "75vh", border: "1px solid #30363d", borderRadius: 6 }}>
-            <table style={{ borderCollapse: "collapse", fontSize: 12 }}>
+          <div style={{ overflow: "auto", maxHeight: "78vh", border: "1px solid #30363d", borderRadius: 6, position: "relative" }}>
+            <table style={{ borderCollapse: "separate", borderSpacing: 0, fontSize: 12 }}>
               <thead>
-                {/* Row 1: CEA version super-headers */}
                 <tr>
-                  <th rowSpan={3} style={{ background: "#21262d", color: "#f0f6fc", padding: "6px 8px", position: "sticky", left: 0, zIndex: 5, minWidth: 140, textAlign: "left", fontWeight: 600, fontSize: 12, borderBottom: "1px solid #30363d" }}>
-                    Equipment System
-                  </th>
-                  <th rowSpan={3} style={{ background: "#21262d", color: "#f0f6fc", padding: "6px 8px", position: "sticky", left: 140, zIndex: 5, minWidth: 100, textAlign: "left", fontWeight: 600, fontSize: 12, borderBottom: "1px solid #30363d" }}>
-                    Variant
-                  </th>
-                  <th rowSpan={3} style={{ background: "#21262d", color: "#f0f6fc", padding: "6px 8px", position: "sticky", left: 240, zIndex: 5, minWidth: 160, textAlign: "left", fontWeight: 600, fontSize: 12, borderBottom: "1px solid #30363d" }}>
-                    Full Name
-                  </th>
-                  <th rowSpan={3} style={{ background: "#21262d", color: "#f0f6fc", padding: "6px 8px", minWidth: 100, textAlign: "left", fontWeight: 600, fontSize: 12, borderBottom: "1px solid #30363d" }}>
-                    Supplier
-                  </th>
-                  <th rowSpan={3} style={{ background: "#21262d", color: "#f0f6fc", padding: "6px 8px", width: 50, textAlign: "center", fontWeight: 600, fontSize: 12, borderBottom: "1px solid #30363d" }}>
-                    ASIL
-                  </th>
-                  {ceaFilter === "ALL" ? (
-                    CEA_GROUPS.map((g) => {
-                      const vehicles = displayVehicles.filter((v) => v.cea === g.version);
-                      if (vehicles.length === 0) return null;
-                      return (
-                        <th key={g.version} colSpan={vehicles.length} style={{ background: `${g.color}22`, color: g.color, padding: "4px 6px", textAlign: "center", fontWeight: 700, fontSize: 12, borderBottom: `2px solid ${g.color}` }}>
-                          {g.label}
-                        </th>
-                      );
-                    })
-                  ) : (
-                    <th colSpan={displayVehicles.length} style={{ background: `${CEA_COLOR[ceaFilter]}22`, color: CEA_COLOR[ceaFilter], padding: "4px 6px", textAlign: "center", fontWeight: 700, fontSize: 12, borderBottom: `2px solid ${CEA_COLOR[ceaFilter]}` }}>
-                      {CEA_GROUPS.find((g) => g.version === ceaFilter)?.label}
-                    </th>
-                  )}
-                </tr>
-                {/* Row 2: Full vehicle names (rotated) */}
-                <tr>
-                  {displayVehicles.map((v) => (
-                    <th key={v.key} style={{ background: "#21262d", padding: "4px 2px", textAlign: "center", width: 44, minWidth: 44, maxWidth: 44, borderBottom: "1px solid #30363d", verticalAlign: "bottom", height: 120 }}>
-                      <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", fontSize: 10, color: "#e6edf3", whiteSpace: "nowrap", lineHeight: 1.3, maxHeight: 110, overflow: "hidden" }}>
-                        <span style={{ color: OEM_COLOR[v.oem], fontWeight: 700 }}>{v.oem}</span>{" "}
-                        <span>{v.display.replace(/ (SVW|FAW|VWA)$/, "")}</span>
-                      </div>
+                  {[
+                    { label: "Equipment System", w: 130, left: 0 },
+                    { label: "Variant", w: 80, left: 130 },
+                    { label: "Full Name", w: 170, left: 210 },
+                    { label: "Supplier", w: 100, left: 380 },
+                    { label: "ASIL", w: 50, left: 480 },
+                  ].map((col) => (
+                    <th key={col.label} style={{
+                      background: "#21262d", color: "#f0f6fc", padding: "8px 10px",
+                      position: "sticky", top: 0, zIndex: 5,
+                      left: col.left, minWidth: col.w, textAlign: "left", fontWeight: 600, fontSize: 12,
+                      borderBottom: "2px solid #30363d", borderRight: "1px solid #30363d",
+                    }}>
+                      {col.label}
                     </th>
                   ))}
-                </tr>
-                {/* Row 3: Line info */}
-                <tr>
                   {displayVehicles.map((v) => (
-                    <th key={v.key} style={{ background: "#21262d", padding: "2px 4px", textAlign: "center", fontSize: 9, color: "#6e7681", borderBottom: "1px solid #30363d", whiteSpace: "nowrap" }}>
-                      {v.line}
+                    <th key={v.key} style={{
+                      position: "sticky", top: 0, zIndex: 5,
+                      background: "#21262d", borderBottom: `3px solid ${CEA_COLOR[v.cea] || "#30363d"}`,
+                      borderRight: "1px solid #30363d",
+                      padding: "6px 8px", textAlign: "center", minWidth: 130, maxWidth: 150,
+                      verticalAlign: "top",
+                    }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "center" }}>
+                        <span style={{
+                          display: "inline-block", background: `${CEA_COLOR[v.cea]}22`, color: CEA_COLOR[v.cea],
+                          padding: "1px 8px", borderRadius: 3, fontSize: 10, fontWeight: 700,
+                        }}>
+                          CEA {v.cea}
+                        </span>
+                        <span style={{ fontSize: 11, color: "#e6edf3", fontWeight: 600, lineHeight: 1.35, wordBreak: "break-word", whiteSpace: "normal" }}>
+                          {v.display.replace(/ (SVW|FAW|VWA)$/, "")}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: OEM_COLOR[v.oem] }}>{v.oem}</span>
+                        <span style={{ fontSize: 9, color: "#6e7681", marginTop: 1 }}>{v.line}</span>
+                      </div>
                     </th>
                   ))}
                 </tr>
@@ -345,56 +334,62 @@ export function EquipmentMatrixView() {
               <tbody>
                 {Object.entries(domainGroups).map(([domain, comps]) => (
                   <React.Fragment key={domain}>
-                <tr>
-                  <td colSpan={5 + displayVehicles.length} style={{ background: "#21262d", color: DOMAIN_COLORS[domain] || "#79c0ff", padding: "4px 8px", fontSize: 12, fontWeight: 700, position: "sticky", left: 0, zIndex: 2 }}>
-                    {domain} <span style={{ color: "#8b949e", fontWeight: 400, fontSize: 11 }}>· {comps.length} components</span>
-                  </td>
-                </tr>
-                {comps.map((c) => {
-                  const supShort = (c.supplier || "").split("\n")[0].trim();
-                  return (
-                    <tr key={c._idx}>
-                      <td style={{ position: "sticky", left: 0, background: "#0d1117", fontSize: 10, color: "#6e7681", padding: "4px 8px", borderBottom: "1px solid #30363d", zIndex: 2 }}>{c.loadType || ""}</td>
-                      <td style={{ position: "sticky", left: 140, background: "#0d1117", fontWeight: 700, color: "#58a6ff", padding: "4px 8px", borderBottom: "1px solid #30363d", fontSize: 12, zIndex: 2 }}>{c.abbreviation || ""}</td>
-                      <td style={{ position: "sticky", left: 240, background: "#0d1117", padding: "4px 8px", borderBottom: "1px solid #30363d", zIndex: 2 }}>
-                        <div style={{ fontSize: 12, color: "#e6edf3" }}>{c.fullName || ""}</div>
-                        <div style={{ fontSize: 10, color: "#6e7681" }}>{c.chineseName || ""}</div>
+                    <tr>
+                      <td colSpan={5 + displayVehicles.length} style={{
+                        background: "#21262d", color: DOMAIN_COLORS[domain] || "#79c0ff",
+                        padding: "5px 10px", fontSize: 12, fontWeight: 700,
+                        position: "sticky", left: 0, zIndex: 2,
+                        borderTop: "1px solid #30363d", borderBottom: "1px solid #30363d",
+                      }}>
+                        {domain} <span style={{ color: "#8b949e", fontWeight: 400, fontSize: 11 }}>· {comps.length} components</span>
                       </td>
-                      <td style={{ fontSize: 11, color: "#8b949e", padding: "4px 8px", borderBottom: "1px solid #30363d" }}>{supShort || "—"}</td>
-                      <td style={{ textAlign: "center", padding: "4px 6px", borderBottom: "1px solid #30363d" }}>
-                        {c.asil ? <span style={{ background: ASIL_COLOR[c.asil] || "#484f58", color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 10, fontWeight: 700 }}>{c.asil}</span> : <span style={{ color: "#484f58" }}>—</span>}
-                      </td>
-                      {displayVehicles.map((v) => {
-                        const val = (c.vehicleApplicability || {})[v.key] || "";
-                        const isX = val === "S" || val === "s";
-                        return (
-                          <td
-                            key={v.key}
-                            onClick={() => toggleCell(c._idx, v.key)}
-                            style={{
-                              textAlign: "center",
-                              borderBottom: "1px solid #30363d",
-                              padding: "4px 6px",
-                              cursor: "pointer",
-                              background: isX ? "rgba(248,81,73,.15)" : "transparent",
-                              transition: "background .12s",
-                              userSelect: "none",
-                            }}
-                            onMouseEnter={(e) => { if (!isX) (e.currentTarget as HTMLTableCellElement).style.background = "rgba(88,166,255,.08)"; }}
-                            onMouseLeave={(e) => { if (!isX) (e.currentTarget as HTMLTableCellElement).style.background = "transparent"; }}
-                            title={`${v.display}: ${isX ? "✕ (Standard)" : "Not defined — click to toggle"}`}
-                          >
-                            {isX ? (
-                              <span style={{ color: "#f85149", fontWeight: 700, fontSize: 14 }}>✕</span>
-                            ) : (
-                              <span style={{ color: "#484f58", fontSize: 12 }}>·</span>
-                            )}
-                          </td>
-                        );
-                      })}
                     </tr>
-                  );
-                })}
+                    {comps.map((c) => {
+                      const supShort = (c.supplier || "").split("\n")[0].trim();
+                      return (
+                        <tr key={c._idx} style={{ height: 32 }}>
+                          <td style={{ position: "sticky", left: 0, background: "#0d1117", fontSize: 10, color: "#6e7681", padding: "4px 10px", borderBottom: "1px solid #30363d", borderRight: "1px solid #30363d", zIndex: 3 }}>{c.loadType || ""}</td>
+                          <td style={{ position: "sticky", left: 130, background: "#0d1117", fontWeight: 700, color: "#58a6ff", padding: "4px 8px", borderBottom: "1px solid #30363d", borderRight: "1px solid #30363d", fontSize: 12, zIndex: 3 }}>{c.abbreviation || ""}</td>
+                          <td style={{ position: "sticky", left: 210, background: "#0d1117", padding: "4px 8px", borderBottom: "1px solid #30363d", borderRight: "1px solid #30363d", zIndex: 3 }}>
+                            <div style={{ fontSize: 12, color: "#e6edf3", whiteSpace: "normal", wordBreak: "break-word" }}>{c.fullName || ""}</div>
+                            <div style={{ fontSize: 10, color: "#6e7681" }}>{c.chineseName || ""}</div>
+                          </td>
+                          <td style={{ position: "sticky", left: 380, background: "#0d1117", fontSize: 11, color: "#8b949e", padding: "4px 8px", borderBottom: "1px solid #30363d", borderRight: "1px solid #30363d", zIndex: 3 }}>{supShort || "—"}</td>
+                          <td style={{ position: "sticky", left: 480, background: "#0d1117", textAlign: "center", padding: "4px 6px", borderBottom: "1px solid #30363d", borderRight: "1px solid #30363d", zIndex: 3 }}>
+                            {c.asil ? <span style={{ background: ASIL_COLOR[c.asil] || "#484f58", color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 10, fontWeight: 700 }}>{c.asil}</span> : <span style={{ color: "#484f58" }}>—</span>}
+                          </td>
+                          {displayVehicles.map((v) => {
+                            const val = (c.vehicleApplicability || {})[v.key] || "";
+                            const isX = val === "S" || val === "s";
+                            return (
+                              <td
+                                key={v.key}
+                                onClick={() => toggleCell(c._idx, v.key)}
+                                style={{
+                                  textAlign: "center",
+                                  borderBottom: "1px solid #30363d",
+                                  borderRight: "1px solid #30363d",
+                                  padding: 0,
+                                  cursor: "pointer",
+                                  background: isX ? "rgba(248,81,73,.18)" : "transparent",
+                                  transition: "background .12s",
+                                  userSelect: "none",
+                                }}
+                                onMouseEnter={(e) => { if (!isX) (e.currentTarget as HTMLTableCellElement).style.background = "rgba(88,166,255,.08)"; }}
+                                onMouseLeave={(e) => { if (!isX) (e.currentTarget as HTMLTableCellElement).style.background = "transparent"; }}
+                                title={`${v.display}: ${isX ? "✕ (Standard)" : "Not defined — click to toggle"}`}
+                              >
+                                {isX ? (
+                                  <span style={{ color: "#f85149", fontWeight: 700, fontSize: 14, display: "inline-block", lineHeight: "32px" }}>✕</span>
+                                ) : (
+                                  <span style={{ color: "#484f58", fontSize: 12, display: "inline-block", lineHeight: "32px" }}>·</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
                   </React.Fragment>
                 ))}
               </tbody>
