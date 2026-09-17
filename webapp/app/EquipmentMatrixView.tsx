@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 
 type Component = {
   domain: string;
@@ -13,6 +13,7 @@ type Component = {
   supplier: string;
   asil: string;
   vehicleApplicability: Record<string, string>;
+  [key: string]: any;
 };
 
 type CompData = {
@@ -22,7 +23,57 @@ type CompData = {
   suppliers: string[];
 };
 
+type FullData = {
+  componentManagement?: CompData;
+  [key: string]: any;
+};
+
 const API = "/api/safety-plan?token=123456";
+
+const OEM_COLOR: Record<string, string> = { SVW: "#1f6feb", FAW: "#238636", VWA: "#8957e5" };
+const CEA_COLOR: Record<string, string> = { "2.0": "#1f6feb", "2.1": "#238636", "2.2": "#d29922", "2.3": "#8957e5", "2.4": "#da3633" };
+
+const VEHICLE_COLS: Array<{ key: string; display: string; oem: string; cea: string; line: string }> = [
+  { key: "CMP21 CS A SUV MY27", display: "CMP21 CS A SUV MY27 SVW", oem: "SVW", cea: "2.0", line: "Line 1" },
+  { key: "A SUVe MY28", display: "MEB31 CM A SUVe MY28 VWA", oem: "VWA", cea: "2.0", line: "Line 1" },
+  { key: "CMP21 CN A Main SUV BEV", display: "CMP21 CN A Main SUV BEV FAW", oem: "FAW", cea: "2.0", line: "Line 1" },
+  { key: "CMP21 CN A NB PHEV", display: "CMP21 CN A NB PHEV FAW", oem: "FAW", cea: "2.0", line: "L1 21kW" },
+  { key: "CSP31 CS B NB BEV", display: "CSP31 CS B NB BEV SVW", oem: "SVW", cea: "2.1", line: "Line 1" },
+  { key: "MEB31 CN ID4 PA MY28", display: "MEB31 CN ID4 PA MY28 FAW", oem: "FAW", cea: "2.1", line: "Line 1" },
+  { key: "CMP21 CN A NB BEV MY27", display: "CMP21 CN A NB BEV MY27 FAW", oem: "FAW", cea: "2.1", line: "Line 1" },
+  { key: "CSP31 CN B SUV BEV 5S", display: "CSP31 CN B SUV BEV 5S FAW", oem: "FAW", cea: "2.1", line: "Line 1" },
+  { key: "A COSe MY28", display: "MEB31 CM A COSe MY28 VWA", oem: "VWA", cea: "2.1", line: "Line 1" },
+  { key: "CSP31 CN B SUV EREV 6S", display: "CSP31 CN B SUV EREV 6S FAW", oem: "FAW", cea: "2.2", line: "Line 1" },
+  { key: "CMP21 CS A SUV PHEV", display: "CMP21 CS A SUV PHEV SVW", oem: "SVW", cea: "2.2", line: "Line 1" },
+  { key: "CSP31 CS B NB EREV", display: "CSP31 CS B NB EREV SVW", oem: "SVW", cea: "2.2", line: "Line 1" },
+  { key: "CSP31 CN B SUV EREV 5S", display: "CSP31 CN B SUV EREV 5S FAW", oem: "FAW", cea: "2.2", line: "Line 1" },
+  { key: "CSP31 CS A+ SUV BEV", display: "CSP31 CS A+ SUV BEV SVW", oem: "SVW", cea: "2.3", line: "Line 1" },
+  { key: "CSP31 CS A+ SUV EREV", display: "CSP31 CS A+ SUV EREV SVW", oem: "SVW", cea: "2.3", line: "Line 1" },
+  { key: "CSP31 CN B NB BEV", display: "CSP31 CN B NB BEV FAW", oem: "FAW", cea: "2.3", line: "Line 1" },
+  { key: "CSP31 CN B NB EREV", display: "CSP31 CN B NB EREV FAW", oem: "FAW", cea: "2.4", line: "Line 1" },
+];
+
+const CEA_GROUPS = [
+  { version: "2.0", label: "CEA 2.0", color: CEA_COLOR["2.0"] },
+  { version: "2.1", label: "CEA 2.1", color: CEA_COLOR["2.1"] },
+  { version: "2.2", label: "CEA 2.2", color: CEA_COLOR["2.2"] },
+  { version: "2.3", label: "CEA 2.3", color: CEA_COLOR["2.3"] },
+  { version: "2.4", label: "CEA 2.4", color: CEA_COLOR["2.4"] },
+];
+
+const ASIL_COLOR: Record<string, string> = {
+  D: "#da3633", C: "#d29922", B: "#1f6feb", A: "#3fb950", QM: "#8b949e", "/": "#484f58", "": "#484f58",
+};
+
+const DOMAIN_COLORS: Record<string, string> = {
+  "ADAS System L2": "#1f6feb",
+  "ADAS System L2++": "#8957e5",
+  "ADAS System L3": "#da3633",
+  "Body System": "#238636",
+  "Chassis System": "#d29922",
+  "Core Control Unit": "#58a6ff",
+  "Powertrain": "#f85149",
+};
 
 function Th({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return <th style={{ background: "#21262d", color: "#f0f6fc", padding: "6px 8px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap", fontSize: 12, ...style }}>{children}</th>;
@@ -39,24 +90,14 @@ function Card({ children, title, accent }: { children: React.ReactNode; title?: 
   );
 }
 
-const ASIL_COLOR: Record<string, string> = {
-  "D": "#da3633", "C": "#d29922", "B": "#1f6feb", "A": "#3fb950", "QM": "#8b949e", "/": "#484f58", "": "#484f58",
-};
-
-const CEA_VERSION_VEHICLES: Record<string, string[]> = {
-  "2.0": ["CMP21 CS A SUV MY27", "A SUVe MY28", "CMP21 CN A Main SUV BEV", "CMP21 CN A NB PHEV"],
-  "2.1": ["CSP31 CS B NB BEV", "MEB31 CN ID4 PA MY28", "CMP21 CN A NB BEV MY27", "CSP31 CN B SUV BEV 5S", "A COSe MY28"],
-  "2.2": ["CSP31 CN B SUV EREV 6S", "CMP21 CS A SUV PHEV", "CSP31 CS B NB EREV", "CSP31 CN B SUV EREV 5S"],
-  "2.3": ["CSP31 CS A+ SUV BEV", "CSP31 CS A+ SUV EREV", "CSP31 CN B NB BEV"],
-  "2.4": ["CSP31 CN B NB EREV"],
-  "ALL": [],
-};
-
 export function EquipmentMatrixView() {
+  const [fullData, setFullData] = useState<FullData | null>(null);
   const [compData, setCompData] = useState<CompData | null>(null);
-  const [ceaVersion, setCeaVersion] = useState("ALL");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dataRef = useRef<FullData | null>(null);
+  const [ceaFilter, setCeaFilter] = useState("ALL");
   const [domainFilter, setDomainFilter] = useState("");
-  const [asilFilter, setAsilFilter] = useState("");
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"matrix" | "supplier" | "detail">("matrix");
 
@@ -64,42 +105,91 @@ export function EquipmentMatrixView() {
     fetch(API)
       .then((r) => r.json())
       .then((payload) => {
-        if (payload?.data?.componentManagement) {
-          setCompData(payload.data.componentManagement);
+        const d: FullData = payload?.data || {};
+        if (d.componentManagement) {
+          setFullData(d);
+          setCompData(d.componentManagement);
+          dataRef.current = d;
         } else {
-          fetch("/safety-plan/data.json").then((r) => r.json()).then((d) => {
-            if (d.componentManagement) setCompData(d.componentManagement);
+          fetch("/safety-plan/data.json").then((r) => r.json()).then((dj: FullData) => {
+            setFullData(dj);
+            setCompData(dj.componentManagement);
+            dataRef.current = dj;
           });
         }
       })
       .catch(() => {
-        fetch("/safety-plan/data.json").then((r) => r.json()).then((d) => {
-          if (d.componentManagement) setCompData(d.componentManagement);
+        fetch("/safety-plan/data.json").then((r) => r.json()).then((dj: FullData) => {
+          setFullData(dj);
+          setCompData(dj.componentManagement);
+          dataRef.current = dj;
         });
       });
   }, []);
 
+  const autoSave = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setSaveStatus("saving");
+    saveTimer.current = setTimeout(async () => {
+      const current = dataRef.current;
+      if (!current) return;
+      try {
+        await fetch(API, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: current }) });
+        setSaveStatus("saved");
+        setTimeout(() => setSaveStatus("idle"), 1500);
+      } catch {
+        setSaveStatus("idle");
+      }
+    }, 800);
+  }, []);
+
+  const toggleCell = useCallback((compIndex: number, vehicleKey: string) => {
+    setFullData((prev) => {
+      if (!prev?.componentManagement) return prev;
+      const newComps = [...prev.componentManagement.components];
+      const comp = { ...newComps[compIndex] };
+      const va = { ...(comp.vehicleApplicability || {}) };
+      const cur = va[vehicleKey] || "";
+      va[vehicleKey] = cur === "S" || cur === "s" ? "" : "S";
+      comp.vehicleApplicability = va;
+      newComps[compIndex] = comp;
+      const newData = { ...prev, componentManagement: { ...prev.componentManagement, components: newComps } };
+      dataRef.current = newData;
+      return newData;
+    });
+    setCompData((prev) => {
+      if (!prev) return prev;
+      const newComps = [...prev.components];
+      const comp = { ...newComps[compIndex] };
+      const va = { ...(comp.vehicleApplicability || {}) };
+      const cur = va[vehicleKey] || "";
+      va[vehicleKey] = cur === "S" || cur === "s" ? "" : "S";
+      comp.vehicleApplicability = va;
+      newComps[compIndex] = comp;
+      return { ...prev, components: newComps };
+    });
+    autoSave();
+  }, [autoSave]);
+
+  const displayVehicles = useMemo(() => {
+    if (ceaFilter === "ALL") return VEHICLE_COLS;
+    return VEHICLE_COLS.filter((v) => v.cea === ceaFilter);
+  }, [ceaFilter]);
+
   const filteredComponents = useMemo(() => {
     if (!compData) return [];
-    return compData.components.filter((c) => {
+    return compData.components.map((c, idx) => ({ ...c, _idx: idx })).filter((c) => {
       if (domainFilter && c.domain !== domainFilter) return false;
-      if (asilFilter && c.asil !== asilFilter) return false;
       if (search) {
         const text = `${c.domain} ${c.abbreviation} ${c.fullName} ${c.chineseName} ${c.supplier} ${c.fsm} ${c.btv}`.toLowerCase();
         if (!text.includes(search.toLowerCase())) return false;
       }
       return true;
     });
-  }, [compData, domainFilter, asilFilter, search]);
-
-  const displayVehicles = useMemo(() => {
-    if (!compData) return [];
-    if (ceaVersion === "ALL") return compData.vehicles;
-    return CEA_VERSION_VEHICLES[ceaVersion] || [];
-  }, [compData, ceaVersion]);
+  }, [compData, domainFilter, search]);
 
   const domainGroups = useMemo(() => {
-    const groups: Record<string, Component[]> = {};
+    const groups: Record<string, Array<Component & { _idx: number }>> = {};
     filteredComponents.forEach((c) => {
       const d = c.domain || "Other";
       if (!groups[d]) groups[d] = [];
@@ -116,19 +206,29 @@ export function EquipmentMatrixView() {
   if (!compData) return <div style={{ padding: 40, color: "#8b949e" }}>Loading Equipment Matrix…</div>;
 
   const totalComps = compData.components.length;
-  const totalVeh = compData.vehicles.length;
+  const totalVeh = VEHICLE_COLS.length;
   const assigned = compData.components.filter((c) => c.supplier && c.supplier !== "/" && !c.supplier.includes("未定点")).length;
 
   const cellContent = (val: string) => {
-    if (!val || !val.trim()) return <span style={{ color: "#484f58" }}>·</span>;
-    if (val === "S" || val === "s") return <span style={{ color: "#f85149", fontWeight: 700, fontSize: 13 }}>✕</span>;
-    if (val === "O" || val === "o") return <span style={{ color: "#d29922", fontWeight: 700, fontSize: 13 }}>●</span>;
-    if (val === "/") return <span style={{ color: "#484f58" }}>/</span>;
-    return <span style={{ color: "#58a6ff", fontSize: 10, fontWeight: 600 }}>{val}</span>;
+    if (!val || !val.trim()) return "";
+    if (val === "S" || val === "s") return "✕";
+    if (val === "O" || val === "o") return "●";
+    if (val === "/") return "/";
+    return val;
   };
 
   return (
     <div style={{ padding: "16px 24px" }}>
+      <div style={{ marginBottom: 12 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e6edf3", margin: 0 }}>Vehicle Equipment Matrix</h2>
+        <p style={{ fontSize: 13, color: "#8b949e", marginTop: 4 }}>Mark X to indicate which equipment variant is assembled on which production line.</p>
+        {saveStatus !== "idle" && (
+          <span style={{ fontSize: 11, color: saveStatus === "saving" ? "#d29922" : "#3fb950", marginLeft: 8 }}>
+            {saveStatus === "saving" ? "Saving…" : "Saved ✓"}
+          </span>
+        )}
+      </div>
+
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
         <div style={{ display: "flex", gap: 0, borderRadius: 6, overflow: "hidden", border: "1px solid #30363d" }}>
           {[
@@ -167,77 +267,134 @@ export function EquipmentMatrixView() {
       {view === "matrix" && (
         <Card title={`Equipment Matrix — ${filteredComponents.length} components × ${displayVehicles.length} vehicles`} accent="#58a6ff">
           <div style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-            <select value={ceaVersion} onChange={(e) => setCeaVersion(e.target.value)} style={{ background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 4, padding: "4px 8px", fontSize: 12 }}>
-              <option value="ALL">All CEA Versions ({compData.vehicles.length} vehicles)</option>
-              <option value="2.0">CEA 2.0 ({CEA_VERSION_VEHICLES["2.0"].length})</option>
-              <option value="2.1">CEA 2.1 ({CEA_VERSION_VEHICLES["2.1"].length})</option>
-              <option value="2.2">CEA 2.2 ({CEA_VERSION_VEHICLES["2.2"].length})</option>
-              <option value="2.3">CEA 2.3 ({CEA_VERSION_VEHICLES["2.3"].length})</option>
-              <option value="2.4">CEA 2.4 ({CEA_VERSION_VEHICLES["2.4"].length})</option>
+            <select value={ceaFilter} onChange={(e) => setCeaFilter(e.target.value)} style={{ background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 4, padding: "4px 8px", fontSize: 12 }}>
+              <option value="ALL">All CEA Versions ({VEHICLE_COLS.length} vehicles)</option>
+              {CEA_GROUPS.map((g) => {
+                const cnt = VEHICLE_COLS.filter((v) => v.cea === g.version).length;
+                return <option key={g.version} value={g.version}>{g.label} ({cnt})</option>;
+              })}
             </select>
             <select value={domainFilter} onChange={(e) => setDomainFilter(e.target.value)} style={{ background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 4, padding: "4px 8px", fontSize: 12 }}>
               <option value="">All Domains</option>
               {compData.domains.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
-            <select value={asilFilter} onChange={(e) => setAsilFilter(e.target.value)} style={{ background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 4, padding: "4px 8px", fontSize: 12 }}>
-              <option value="">All ASIL</option>
-              {asilOptions.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search components..." style={{ background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", borderRadius: 4, padding: "4px 8px", fontSize: 12, minWidth: 200 }} />
           </div>
 
           <div style={{ display: "flex", gap: 16, marginBottom: 8, fontSize: 11, color: "#6e7681" }}>
-            <span><span style={{ color: "#f85149", fontWeight: 700 }}>✕</span> = S (Standard)</span>
-            <span><span style={{ color: "#d29922", fontWeight: 700 }}>●</span> = O (Optional)</span>
-            <span><span style={{ color: "#484f58" }}>/</span> = Not applicable</span>
+            <span>Click a cell to toggle <span style={{ color: "#f85149", fontWeight: 700 }}>✕</span> (Standard) on/off</span>
             <span><span style={{ color: "#484f58" }}>·</span> = Not defined</span>
           </div>
 
-          <div style={{ overflow: "auto", maxHeight: "70vh" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <div style={{ overflow: "auto", maxHeight: "75vh", border: "1px solid #30363d", borderRadius: 6 }}>
+            <table style={{ borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
+                {/* Row 1: CEA version super-headers */}
                 <tr>
-                  <Th style={{ position: "sticky", left: 0, zIndex: 3, minWidth: 50 }}>Domain</Th>
-                  <Th style={{ position: "sticky", left: 50, zIndex: 3, minWidth: 50 }}>Abbr</Th>
-                  <Th style={{ position: "sticky", left: 100, zIndex: 3, minWidth: 160 }}>Full Name</Th>
-                  <Th style={{ minWidth: 100 }}>Supplier</Th>
-                  <Th style={{ width: 50 }}>ASIL</Th>
+                  <th rowSpan={3} style={{ background: "#21262d", color: "#f0f6fc", padding: "6px 8px", position: "sticky", left: 0, zIndex: 5, minWidth: 140, textAlign: "left", fontWeight: 600, fontSize: 12, borderBottom: "1px solid #30363d" }}>
+                    Equipment System
+                  </th>
+                  <th rowSpan={3} style={{ background: "#21262d", color: "#f0f6fc", padding: "6px 8px", position: "sticky", left: 140, zIndex: 5, minWidth: 100, textAlign: "left", fontWeight: 600, fontSize: 12, borderBottom: "1px solid #30363d" }}>
+                    Variant
+                  </th>
+                  <th rowSpan={3} style={{ background: "#21262d", color: "#f0f6fc", padding: "6px 8px", position: "sticky", left: 240, zIndex: 5, minWidth: 160, textAlign: "left", fontWeight: 600, fontSize: 12, borderBottom: "1px solid #30363d" }}>
+                    Full Name
+                  </th>
+                  <th rowSpan={3} style={{ background: "#21262d", color: "#f0f6fc", padding: "6px 8px", minWidth: 100, textAlign: "left", fontWeight: 600, fontSize: 12, borderBottom: "1px solid #30363d" }}>
+                    Supplier
+                  </th>
+                  <th rowSpan={3} style={{ background: "#21262d", color: "#f0f6fc", padding: "6px 8px", width: 50, textAlign: "center", fontWeight: 600, fontSize: 12, borderBottom: "1px solid #30363d" }}>
+                    ASIL
+                  </th>
+                  {ceaFilter === "ALL" ? (
+                    CEA_GROUPS.map((g) => {
+                      const vehicles = displayVehicles.filter((v) => v.cea === g.version);
+                      if (vehicles.length === 0) return null;
+                      return (
+                        <th key={g.version} colSpan={vehicles.length} style={{ background: `${g.color}22`, color: g.color, padding: "4px 6px", textAlign: "center", fontWeight: 700, fontSize: 12, borderBottom: `2px solid ${g.color}` }}>
+                          {g.label}
+                        </th>
+                      );
+                    })
+                  ) : (
+                    <th colSpan={displayVehicles.length} style={{ background: `${CEA_COLOR[ceaFilter]}22`, color: CEA_COLOR[ceaFilter], padding: "4px 6px", textAlign: "center", fontWeight: 700, fontSize: 12, borderBottom: `2px solid ${CEA_COLOR[ceaFilter]}` }}>
+                      {CEA_GROUPS.find((g) => g.version === ceaFilter)?.label}
+                    </th>
+                  )}
+                </tr>
+                {/* Row 2: Full vehicle names (rotated) */}
+                <tr>
                   {displayVehicles.map((v) => (
-                    <Th key={v} style={{ textAlign: "center", maxWidth: 80, fontSize: 10 }} title={v}>
-                      {v.length > 10 ? v.substring(0, 8) + ".." : v}
-                    </Th>
+                    <th key={v.key} style={{ background: "#21262d", padding: "4px 2px", textAlign: "center", width: 44, minWidth: 44, maxWidth: 44, borderBottom: "1px solid #30363d", verticalAlign: "bottom", height: 120 }}>
+                      <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", fontSize: 10, color: "#e6edf3", whiteSpace: "nowrap", lineHeight: 1.3, maxHeight: 110, overflow: "hidden" }}>
+                        <span style={{ color: OEM_COLOR[v.oem], fontWeight: 700 }}>{v.oem}</span>{" "}
+                        <span>{v.display.replace(/ (SVW|FAW|VWA)$/, "")}</span>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+                {/* Row 3: Line info */}
+                <tr>
+                  {displayVehicles.map((v) => (
+                    <th key={v.key} style={{ background: "#21262d", padding: "2px 4px", textAlign: "center", fontSize: 9, color: "#6e7681", borderBottom: "1px solid #30363d", whiteSpace: "nowrap" }}>
+                      {v.line}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(domainGroups).map(([domain, comps]) => (
                   <React.Fragment key={domain}>
-                    <tr>
-                      <td colSpan={5 + displayVehicles.length} style={{ background: "#21262d", color: "#79c0ff", padding: "4px 8px", fontSize: 12, fontWeight: 700 }}>{domain} <span style={{ color: "#8b949e", fontWeight: 400, fontSize: 11 }}>· {comps.length} components</span></td>
+                <tr>
+                  <td colSpan={5 + displayVehicles.length} style={{ background: "#21262d", color: DOMAIN_COLORS[domain] || "#79c0ff", padding: "4px 8px", fontSize: 12, fontWeight: 700, position: "sticky", left: 0, zIndex: 2 }}>
+                    {domain} <span style={{ color: "#8b949e", fontWeight: 400, fontSize: 11 }}>· {comps.length} components</span>
+                  </td>
+                </tr>
+                {comps.map((c) => {
+                  const supShort = (c.supplier || "").split("\n")[0].trim();
+                  return (
+                    <tr key={c._idx}>
+                      <td style={{ position: "sticky", left: 0, background: "#0d1117", fontSize: 10, color: "#6e7681", padding: "4px 8px", borderBottom: "1px solid #30363d", zIndex: 2 }}>{c.loadType || ""}</td>
+                      <td style={{ position: "sticky", left: 140, background: "#0d1117", fontWeight: 700, color: "#58a6ff", padding: "4px 8px", borderBottom: "1px solid #30363d", fontSize: 12, zIndex: 2 }}>{c.abbreviation || ""}</td>
+                      <td style={{ position: "sticky", left: 240, background: "#0d1117", padding: "4px 8px", borderBottom: "1px solid #30363d", zIndex: 2 }}>
+                        <div style={{ fontSize: 12, color: "#e6edf3" }}>{c.fullName || ""}</div>
+                        <div style={{ fontSize: 10, color: "#6e7681" }}>{c.chineseName || ""}</div>
+                      </td>
+                      <td style={{ fontSize: 11, color: "#8b949e", padding: "4px 8px", borderBottom: "1px solid #30363d" }}>{supShort || "—"}</td>
+                      <td style={{ textAlign: "center", padding: "4px 6px", borderBottom: "1px solid #30363d" }}>
+                        {c.asil ? <span style={{ background: ASIL_COLOR[c.asil] || "#484f58", color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 10, fontWeight: 700 }}>{c.asil}</span> : <span style={{ color: "#484f58" }}>—</span>}
+                      </td>
+                      {displayVehicles.map((v) => {
+                        const val = (c.vehicleApplicability || {})[v.key] || "";
+                        const isX = val === "S" || val === "s";
+                        return (
+                          <td
+                            key={v.key}
+                            onClick={() => toggleCell(c._idx, v.key)}
+                            style={{
+                              textAlign: "center",
+                              borderBottom: "1px solid #30363d",
+                              padding: "4px 6px",
+                              cursor: "pointer",
+                              background: isX ? "rgba(248,81,73,.15)" : "transparent",
+                              transition: "background .12s",
+                              userSelect: "none",
+                            }}
+                            onMouseEnter={(e) => { if (!isX) (e.currentTarget as HTMLTableCellElement).style.background = "rgba(88,166,255,.08)"; }}
+                            onMouseLeave={(e) => { if (!isX) (e.currentTarget as HTMLTableCellElement).style.background = "transparent"; }}
+                            title={`${v.display}: ${isX ? "✕ (Standard)" : "Not defined — click to toggle"}`}
+                          >
+                            {isX ? (
+                              <span style={{ color: "#f85149", fontWeight: 700, fontSize: 14 }}>✕</span>
+                            ) : (
+                              <span style={{ color: "#484f58", fontSize: 12 }}>·</span>
+                            )}
+                          </td>
+                        );
+                      })}
                     </tr>
-                    {comps.map((c, idx) => {
-                      const supShort = (c.supplier || "").split("\n")[0].trim();
-                      return (
-                        <tr key={idx}>
-                          <Td style={{ position: "sticky", left: 0, background: "#0d1117", fontSize: 10, color: "#6e7681" }}>{c.loadType || ""}</Td>
-                          <Td style={{ position: "sticky", left: 50, background: "#0d1117", fontWeight: 700, color: "#58a6ff" }}>{c.abbreviation || ""}</Td>
-                          <Td style={{ position: "sticky", left: 100, background: "#0d1117" }}>
-                            <div>{c.fullName || ""}</div>
-                            <div style={{ fontSize: 10, color: "#6e7681" }}>{c.chineseName || ""}</div>
-                          </Td>
-                          <Td style={{ fontSize: 11, color: "#8b949e" }}>{supShort || "—"}</Td>
-                          <Td>{c.asil ? <span style={{ background: ASIL_COLOR[c.asil] || "#484f58", color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 10, fontWeight: 700 }}>{c.asil}</span> : <span style={{ color: "#484f58" }}>—</span>}</Td>
-                          {displayVehicles.map((v) => {
-                            const val = (c.vehicleApplicability || {})[v] || "";
-                            return (
-                              <td key={v} style={{ textAlign: "center", borderBottom: "1px solid #30363d", padding: "4px 6px", background: val ? "rgba(31,111,235,.03)" : "transparent" }} title={`${v}: ${val || "not defined"}`}>
-                                {cellContent(val)}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
+                  );
+                })}
                   </React.Fragment>
                 ))}
               </tbody>
@@ -300,8 +457,8 @@ export function EquipmentMatrixView() {
                 </tr>
               </thead>
               <tbody>
-                {filteredComponents.map((c, i) => (
-                  <tr key={i}>
+                {filteredComponents.map((c) => (
+                  <tr key={c._idx}>
                     <Td style={{ fontWeight: 700, color: "#58a6ff" }}>{c.abbreviation || "—"}</Td>
                     <Td>
                       <div>{c.fullName || "—"}</div>
