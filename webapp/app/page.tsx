@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   allProjects,
   createDemoData,
@@ -26,6 +26,7 @@ import { Cea2Info } from "./Cea2Info";
 import { EquipmentMatrixView } from "./EquipmentMatrixView";
 
 const STORAGE_KEY = "time-plan-viewer-v4";
+const CLOUD_API = "/api/safety-plan?token=123456";
 
 type MilestoneSelection = {
   projectId: string;
@@ -98,6 +99,10 @@ export default function Home() {
   const [cea2Version, setCea2Version] = useState("2.0");
   const inputRef = useRef<HTMLInputElement>(null);
   const changePreviewRef = useRef(false);
+  const cloudDataRef = useRef<Record<string, unknown> | null>(null);
+  const dataRef = useRef<AppData | null>(null);
+  const cloudSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [cloudSaveStatus, setCloudSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
     let alive = true;
@@ -117,12 +122,30 @@ export default function Home() {
           return;
         }
       }
+      try {
+        const resp = await fetch(CLOUD_API);
+        const payload = await resp.json();
+        if (payload?.data) {
+          cloudDataRef.current = payload.data;
+          if (payload.data.timelineAppData) {
+            const cloudTimeline = migrateAppData(payload.data.timelineAppData as AppData);
+            if (alive && cloudTimeline?.views?.length) {
+              setData(cloudTimeline);
+              dataRef.current = cloudTimeline;
+              return;
+            }
+          }
+        }
+      } catch {
+        // Network error, fallback to localStorage
+      }
       const local = window.localStorage.getItem(STORAGE_KEY);
       if (local) {
         try {
           const restored = JSON.parse(local) as AppData;
           if (alive && restored?.views?.length) {
             setData(migrateAppData(restored));
+            dataRef.current = migrateAppData(restored);
             return;
           }
         } catch {
@@ -135,6 +158,7 @@ export default function Home() {
         if (alive && window.XLSX) {
           const workbook = window.XLSX.read(buffer, { type: "array", cellDates: true });
           setData(migrateAppData(parseWorkbook(workbook)));
+          dataRef.current = migrateAppData(parseWorkbook(workbook));
           return;
         }
       } catch {
@@ -187,8 +211,46 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (data && !changePreviewRef.current) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (data && !changePreviewRef.current) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      dataRef.current = data;
+    }
   }, [data]);
+
+  const saveToCloud = useCallback(() => {
+    if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
+    setCloudSaveStatus("saving");
+    cloudSaveTimer.current = setTimeout(async () => {
+      const current = dataRef.current;
+      if (!current || changePreviewRef.current) return;
+      try {
+        const existing = cloudDataRef.current || {};
+        const merged = { ...existing, timelineAppData: current };
+        const resp = await fetch(CLOUD_API, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: merged }),
+        });
+        if (resp.ok) {
+          cloudDataRef.current = merged;
+          setCloudSaveStatus("saved");
+          setTimeout(() => setCloudSaveStatus("idle"), 1500);
+        } else {
+          setCloudSaveStatus("error");
+          setTimeout(() => setCloudSaveStatus("idle"), 2000);
+        }
+      } catch {
+        setCloudSaveStatus("error");
+        setTimeout(() => setCloudSaveStatus("idle"), 2000);
+      }
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    if (data && !changePreviewRef.current) {
+      saveToCloud();
+    }
+  }, [data, saveToCloud]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -772,7 +834,7 @@ export default function Home() {
             ))}
           </div>
           <div className="sidebar-foot">
-            <p>{changePreview ? "变更预览不会覆盖当前计划" : "本地自动保存已开启"}</p>
+            <p>{changePreview ? "变更预览不会覆盖当前计划" : cloudSaveStatus === "saving" ? "☁️ 云同步中…" : cloudSaveStatus === "saved" ? "☁️ 已同步到云端" : cloudSaveStatus === "error" ? "⚠️ 云同步失败，本地已保存" : "☁️ 云端自动保存已开启"}</p>
           </div>
         </aside>
 
