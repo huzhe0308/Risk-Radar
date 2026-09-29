@@ -779,7 +779,7 @@ function DeliverablesTab({ deliverables, deletedNos, spData, vehicles, versionLa
       )}
 
       {(() => {
-        const allItems = phasesToShow.flatMap((p) => p.items);
+        const allItems = deliverables.flatMap((p) => p.items);
         const statuses = allItems.map((item) => vd.statuses[item.no] || "");
         const done = statuses.filter((s) => s === "done").length;
         const progress = statuses.filter((s) => s === "progress").length;
