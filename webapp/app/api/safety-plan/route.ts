@@ -19,19 +19,17 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
 
-  let db;
   try {
-    db = getDb();
+    const db = getDb();
     await ensureTable(db);
+    const rows = await db.select().from(appState).where(eq(appState.id, KEY)).limit(1);
+    if (rows.length === 0) {
+      return Response.json({ data: null }, { headers: { "Cache-Control": "no-store" } });
+    }
+    return Response.json({ data: rows[0].data, updatedAt: rows[0].updatedAt }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     return Response.json({ error: err instanceof Error ? err.message : "DB unavailable" }, { status: 503, headers: { "Cache-Control": "no-store" } });
   }
-
-  const rows = await db.select().from(appState).where(eq(appState.id, KEY)).limit(1);
-  if (rows.length === 0) {
-    return Response.json({ data: null }, { headers: { "Cache-Control": "no-store" } });
-  }
-  return Response.json({ data: rows[0].data, updatedAt: rows[0].updatedAt }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function PUT(request: Request): Promise<Response> {
@@ -48,23 +46,20 @@ export async function PUT(request: Request): Promise<Response> {
   } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
-  if (!body.data) {
+  if (!body || typeof body !== "object" || !body.data) {
     return Response.json({ error: "Missing data" }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
-  let db;
   try {
-    db = getDb();
+    const db = getDb();
     await ensureTable(db);
+    await db.execute(sql`
+      INSERT INTO app_state (id, data, updated_at)
+      VALUES (${KEY}, ${JSON.stringify(body.data)}::jsonb, NOW())
+      ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
+    `);
+    return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     return Response.json({ error: err instanceof Error ? err.message : "DB unavailable" }, { status: 503, headers: { "Cache-Control": "no-store" } });
   }
-
-  const existing = await db.select().from(appState).where(eq(appState.id, KEY)).limit(1);
-  if (existing.length > 0) {
-    await db.update(appState).set({ data: body.data, updatedAt: new Date() }).where(eq(appState.id, KEY));
-  } else {
-    await db.insert(appState).values({ id: KEY, data: body.data });
-  }
-  return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
 }
