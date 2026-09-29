@@ -106,6 +106,7 @@ export default function Home() {
   const cloudSavingRef = useRef(false);
   const cloudAbortRef = useRef<AbortController | null>(null);
   const [cloudSaveStatus, setCloudSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<string>("");
 
   useEffect(() => {
     let alive = true;
@@ -246,6 +247,7 @@ export default function Home() {
         if (resp.ok) {
           cloudDataRef.current = merged;
           setCloudSaveStatus("saved");
+          setLastSavedAt(new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
           if (cloudStatusTimer.current) clearTimeout(cloudStatusTimer.current);
           cloudStatusTimer.current = setTimeout(() => setCloudSaveStatus("idle"), 1500);
         } else {
@@ -860,7 +862,7 @@ export default function Home() {
             ))}
           </div>
           <div className="sidebar-foot">
-            <p>{changePreview ? "变更预览不会覆盖当前计划" : cloudSaveStatus === "saving" ? "☁️ 云同步中…" : cloudSaveStatus === "saved" ? "☁️ 已同步到云端" : cloudSaveStatus === "error" ? "⚠️ 云同步失败，本地已保存" : "☁️ 云端自动保存已开启"}</p>
+            <p>{changePreview ? "变更预览模式 — 不会覆盖当前计划" : cloudSaveStatus === "saving" ? "☁️ 云同步中…" : cloudSaveStatus === "saved" ? `☁️ 已同步到云端 · ${lastSavedAt}` : cloudSaveStatus === "error" ? "⚠️ 云同步失败，本地已保存" : "☁️ 云端自动保存已开启"}</p>
           </div>
         </aside>
 
@@ -920,11 +922,11 @@ export default function Home() {
           ) : workspaceMode === "change-feed" ? (
             <ChangeFeed token={process.env.NEXT_PUBLIC_FEISHU_WEBHOOK_TOKEN_PREVIEW || ""} />
           ) : workspaceMode === "safety-plan" ? (
-            <SafetyPlanPanel initialTab="upstream" />
+            <><div className="page-heading" style={{ marginBottom: 0 }}><div><div className="breadcrumb">功能区 / Safety Plan</div><h1>Safety Plan</h1></div></div><SafetyPlanPanel initialTab="upstream" /></>
           ) : workspaceMode === "safety-components" ? (
-            <EquipmentMatrixView />
+            <><div className="page-heading" style={{ marginBottom: 0 }}><div><div className="breadcrumb">功能区 / Equipment Matrix</div><h1>Equipment Matrix</h1></div></div><EquipmentMatrixView /></>
           ) : workspaceMode === "cea2-info" ? (
-            <Cea2Info ceaVersion={cea2Version} />
+            <><div className="page-heading" style={{ marginBottom: 0 }}><div><div className="breadcrumb">功能区 / CEA Safety Plan / CEA {cea2Version}</div><h1>CEA {cea2Version} Safety Plan</h1></div></div><Cea2Info ceaVersion={cea2Version} /></>
           ) : <>
           <div className="toolbar">
             <div className="search-field"><Icon>⌕</Icon><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目、里程碑或备注…" /><kbd>⌘ K</kbd></div>
