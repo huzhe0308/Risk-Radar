@@ -1,7 +1,8 @@
-# Local development: replace api_key with your real DashScope key.
-# Production (Vercel): set DASHSCOPE_API_KEY env var instead.
+# AI model configuration.
+# Production: set DASHSCOPE_API_KEY env var in Vercel.
+# Local development: create a .env.local file with DASHSCOPE_API_KEY=sk-xxx
 bailian:
-  api_key: "sk-B89SkIO0VKwuszsdwDnY_w"
+  api_key: ""
   base_url: "https://llm-gateway.dev.cn-vwa.volkswagen-cea.com/v1"
   model: "GLM"
   temperature: 0.1
