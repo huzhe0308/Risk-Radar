@@ -138,6 +138,8 @@ export default function ExcelAnalysisPage() {
   const [filter, setFilter] = useState<FilterKind>("all");
   const [query, setQuery] = useState("");
   const [baseline, setBaseline] = useState<BaselineState>({ data: null, workbook: null, source: "localStorage", loading: true, error: "" });
+  const abortRef = useRef<AbortController | null>(null);
+  const reqSeqRef = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -207,6 +209,10 @@ export default function ExcelAnalysisPage() {
 
   const runComparison = async () => {
     if (!baseline?.workbook || !newFile || !window.XLSX) return;
+    if (abortRef.current) abortRef.current.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    const seq = ++reqSeqRef.current;
     setAnalyzing(true);
     setAnalysisError("");
     try {
@@ -216,16 +222,20 @@ export default function ExcelAnalysisPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ before, after }),
+        signal: ac.signal,
       });
       const payload = await response.json() as ComparisonResult & { error?: string };
       if (!response.ok) throw new Error(payload.error || "AI 对比分析失败");
+      if (seq !== reqSeqRef.current) return;
       setResult(payload);
       setFilter("all");
       setQuery("");
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      if (seq !== reqSeqRef.current) return;
       setAnalysisError(error instanceof Error ? error.message : "AI 对比分析失败，请重试。");
     } finally {
-      setAnalyzing(false);
+      if (seq === reqSeqRef.current) setAnalyzing(false);
     }
   };
 
@@ -270,11 +280,20 @@ export default function ExcelAnalysisPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseline?.workbook, newFile, engineReady]);
 
+  useEffect(() => {
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, []);
+
   const clearNewFile = () => {
+    if (abortRef.current) abortRef.current.abort();
+    reqSeqRef.current++;
     setNewFile(null);
     setUpdatedPlan(null);
     setResult(null);
     setAnalysisError("");
+    setAnalyzing(false);
   };
 
   const openChangePreview = () => {
