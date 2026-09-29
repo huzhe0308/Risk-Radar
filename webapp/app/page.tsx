@@ -1255,6 +1255,7 @@ export default function Home() {
         searchQuery={query}
         tagFilter={tagFilter}
         sortMode={sortMode}
+        cea2Version={cea2Version}
       />
     </main>
   );
