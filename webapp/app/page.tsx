@@ -102,6 +102,9 @@ export default function Home() {
   const cloudDataRef = useRef<Record<string, unknown> | null>(null);
   const dataRef = useRef<AppData | null>(null);
   const cloudSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cloudStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cloudSavingRef = useRef(false);
+  const cloudAbortRef = useRef<AbortController | null>(null);
   const [cloudSaveStatus, setCloudSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
@@ -164,7 +167,11 @@ export default function Home() {
       } catch {
         // The demo data is still useful when the sample workbook is unavailable.
       }
-      if (alive) setData(createDemoData());
+      if (alive) {
+        const demo = createDemoData();
+        setData(demo);
+        dataRef.current = demo;
+      }
     };
     void load();
     return () => {
@@ -222,7 +229,11 @@ export default function Home() {
     setCloudSaveStatus("saving");
     cloudSaveTimer.current = setTimeout(async () => {
       const current = dataRef.current;
-      if (!current || changePreviewRef.current) return;
+      if (!current || changePreviewRef.current || cloudSavingRef.current) return;
+      cloudSavingRef.current = true;
+      if (cloudAbortRef.current) cloudAbortRef.current.abort();
+      const ac = new AbortController();
+      cloudAbortRef.current = ac;
       try {
         const existing = cloudDataRef.current || {};
         const merged = { ...existing, timelineAppData: current };
@@ -230,18 +241,25 @@ export default function Home() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ data: merged }),
+          signal: ac.signal,
         });
         if (resp.ok) {
           cloudDataRef.current = merged;
           setCloudSaveStatus("saved");
-          setTimeout(() => setCloudSaveStatus("idle"), 1500);
+          if (cloudStatusTimer.current) clearTimeout(cloudStatusTimer.current);
+          cloudStatusTimer.current = setTimeout(() => setCloudSaveStatus("idle"), 1500);
         } else {
           setCloudSaveStatus("error");
-          setTimeout(() => setCloudSaveStatus("idle"), 2000);
+          if (cloudStatusTimer.current) clearTimeout(cloudStatusTimer.current);
+          cloudStatusTimer.current = setTimeout(() => setCloudSaveStatus("idle"), 2000);
         }
-      } catch {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         setCloudSaveStatus("error");
-        setTimeout(() => setCloudSaveStatus("idle"), 2000);
+        if (cloudStatusTimer.current) clearTimeout(cloudStatusTimer.current);
+        cloudStatusTimer.current = setTimeout(() => setCloudSaveStatus("idle"), 2000);
+      } finally {
+        cloudSavingRef.current = false;
       }
     }, 1000);
   }, []);
@@ -251,6 +269,14 @@ export default function Home() {
       saveToCloud();
     }
   }, [data, saveToCloud]);
+
+  useEffect(() => {
+    return () => {
+      if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
+      if (cloudStatusTimer.current) clearTimeout(cloudStatusTimer.current);
+      if (cloudAbortRef.current) cloudAbortRef.current.abort();
+    };
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -588,7 +614,7 @@ export default function Home() {
       const viewStartDate = payload.startDate && payload.startDate < activeView.startDate ? payload.startDate : activeView.startDate;
       const viewEndDate = payload.endDate && payload.endDate > activeView.endDate ? payload.endDate : activeView.endDate;
 
-      setData(updateActiveView(data, (view) => ({
+      setData((prevData) => updateActiveView(prevData, (view) => ({
         ...view,
         startDate: viewStartDate,
         endDate: viewEndDate,
@@ -1218,10 +1244,10 @@ export default function Home() {
 
       <AiChatPanel
         view={activeView}
-        onApplyView={(nextView) => setData({
-          ...data,
-          views: data.views.map((view) => view.id === nextView.id ? nextView : view),
-        })}
+        onApplyView={(nextView) => setData((prevData) => ({
+          ...prevData,
+          views: prevData.views.map((view) => view.id === nextView.id ? nextView : view),
+        }))}
         workspaceMode={workspaceMode}
         visibleProjects={visibleProjects}
         searchQuery={query}
@@ -1259,7 +1285,8 @@ function ProjectMilestoneDrawer({
     setDetailRemark(project.detailRemark);
     setBgColor(project.bgColor === "transparent" ? "#ffffff" : project.bgColor);
     setShowSeparatorAbove(project.showSeparatorAbove || false);
-  }, [project]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.uuid]);
 
   return (
     <aside className="drawer milestone-picker">
