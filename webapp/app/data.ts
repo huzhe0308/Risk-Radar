@@ -690,7 +690,12 @@ export function mergeImportedData(oldData: AppData, newData: AppData): AppData {
       const mergedMs = (newProject.milestones || []).map((newMs) => {
         const oldM = oldMs.get(newMs.id);
         if (!oldM) return newMs;
-        return oldM;
+        return {
+          ...newMs,
+          color: oldM.color,
+          shape: oldM.shape,
+          textColor: oldM.textColor,
+        };
       });
 
       const extraMs = (oldProject.milestones || [])
