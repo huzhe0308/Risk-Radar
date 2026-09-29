@@ -137,6 +137,7 @@ export default function ExcelAnalysisPage() {
   const [updatedPlan, setUpdatedPlan] = useState<AppData | null>(null);
   const [filter, setFilter] = useState<FilterKind>("all");
   const [query, setQuery] = useState("");
+  const [showNonMilestone, setShowNonMilestone] = useState(false);
   const [baseline, setBaseline] = useState<BaselineState>({ data: null, workbook: null, source: "localStorage", loading: true, error: "" });
   const abortRef = useRef<AbortController | null>(null);
   const reqSeqRef = useRef(0);
@@ -240,8 +241,8 @@ export default function ExcelAnalysisPage() {
   };
 
   const isHiddenChange = (change: ExcelChange) => {
+    if (showNonMilestone) return false;
     if (change.entityType !== "milestone") return true;
-    if (!["delayed", "advanced", "added", "removed"].includes(change.kind)) return true;
     return false;
   };
 
@@ -304,7 +305,7 @@ export default function ExcelAnalysisPage() {
     }
     try {
       const previewData = prepareChangePreviewData(baseline.data);
-      const changes = result.changes.filter((change) => !isHiddenChange(change)).map((change) => ({
+      const changes = result.changes.filter((change) => change.entityType === "milestone" && ["delayed", "advanced", "added", "removed"].includes(change.kind)).map((change) => ({
         kind: change.kind,
         entityType: change.entityType,
         view: change.view,
@@ -346,7 +347,7 @@ export default function ExcelAnalysisPage() {
         {baseline.error && <div className="excel-diff-error"><strong>无法读取当前计划基线</strong><span>{baseline.error}</span><Link href="/">返回时间计划</Link></div>}
 
         <div className="excel-diff-runbar">
-          <div>{analyzing ? <><strong>AI 正在分析两个版本</strong><span>正在匹配项目与里程碑、判断变化并生成管理摘要…</span></> : baseline.error ? <><strong>当前计划基线不可用</strong><span>请先返回时间计划页面，确认当前视图内容后再进入 Excel 分析</span></> : newFile ? <><strong>准备就绪</strong><span>将以“时间计划当前状态 → 更新版”方向把结构化数据提交给 AI 判断</span></> : <><strong>请上传新版 Excel</strong><span>Excel 在浏览器内解析；提取后的结构化内容会发送给已配置的 AI API</span></>}</div>
+          <div>{analyzing ? <><strong>AI 正在分析两个版本</strong><span>正在匹配项目与里程碑、判断变化并生成管理摘要…</span><div style={{ marginTop: 6, display: "flex", gap: 8, fontSize: 11, color: "#8b949e" }}><span style={{ color: "#3fb950" }}>① 提取工作簿结构 ✓</span><span>→</span><span style={{ color: "#3fb950" }}>② 匹配项目与里程碑 ✓</span><span>→</span><span style={{ color: "#d29922" }}>③ 判断变更与风险分级…</span><span>→</span><span style={{ color: "#6e7681" }}>④ 生成管理摘要</span></div></> : baseline.error ? <><strong>当前计划基线不可用</strong><span>请先返回时间计划页面，确认当前视图内容后再进入 Excel 分析</span></> : newFile ? <><strong>准备就绪</strong><span>将以"时间计划当前状态 → 更新版"方向把结构化数据提交给 AI 判断</span></> : <><strong>请上传新版 Excel</strong><span>Excel 在浏览器内解析；提取后的结构化内容会发送给已配置的 AI API</span></>}</div>
           <button className="button button-primary excel-diff-run" disabled={!engineReady || !baseline?.workbook || !newFile || analyzing} onClick={() => void runComparison()}>{analyzing ? "AI 分析中…" : "调用 AI 对比分析"}</button>
         </div>
 
@@ -371,6 +372,7 @@ export default function ExcelAnalysisPage() {
             <div className="excel-diff-table-panel">
               <div className="excel-diff-table-tools">
                 <div className="excel-diff-filters">{(["all", "delayed", "advanced", "added", "removed", "modified"] as FilterKind[]).map((kind) => <button key={kind} className={filter === kind ? "active" : ""} onClick={() => setFilter(kind)}>{kind === "all" ? "全部" : kindLabels[kind]}</button>)}</div>
+                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#8b949e", cursor: "pointer" }}><input type="checkbox" checked={showNonMilestone} onChange={(e) => setShowNonMilestone(e.target.checked)} />显示非里程碑变更</label>
                 <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目、里程碑或变更内容" />
               </div>
               <div className="excel-diff-table-scroll">
