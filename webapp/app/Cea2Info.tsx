@@ -291,24 +291,44 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
   const versionKey = `cea${ceaVersion}_`;
   const [data, setData] = useState<DataJson | null>(null);
   const [tab, setTab] = useState<"huts" | "deliverables" | "timeline">("huts");
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savingRef = useRef(false);
   const dataRef = useRef<DataJson | null>(null);
+  const cloudDataRef = useRef<Record<string, unknown> | null>(null);
   dataRef.current = data;
 
   useEffect(() => {
+    let alive = true;
     fetch(API)
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error("fetch failed"); return r.json(); })
       .then((payload) => {
+        if (!alive) return;
         if (payload?.data) {
+          cloudDataRef.current = payload.data;
           setData(payload.data);
         } else {
-          fetch("/safety-plan/data.json").then((r) => r.json()).then(setData);
+          fetch("/safety-plan/data.json").then((r) => r.json()).then((dj) => {
+            if (!alive) return;
+            setData(dj);
+          }).catch(() => {});
         }
       })
       .catch(() => {
-        fetch("/safety-plan/data.json").then((r) => r.json()).then(setData);
+        fetch("/safety-plan/data.json").then((r) => r.json()).then((dj) => {
+          if (!alive) return;
+          setData(dj);
+        }).catch(() => {});
       });
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (statusTimer.current) clearTimeout(statusTimer.current);
+    };
   }, []);
 
   const autoSave = useCallback(() => {
@@ -316,13 +336,36 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
     setSaveStatus("saving");
     saveTimer.current = setTimeout(async () => {
       const current = dataRef.current;
-      if (!current) return;
+      if (!current || savingRef.current) return;
+      savingRef.current = true;
       try {
-        await fetch(API, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: current }) });
-        setSaveStatus("saved");
-        setTimeout(() => setSaveStatus("idle"), 1500);
+        const merged = {
+          ...(cloudDataRef.current || {}),
+          safetyPlanPerProject: current.safetyPlanPerProject,
+          cea2CustomDeliverables: current.cea2CustomDeliverables,
+          cea2DeletedDeliverables: current.cea2DeletedDeliverables,
+        };
+        const resp = await fetch(API, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: merged }),
+        });
+        if (resp.ok) {
+          cloudDataRef.current = merged;
+          setSaveStatus("saved");
+          if (statusTimer.current) clearTimeout(statusTimer.current);
+          statusTimer.current = setTimeout(() => setSaveStatus("idle"), 1500);
+        } else {
+          setSaveStatus("error");
+          if (statusTimer.current) clearTimeout(statusTimer.current);
+          statusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+        }
       } catch {
-        setSaveStatus("idle");
+        setSaveStatus("error");
+        if (statusTimer.current) clearTimeout(statusTimer.current);
+        statusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+      } finally {
+        savingRef.current = false;
       }
     }, 800);
   }, []);
@@ -444,7 +487,7 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
           </button>
         ))}
         <div style={{ marginLeft: "auto", fontSize: 12, color: saveStatus === "saving" ? "#d29922" : saveStatus === "saved" ? "#3fb950" : "#484f58" }}>
-          {saveStatus === "saving" ? "保存中…" : saveStatus === "saved" ? "已保存" : ""}
+          {saveStatus === "saving" ? "保存中…" : saveStatus === "saved" ? "已保存 ✓" : saveStatus === "error" ? "⚠️ 保存失败" : ""}
         </div>
       </div>
 
@@ -453,7 +496,7 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
         {tab === "deliverables" && (
           <DeliverablesTab deliverables={cea2Deliverables} deletedNos={data.cea2DeletedDeliverables || []} spData={versionSpData} vehicles={vehicles} versionLabel={versionConfig.label} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} onAddDeliverable={addDeliverable} onDeleteDeliverable={deleteDeliverable} onRestoreDeliverable={restoreDeliverable} />
         )}
-        {tab === "timeline" && <TimelineTab milestones={cea2Milestones} pepCeaMilestones={data.pepCeaMilestones} mapping={data.safetyPepMapping} versionLabel={versionConfig.label} />}
+        {tab === "timeline" && <TimelineTab milestones={cea2Milestones} pepCeaMilestones={data.pepCeaMilestones} mapping={data.safetyPepMapping} versionLabel={versionConfig.label} sopDate={vehicles[0]?.sopDate || "2027-06-18"} />}
       </div>
     </div>
   );
@@ -608,6 +651,19 @@ function DeliverablesTab({ deliverables, deletedNos, spData, vehicles, versionLa
   const [subView, setSubView] = useState<"tailoring" | "general" | "compdev" | "supplier">("tailoring");
   const [undoInfo, setUndoInfo] = useState<{ no: string; isCustom: boolean; label: string } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (vehicles.length > 0 && !vehicles.find((v) => v.shortCode === activeVehicle)) {
+      setActiveVehicle(vehicles[0].shortCode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [versionLabel]);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    };
+  }, []);
 
   const handleDelete = useCallback((no: string, isCustom: boolean, label: string) => {
     if (!window.confirm(`确认删除交付物 ${no}（${label}）？\n\n删除后可在底部"已删除"区恢复，或点击右下角撤消。`)) return;
@@ -923,11 +979,10 @@ function TailoringMatrix({ deliverables, spData, vehicles, onTailoringChange }: 
   );
 }
 
-const SOP_DATE = new Date("2027-06-18");
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-function weekToDate(week: number) {
-  const d = new Date(SOP_DATE);
+function weekToDate(week: number, sopDate: string) {
+  const d = new Date(sopDate);
   d.setTime(d.getTime() + week * WEEK_MS);
   return d;
 }
@@ -946,8 +1001,8 @@ function monthLabel(week: number) {
   return `SOP${m}m`;
 }
 
-function FullTimeline({ pepMilestones, ceaMilestones }: {
-  pepMilestones: DataJson["pepCeaMilestones"]; ceaMilestones: DataJson["ceaKeyMilestones"];
+function FullTimeline({ pepMilestones, ceaMilestones, sopDate }: {
+  pepMilestones: DataJson["pepCeaMilestones"]; ceaMilestones: DataJson["ceaKeyMilestones"]; sopDate: string;
 }) {
   const all = [...pepMilestones.map((m) => m.week), ...ceaMilestones.map((m) => m.week)];
   const minW = Math.min(...all);
@@ -1024,7 +1079,7 @@ function FullTimeline({ pepMilestones, ceaMilestones }: {
   );
 }
 
-function MilestoneCard({ ms, isLast, isSOP }: { ms: { name: string; week: number; desc: string; fnLevel?: string; isFreeze?: boolean; isHomoFreeze?: boolean }; isLast: boolean; isSOP: boolean }) {
+function MilestoneCard({ ms, isLast, isSOP, sopDate }: { ms: { name: string; week: number; desc: string; fnLevel?: string; isFreeze?: boolean; isHomoFreeze?: boolean }; isLast: boolean; isSOP: boolean; sopDate: string }) {
   const fnLevelColor = (lvl: string) => {
     if (lvl.includes("Release") || lvl.includes("?")) return "#238636";
     if (lvl.startsWith("C")) return "#3fb950";
@@ -1047,7 +1102,7 @@ function MilestoneCard({ ms, isLast, isSOP }: { ms: { name: string; week: number
         </div>
         <div style={{ display: "flex", gap: 12, fontSize: 11, marginBottom: 4 }}>
           <span style={{ color: "#d29922", fontWeight: 600 }}>{weekLabel(ms.week)}</span>
-          <span style={{ color: "#bc8cff" }}>{fmtDate(weekToDate(ms.week))}</span>
+          <span style={{ color: "#bc8cff" }}>{fmtDate(weekToDate(ms.week, sopDate))}</span>
           <span style={{ color: "#8b949e" }}>{monthLabel(ms.week)}</span>
         </div>
         <div style={{ fontSize: 11, color: "#8b949e" }}>{ms.desc}</div>
@@ -1074,7 +1129,7 @@ function GanttRow({ activity, mapping, minW, range, phaseColor, pepMilestone }: 
         <div style={{ width: 180, flexShrink: 0, fontSize: 12, fontWeight: 600, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activity}</div>
         <div style={{ flex: 1, position: "relative", height: 18, background: "#21262d", borderRadius: 3, minWidth: 200 }}>
           <div style={{ position: "absolute", left: `${left}%`, top: 0, height: "100%", width: `${width}%`, background: `linear-gradient(90deg, ${phaseColor}22, ${phaseColor}88)`, borderRadius: 3, borderLeft: `2px solid ${phaseColor}`, borderRight: `2px solid ${phaseColor}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: 9, color: "#e6edf3", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden" }}>{duration > 15 ? `${fmtDate(weekToDate(first.startWeek))} → ${fmtDate(weekToDate(first.endWeek))}` : `${duration}w`}</span>
+            <span style={{ fontSize: 9, color: "#e6edf3", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden" }}>{duration > 15 ? `${fmtDate(weekToDate(first.startWeek, sopDate))} → ${fmtDate(weekToDate(first.endWeek, sopDate))}` : `${duration}w`}</span>
           </div>
         </div>
         <span style={{ fontSize: 10, color: "#8b949e", width: 50, textAlign: "right", flexShrink: 0 }}>{monthLabel(first.pepWeek)}</span>
@@ -1083,16 +1138,17 @@ function GanttRow({ activity, mapping, minW, range, phaseColor, pepMilestone }: 
         <div style={{ marginLeft: 204, marginTop: 6, padding: "8px 12px", background: "#0d1117", border: "1px solid #30363d", borderRadius: 6 }}>
           <div style={{ fontSize: 11, color: "#bc8cff", marginBottom: 4 }}>PEP: {first.pepMilestone.replace(/\s*\?\s*/g, " → ")}</div>
           <div style={{ fontSize: 11, color: "#8b949e" }}>{first.notes}</div>
-          <div style={{ fontSize: 10, color: "#6e7681", marginTop: 4 }}>{fmtDate(weekToDate(first.startWeek))} — {fmtDate(weekToDate(first.endWeek))} · {duration} weeks</div>
+          <div style={{ fontSize: 10, color: "#6e7681", marginTop: 4 }}>{fmtDate(weekToDate(first.startWeek, sopDate))} — {fmtDate(weekToDate(first.endWeek, sopDate))} · {duration} weeks</div>
         </div>
       )}
     </div>
   );
 }
 
-function TimelineTab({ milestones, pepCeaMilestones, mapping, versionLabel }: {
-  milestones: DataJson["ceaKeyMilestones"]; pepCeaMilestones: DataJson["pepCeaMilestones"]; mapping: DataJson["safetyPepMapping"]; versionLabel: string;
+function TimelineTab({ milestones, pepCeaMilestones, mapping, versionLabel, sopDate }: {
+  milestones: DataJson["ceaKeyMilestones"]; pepCeaMilestones: DataJson["pepCeaMilestones"]; mapping: DataJson["safetyPepMapping"]; versionLabel: string; sopDate: string;
 }) {
+  const SOP = new Date(sopDate);
   const allWeeks = [...pepCeaMilestones.map((m) => m.week), ...milestones.map((m) => m.week), ...mapping.flatMap((m) => [m.startWeek, m.endWeek])];
   const minW = Math.min(...allWeeks);
   const maxW = Math.max(...allWeeks);
@@ -1114,9 +1170,9 @@ function TimelineTab({ milestones, pepCeaMilestones, mapping, versionLabel }: {
     <div>
       <Card title={`${versionLabel} 总时间线（PS → SOP, 35 个月）`} accent="#58a6ff">
         <div style={{ marginBottom: 8, fontSize: 12, color: "#8b949e" }}>
-          SOP 基准日：<span style={{ color: "#f85149", fontWeight: 700 }}>{fmtDate(SOP_DATE)}</span> · PEP CEA 里程碑（蓝）+ CEA 开发关键里程碑（紫）
+          SOP 基准日：<span style={{ color: "#f85149", fontWeight: 700 }}>{fmtDate(SOP)}</span> · PEP CEA 里程碑（蓝）+ CEA 开发关键里程碑（紫）
         </div>
-        <FullTimeline pepMilestones={pepCeaMilestones} ceaMilestones={milestones} />
+        <FullTimeline pepMilestones={pepCeaMilestones} ceaMilestones={milestones} sopDate={sopDate} />
         <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 10, color: "#6e7681" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#58a6ff", display: "inline-block" }} />PEP CEA 里程碑</span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "#8957e5", display: "inline-block" }} />CEA 开发里程碑</span>
@@ -1130,21 +1186,21 @@ function TimelineTab({ milestones, pepCeaMilestones, mapping, versionLabel }: {
         <Card title="PEP CEA 里程碑时间轴" accent="#58a6ff">
           <div style={{ paddingLeft: 4 }}>
             {pepCeaMilestones.map((m, i) => (
-              <MilestoneCard key={m.name} ms={m} isLast={i === pepCeaMilestones.length - 1} isSOP={m.name === "SOP"} />
+              <MilestoneCard key={m.name} ms={m} isLast={i === pepCeaMilestones.length - 1} isSOP={m.name === "SOP"} sopDate={sopDate} />
             ))}
           </div>
         </Card>
         <Card title="CEA 开发关键里程碑时间轴" accent="#8957e5">
           <div style={{ paddingLeft: 4 }}>
             {milestones.map((m, i) => (
-              <MilestoneCard key={m.name} ms={m} isLast={i === milestones.length - 1} isSOP={m.name === "SOP"} />
+              <MilestoneCard key={m.name} ms={m} isLast={i === milestones.length - 1} isSOP={m.name === "SOP"} sopDate={sopDate} />
             ))}
           </div>
         </Card>
       </div>
 
       <Card title="安全活动甘特图（点击展开详情）" accent="#d29922">
-        <div style={{ marginBottom: 8, fontSize: 11, color: "#6e7681" }}>SOP{minW}w ({fmtDate(weekToDate(minW))}) ~ SOP{maxW > 0 ? "+" : ""}{maxW}w ({fmtDate(weekToDate(maxW))})</div>
+          <div style={{ marginBottom: 8, fontSize: 11, color: "#6e7681" }}>SOP{minW}w ({fmtDate(weekToDate(minW, sopDate))}) ~ SOP{maxW > 0 ? "+" : ""}{maxW}w ({fmtDate(weekToDate(maxW, sopDate))})</div>
         {safetyPhases.map((phase) => {
           const phaseColor = phaseColors[phase] || "#8b949e";
           const phaseActivities = Array.from(new Set(mapping.filter((m) => m.safetyPhase === phase).map((m) => m.safetyActivity)));
