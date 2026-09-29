@@ -93,38 +93,54 @@ function Card({ children, title, accent }: { children: React.ReactNode; title?: 
 export function EquipmentMatrixView() {
   const [fullData, setFullData] = useState<FullData | null>(null);
   const [compData, setCompData] = useState<CompData | null>(null);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savingRef = useRef(false);
   const dataRef = useRef<FullData | null>(null);
+  const cloudDataRef = useRef<Record<string, unknown> | null>(null);
   const [ceaFilter, setCeaFilter] = useState("ALL");
   const [domainFilter, setDomainFilter] = useState("");
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"matrix" | "supplier" | "detail">("matrix");
 
   useEffect(() => {
+    let alive = true;
     fetch(API)
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error("fetch failed"); return r.json(); })
       .then((payload) => {
+        if (!alive) return;
         const d: FullData = payload?.data || {};
+        cloudDataRef.current = payload?.data || {};
         if (d.componentManagement) {
           setFullData(d);
           setCompData(d.componentManagement);
           dataRef.current = d;
         } else {
           fetch("/safety-plan/data.json").then((r) => r.json()).then((dj: FullData) => {
+            if (!alive) return;
             setFullData(dj);
             setCompData(dj.componentManagement);
             dataRef.current = dj;
-          });
+          }).catch(() => {});
         }
       })
       .catch(() => {
         fetch("/safety-plan/data.json").then((r) => r.json()).then((dj: FullData) => {
+          if (!alive) return;
           setFullData(dj);
           setCompData(dj.componentManagement);
           dataRef.current = dj;
-        });
+        }).catch(() => {});
       });
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (statusTimer.current) clearTimeout(statusTimer.current);
+    };
   }, []);
 
   const autoSave = useCallback(() => {
@@ -132,13 +148,31 @@ export function EquipmentMatrixView() {
     setSaveStatus("saving");
     saveTimer.current = setTimeout(async () => {
       const current = dataRef.current;
-      if (!current) return;
+      if (!current || savingRef.current) return;
+      savingRef.current = true;
       try {
-        await fetch(API, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: current }) });
-        setSaveStatus("saved");
-        setTimeout(() => setSaveStatus("idle"), 1500);
+        const merged = { ...(cloudDataRef.current || {}), componentManagement: current.componentManagement };
+        const resp = await fetch(API, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: merged }),
+        });
+        if (resp.ok) {
+          cloudDataRef.current = merged;
+          setSaveStatus("saved");
+          if (statusTimer.current) clearTimeout(statusTimer.current);
+          statusTimer.current = setTimeout(() => setSaveStatus("idle"), 1500);
+        } else {
+          setSaveStatus("error");
+          if (statusTimer.current) clearTimeout(statusTimer.current);
+          statusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+        }
       } catch {
-        setSaveStatus("idle");
+        setSaveStatus("error");
+        if (statusTimer.current) clearTimeout(statusTimer.current);
+        statusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+      } finally {
+        savingRef.current = false;
       }
     }, 800);
   }, []);
@@ -223,8 +257,8 @@ export function EquipmentMatrixView() {
         <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e6edf3", margin: 0 }}>Vehicle Equipment Matrix</h2>
         <p style={{ fontSize: 13, color: "#8b949e", marginTop: 4 }}>Mark X to indicate which equipment variant is assembled on which production line.</p>
         {saveStatus !== "idle" && (
-          <span style={{ fontSize: 11, color: saveStatus === "saving" ? "#d29922" : "#3fb950", marginLeft: 8 }}>
-            {saveStatus === "saving" ? "Saving…" : "Saved ✓"}
+          <span style={{ fontSize: 11, color: saveStatus === "saving" ? "#d29922" : saveStatus === "error" ? "#f85149" : "#3fb950", marginLeft: 8 }}>
+            {saveStatus === "saving" ? "Saving…" : saveStatus === "error" ? "⚠️ Save failed" : "Saved ✓"}
           </span>
         )}
       </div>
