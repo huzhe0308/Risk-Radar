@@ -290,6 +290,7 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
   const vehicles = versionConfig.vehicles;
   const versionKey = `cea${ceaVersion}_`;
   const [data, setData] = useState<DataJson | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState<"huts" | "deliverables" | "timeline">("huts");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -299,8 +300,9 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
   const cloudDataRef = useRef<Record<string, unknown> | null>(null);
   dataRef.current = data;
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     let alive = true;
+    setLoadError(false);
     fetch(API)
       .then((r) => { if (!r.ok) throw new Error("fetch failed"); return r.json(); })
       .then((payload) => {
@@ -312,17 +314,19 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
           fetch("/safety-plan/data.json").then((r) => r.json()).then((dj) => {
             if (!alive) return;
             setData(dj);
-          }).catch(() => {});
+          }).catch(() => { if (alive) setLoadError(true); });
         }
       })
       .catch(() => {
         fetch("/safety-plan/data.json").then((r) => r.json()).then((dj) => {
           if (!alive) return;
           setData(dj);
-        }).catch(() => {});
+        }).catch(() => { if (alive) setLoadError(true); });
       });
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => { return loadData(); }, [loadData]);
 
   useEffect(() => {
     return () => {
@@ -461,6 +465,13 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
     autoSave();
   }, [autoSave]);
 
+  if (loadError) return (
+    <div style={{ padding: 40, color: "#f85149", textAlign: "center" }}>
+      <p style={{ fontSize: 16, marginBottom: 12 }}>数据加载失败，请检查网络连接</p>
+      <button onClick={loadData} style={{ background: "#1f6feb", color: "#fff", border: "none", padding: "8px 20px", borderRadius: 6, cursor: "pointer", fontSize: 14 }}>点击重试</button>
+    </div>
+  );
+
   if (!data) return <div style={{ padding: 40, color: "#8b949e" }}>Loading {versionConfig.label} data…</div>;
 
   const versionSpData: Record<string, SpEntry> = {};
@@ -487,7 +498,7 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
           </button>
         ))}
         <div style={{ marginLeft: "auto", fontSize: 12, color: saveStatus === "saving" ? "#d29922" : saveStatus === "saved" ? "#3fb950" : "#484f58" }}>
-          {saveStatus === "saving" ? "保存中…" : saveStatus === "saved" ? "已保存 ✓" : saveStatus === "error" ? "⚠️ 保存失败" : ""}
+          {saveStatus === "saving" ? "☁️ 保存中…" : saveStatus === "saved" ? "☁️ 已保存" : saveStatus === "error" ? "⚠️ 保存失败" : ""}
         </div>
       </div>
 
@@ -766,6 +777,57 @@ function DeliverablesTab({ deliverables, deletedNos, spData, vehicles, versionLa
           当前车型：<span style={{ color: "#58a6ff", fontWeight: 700 }}>{activeVehicleInfo.shortCode}</span> · {activeVehicleInfo.name} · OEM: {activeVehicleInfo.oem} · SOP: {activeVehicleInfo.sopDate} · Change Level: {activeVehicleInfo.changeLevel} ({CLS_TAG[activeVehicleInfo.cls].label}) · 共 {totalCount} 项交付物
         </div>
       )}
+
+      {(() => {
+        const allItems = phasesToShow.flatMap((p) => p.items);
+        const statuses = allItems.map((item) => vd.statuses[item.no] || "");
+        const done = statuses.filter((s) => s === "done").length;
+        const progress = statuses.filter((s) => s === "progress").length;
+        const planned = statuses.filter((s) => s === "planned").length;
+        const na = statuses.filter((s) => s === "na").length;
+        const notStarted = statuses.filter((s) => !s).length;
+        const pct = allItems.length > 0 ? Math.round((done / allItems.length) * 100) : 0;
+        return (
+          <Card title={`${activeVehicleInfo?.shortCode || ""} 交付物进度总览`} accent="#3fb950">
+            <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ position: "relative", width: 80, height: 80, flexShrink: 0 }}>
+                <svg width="80" height="80" viewBox="0 0 80 80">
+                  <circle cx="40" cy="40" r="32" fill="none" stroke="#30363d" strokeWidth="8" />
+                  <circle cx="40" cy="40" r="32" fill="none" stroke="#3fb950" strokeWidth="8" strokeDasharray={`${2 * Math.PI * 32 * pct / 100} ${2 * Math.PI * 32}`} strokeLinecap="round" transform="rotate(-90 40 40)" />
+                </svg>
+                <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "#3fb950" }}>{pct}%</div>
+                  <div style={{ fontSize: 9, color: "#6e7681" }}>完成率</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {[
+                  { label: "已完成", count: done, color: "#3fb950" },
+                  { label: "进行中", count: progress, color: "#58a6ff" },
+                  { label: "已计划", count: planned, color: "#d29922" },
+                  { label: "未开始", count: notStarted, color: "#f85149" },
+                  { label: "N/A", count: na, color: "#8b949e" },
+                ].map((s) => (
+                  <div key={s.label} style={{ textAlign: "center", minWidth: 56 }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.count}</div>
+                    <div style={{ fontSize: 10, color: "#8b949e" }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 11, color: "#6e7681", marginBottom: 4 }}>交付物总数：{allItems.length} 项</div>
+                <div style={{ height: 8, borderRadius: 4, overflow: "hidden", display: "flex", background: "#21262d" }}>
+                  <div style={{ width: `${done / allItems.length * 100}%`, background: "#3fb950" }} />
+                  <div style={{ width: `${progress / allItems.length * 100}%`, background: "#58a6ff" }} />
+                  <div style={{ width: `${planned / allItems.length * 100}%`, background: "#d29922" }} />
+                  <div style={{ width: `${na / allItems.length * 100}%`, background: "#8b949e" }} />
+                  <div style={{ width: `${notStarted / allItems.length * 100}%`, background: "#f85149" }} />
+                </div>
+              </div>
+            </div>
+          </Card>
+        );
+      })()}
 
       {phasesToShow.map((p) => {
         const phaseIsCustom = isCustom(p.name);
