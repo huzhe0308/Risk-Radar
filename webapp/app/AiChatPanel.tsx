@@ -5,7 +5,7 @@ import { applyAiActions } from "./ai-actions";
 import { callAi } from "./ai-client";
 import type { AiAction } from "./ai-actions";
 import type { Project, View } from "./types";
-import { buildWorkspaceContext, type WorkspaceMode } from "./workspace-context";
+import { buildWorkspaceContext, buildCea2Context, type WorkspaceMode } from "./workspace-context";
 
 type ChatMessage = {
   id: string;
@@ -79,11 +79,23 @@ function summarizeSafetyPlanData(data: Record<string, unknown>, mode: string): s
   }
 
   if (mode === "safety-components" && cm?.components) {
-    const comps = cm.components as Array<{ abbreviation?: string; fullName?: string; domain?: string; asil?: string; supplier?: string }>;
-    lines.push(`- 组件列表（前 20 个）：`);
-    comps.slice(0, 20).forEach(c => {
-      lines.push(`  • ${c.abbreviation || ""} — ${c.fullName || ""} [Domain: ${c.domain || ""}, ASIL: ${c.asil || "—"}]`);
+    const comps = cm.components as Array<{ abbreviation?: string; fullName?: string; domain?: string; asil?: string; supplier?: string; vehicleApplicability?: Record<string, string> }>;
+    lines.push(`- 组件列表（前 30 个）：`);
+    comps.slice(0, 30).forEach(c => {
+      const va = c.vehicleApplicability || {};
+      const marked = Object.values(va).filter(v => v === "S" || v === "s").length;
+      lines.push(`  • ${c.abbreviation || ""} — ${c.fullName || ""} [Domain: ${c.domain || ""}, ASIL: ${c.asil || "—"}, Supplier: ${(c.supplier || "").split("\n")[0].trim() || "—"}, 适用 ${marked} 个车型]`);
     });
+    const domainCounts: Record<string, number> = {};
+    comps.forEach(c => { const d = c.domain || "Other"; domainCounts[d] = (domainCounts[d] || 0) + 1; });
+    lines.push(`- 按域统计：`);
+    Object.entries(domainCounts).forEach(([d, cnt]) => { lines.push(`  • ${d}: ${cnt} 个组件`); });
+    const asilCounts: Record<string, number> = {};
+    comps.forEach(c => { const a = c.asil || "—"; asilCounts[a] = (asilCounts[a] || 0) + 1; });
+    lines.push(`- 按 ASIL 统计：`);
+    Object.entries(asilCounts).forEach(([a, cnt]) => { lines.push(`  • ${a}: ${cnt} 个组件`); });
+    const supComps = comps.filter(c => c.supplier && c.supplier !== "/" && !c.supplier.includes("未定点"));
+    lines.push(`- 已分配供应商：${supComps.length} / ${comps.length} 个组件`);
   }
 
   return lines.join("\n");
@@ -96,7 +108,8 @@ const MODE_LABELS: Record<WorkspaceMode, string> = {
   "feishu-table": "飞书表格",
   "change-feed": "变更提醒",
   "safety-plan": "Safety Plan",
-  "safety-components": "Components",
+  "safety-components": "Equipment Matrix",
+  "cea2-info": "CEA Safety Plan",
 };
 
 const MODE_WELCOME: Record<WorkspaceMode, string> = {
@@ -111,9 +124,11 @@ const MODE_WELCOME: Record<WorkspaceMode, string> = {
   "change-feed":
     "当前界面：变更提醒\n这里实时监控飞书多维表格的数据变更。我可以帮你：\n\n• 查看最近有哪些数据变更\n• 了解未读的变更提醒\n• 说明字段级差异对比\n\n注意：此界面为变更监控，修改计划请切换到时间线。",
   "safety-plan":
-    "当前界面：Safety Plan\n这是功能安全计划面板，包含四个子页签：\n\n1. Project Plan — 项目计划时间线甘特图，展示平台里程碑和各车型（Hut）的 SOP 分组里程碑节点\n2. Safety Plan — 按项目展示安全交付物（Deliverables）的 Status/Remark，支持自动保存。包含 General 和 Per-Component (4B/4C/5S) 两个视图\n3. System & Subsystem — 按系统分组展示 System-Level Safety Activities（Phase 4A），每个系统有独立的 Status/Remark\n4. Component Safety Plan — 按组件展示 ISO 26262 工作产品（Work Products），支持批量修改 Status\n\n此面板由 iframe 嵌入，我无法读取其内部数据。如果你需要修改项目计划，请切换到时间线界面。",
+    "当前界面：Safety Plan\n这是功能安全计划面板，包含四个子页签：\n\n1. Project Plan — 项目计划时间线甘特图，展示平台里程碑和各车型（Hut）的 SOP 分组里程碑节点\n2. Safety Plan — 按项目展示安全交付物（Deliverables）的 Status/Remark，支持自动保存。包含 General 和 Per-Component (4B/4C/5S) 两个视图\n3. System & Subsystem — 按系统分组展示 System-Level Safety Activities（Phase 4A），每个系统有独立的 Status/Remark\n4. Component Safety Plan — 按组件展示 ISO 26262 工作产品（Work Products），支持批量修改 Status\n\n我可以帮你查看安全计划数据、统计交付物完成情况、了解组件安全状态。直接问我就行！",
   "safety-components":
-    "当前界面：Components\n这是功能安全组件管理面板，包含：组件矩阵（Component Matrix）、Per-Vehicle Detail（按车型筛选组件适用性）、ECU 变体（ECU Variants）等视图。此面板由 iframe 嵌入，我无法读取其内部数据。\n\n如果你需要修改项目计划，请切换到时间线界面。",
+    "当前界面：Equipment Matrix\n这是功能安全组件矩阵，展示 125 个安全组件 × 17 个车型的适用性矩阵。\n\n我可以帮你：\n• 查看哪些组件适用于哪些车型\n• 统计某个域有多少组件\n• 查看供应商分配情况\n• 了解 ASIL 分布\n\n数据存储在云端，我会自动拉取最新数据来回答你的问题。",
+  "cea2-info":
+    "当前界面：CEA Safety Plan\n这是 CEA 功能安全计划面板，包含三个子页签：\n\n1. HUT 清单 — 车型明细、产品组、Impact Analysis 分类、SOP 分组、PEP 对比、Change Level 定义、RACI 矩阵\n2. 交付物 — Tailoring Matrix 裁剪矩阵、General (Phase 1-8)、Component Dev (4A)、Supplier (5S) 四个子视图，支持 Status/Tailoring/日期/链接/备注编辑\n3. 时间线 — PEP CEA 里程碑 + CEA 开发关键里程碑 + 安全活动甘特图\n\n我可以帮你查看交付物进度、统计裁剪情况、了解里程碑分布。直接问我就行！",
 };
 
 const MODE_SUGGESTIONS: Record<WorkspaceMode, string[]> = {
@@ -123,7 +138,8 @@ const MODE_SUGGESTIONS: Record<WorkspaceMode, string[]> = {
   "feishu-table": ["飞书表格里有什么数据？", "有多少条同步记录？"],
   "change-feed": ["最近有什么变更？", "有哪些未读变更？"],
   "safety-plan": ["四个子页面分别是什么？", "如何修改安全计划 Status？", "Per-Component 视图是什么？"],
-  "safety-components": ["组件管理有哪些视图？", "Per-Vehicle Detail 是什么？"],
+  "safety-components": ["有多少个安全组件？", "ADAS 域有哪些组件？", "ASIL D 的组件有哪些？", "供应商分配情况如何？"],
+  "cea2-info": ["交付物进度怎么样？", "Tailoring 裁剪情况如何？", "有哪些里程碑？", "各车型完成率如何？"],
 };
 
 export function AiChatPanel({
@@ -134,6 +150,7 @@ export function AiChatPanel({
   searchQuery = "",
   tagFilter = "全部标签",
   sortMode = "manual",
+  cea2Version = "2.0",
 }: {
   view: View;
   onApplyView: (view: View) => void;
@@ -142,6 +159,7 @@ export function AiChatPanel({
   searchQuery?: string;
   tagFilter?: string;
   sortMode?: "manual" | "date" | "name";
+  cea2Version?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -195,6 +213,20 @@ export function AiChatPanel({
         } catch { /* ignore fetch errors */ }
       }
 
+      if (workspaceMode === "cea2-info") {
+        try {
+          const resp = await fetch(`/api/safety-plan?token=123456`);
+          if (resp.ok) {
+            const payload = await resp.json();
+            const cloudData = payload.data;
+            if (cloudData && typeof cloudData === "object") {
+              const cea2Summary = buildCea2Context(cea2Version, cloudData);
+              if (cea2Summary) wsContext += "\n\n" + cea2Summary;
+            }
+          }
+        } catch { /* ignore fetch errors */ }
+      }
+
       const payload = await callAi({ message: content, view, history, workspaceContext: wsContext });
       setMessages((current) => [...current, {
         id: id(),
@@ -232,7 +264,7 @@ export function AiChatPanel({
           <div>
             <span className="eyebrow">AI ASSISTANT</span>
             <strong>AI 助手</strong>
-            <small>当前界面：{modeLabel} · {view.name}</small>
+            <small>当前界面：{modeLabel}{workspaceMode === "cea2-info" ? ` · CEA ${cea2Version}` : ` · ${view.name}`}</small>
           </div>
           <button onClick={() => setOpen(false)} aria-label="关闭 AI 助手">×</button>
         </div>
