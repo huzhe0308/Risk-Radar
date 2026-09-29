@@ -93,6 +93,7 @@ function Card({ children, title, accent }: { children: React.ReactNode; title?: 
 export function EquipmentMatrixView() {
   const [fullData, setFullData] = useState<FullData | null>(null);
   const [compData, setCompData] = useState<CompData | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -103,8 +104,10 @@ export function EquipmentMatrixView() {
   const [domainFilter, setDomainFilter] = useState("");
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"matrix" | "supplier" | "detail">("matrix");
+  const [hasUnsaved, setHasUnsaved] = useState(false);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
+    setLoadError(false);
     let alive = true;
     fetch(API)
       .then((r) => { if (!r.ok) throw new Error("fetch failed"); return r.json(); })
@@ -122,7 +125,7 @@ export function EquipmentMatrixView() {
             setFullData(dj);
             setCompData(dj.componentManagement);
             dataRef.current = dj;
-          }).catch(() => {});
+          }).catch(() => { if (alive) setLoadError(true); });
         }
       })
       .catch(() => {
@@ -131,10 +134,12 @@ export function EquipmentMatrixView() {
           setFullData(dj);
           setCompData(dj.componentManagement);
           dataRef.current = dj;
-        }).catch(() => {});
+        }).catch(() => { if (alive) setLoadError(true); });
       });
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => { return loadData(); }, [loadData]);
 
   useEffect(() => {
     return () => {
@@ -144,6 +149,7 @@ export function EquipmentMatrixView() {
   }, []);
 
   const autoSave = useCallback(() => {
+    setHasUnsaved(true);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus("saving");
     saveTimer.current = setTimeout(async () => {
@@ -160,6 +166,7 @@ export function EquipmentMatrixView() {
         if (resp.ok) {
           cloudDataRef.current = merged;
           setSaveStatus("saved");
+          setHasUnsaved(false);
           if (statusTimer.current) clearTimeout(statusTimer.current);
           statusTimer.current = setTimeout(() => setSaveStatus("idle"), 1500);
         } else {
@@ -205,6 +212,98 @@ export function EquipmentMatrixView() {
     autoSave();
   }, [autoSave]);
 
+  const toggleRow = useCallback((compIndex: number, vehicleKeys: string[], target?: string) => {
+    setFullData((prev) => {
+      if (!prev?.componentManagement) return prev;
+      const newComps = [...prev.componentManagement.components];
+      const comp = { ...newComps[compIndex] };
+      const va = { ...(comp.vehicleApplicability || {}) };
+      const allMarked = vehicleKeys.every((k) => va[k] === "S" || va[k] === "s");
+      for (const k of vehicleKeys) {
+        if (target) { va[k] = target; }
+        else { va[k] = allMarked ? "" : "S"; }
+      }
+      comp.vehicleApplicability = va;
+      newComps[compIndex] = comp;
+      const newData = { ...prev, componentManagement: { ...prev.componentManagement, components: newComps } };
+      dataRef.current = newData;
+      return newData;
+    });
+    setCompData((prev) => {
+      if (!prev) return prev;
+      const newComps = [...prev.components];
+      const comp = { ...newComps[compIndex] };
+      const va = { ...(comp.vehicleApplicability || {}) };
+      const allMarked = vehicleKeys.every((k) => va[k] === "S" || va[k] === "s");
+      for (const k of vehicleKeys) {
+        if (target) { va[k] = target; }
+        else { va[k] = allMarked ? "" : "S"; }
+      }
+      comp.vehicleApplicability = va;
+      newComps[compIndex] = comp;
+      return { ...prev, components: newComps };
+    });
+    autoSave();
+  }, [autoSave]);
+
+  const toggleColumn = useCallback((vehicleKey: string, compIndices: number[], target?: string) => {
+    setFullData((prev) => {
+      if (!prev?.componentManagement) return prev;
+      const newComps = prev.componentManagement.components.map((c, i) => {
+        if (!compIndices.includes(i)) return c;
+        const va = { ...(c.vehicleApplicability || {}) };
+        const allMarked = compIndices.every((ci) => {
+          const v = prev.componentManagement!.components[ci].vehicleApplicability?.[vehicleKey];
+          return v === "S" || v === "s";
+        });
+        if (target) { va[vehicleKey] = target; }
+        else { va[vehicleKey] = allMarked ? "" : "S"; }
+        return { ...c, vehicleApplicability: va };
+      });
+      const newData = { ...prev, componentManagement: { ...prev.componentManagement, components: newComps } };
+      dataRef.current = newData;
+      return newData;
+    });
+    setCompData((prev) => {
+      if (!prev) return prev;
+      const allMarked = compIndices.every((ci) => {
+        const v = prev.components[ci].vehicleApplicability?.[vehicleKey];
+        return v === "S" || v === "s";
+      });
+      const newComps = prev.components.map((c, i) => {
+        if (!compIndices.includes(i)) return c;
+        const va = { ...(c.vehicleApplicability || {}) };
+        if (target) { va[vehicleKey] = target; }
+        else { va[vehicleKey] = allMarked ? "" : "S"; }
+        return { ...c, vehicleApplicability: va };
+      });
+      return { ...prev, components: newComps };
+    });
+    autoSave();
+  }, [autoSave]);
+
+  const exportMatrix = useCallback(() => {
+    if (!compData || typeof window === "undefined" || !window.XLSX) return;
+    const XLSX = window.XLSX;
+    const rows: string[][] = [];
+    rows.push(["Equipment System", "Variant", "Full Name", "Chinese Name", "Domain", "Supplier", "ASIL", "FSM", "BTV", ...VEHICLE_COLS.map((v) => v.display)]);
+    for (const c of compData.components) {
+      const row: string[] = [
+        c.loadType || "", c.abbreviation || "", c.fullName || "", c.chineseName || "",
+        c.domain || "", (c.supplier || "").split("\n")[0].trim(), c.asil || "", c.fsm || "", c.btv || "",
+      ];
+      for (const v of VEHICLE_COLS) {
+        const val = (c.vehicleApplicability || {})[v.key] || "";
+        row.push(val === "S" || val === "s" ? "✕" : val);
+      }
+      rows.push(row);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Equipment Matrix");
+    XLSX.writeFile(wb, "Equipment_Matrix.xlsx");
+  }, [compData]);
+
   const displayVehicles = useMemo(() => {
     if (ceaFilter === "ALL") return VEHICLE_COLS;
     return VEHICLE_COLS.filter((v) => v.cea === ceaFilter);
@@ -237,6 +336,13 @@ export function EquipmentMatrixView() {
     return [...new Set(compData.components.map((c) => c.asil).filter(Boolean))].sort();
   }, [compData]);
 
+  if (loadError) return (
+    <div style={{ padding: 40, color: "#f85149", textAlign: "center" }}>
+      <p style={{ fontSize: 16, marginBottom: 12 }}>加载失败，请检查网络连接</p>
+      <button onClick={loadData} style={{ background: "#1f6feb", color: "#fff", border: "none", padding: "8px 20px", borderRadius: 6, cursor: "pointer", fontSize: 14 }}>点击重试</button>
+    </div>
+  );
+
   if (!compData) return <div style={{ padding: 40, color: "#8b949e" }}>Loading Equipment Matrix…</div>;
 
   const totalComps = compData.components.length;
@@ -253,14 +359,22 @@ export function EquipmentMatrixView() {
 
   return (
     <div style={{ padding: "16px 24px" }}>
-      <div style={{ marginBottom: 12 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e6edf3", margin: 0 }}>Vehicle Equipment Matrix</h2>
-        <p style={{ fontSize: 13, color: "#8b949e", marginTop: 4 }}>Mark X to indicate which equipment variant is assembled on which production line.</p>
-        {saveStatus !== "idle" && (
-          <span style={{ fontSize: 11, color: saveStatus === "saving" ? "#d29922" : saveStatus === "error" ? "#f85149" : "#3fb950", marginLeft: 8 }}>
-            {saveStatus === "saving" ? "Saving…" : saveStatus === "error" ? "⚠️ Save failed" : "Saved ✓"}
-          </span>
-        )}
+      <div style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e6edf3", margin: 0, display: "inline" }}>Vehicle Equipment Matrix</h2>
+          <p style={{ fontSize: 13, color: "#8b949e", marginTop: 4 }}>Mark X to indicate which equipment variant is assembled on which production line.</p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {hasUnsaved && saveStatus !== "saving" && (
+            <span style={{ fontSize: 11, color: "#d29922" }}>⚠️ 有未保存的修改</span>
+          )}
+          {saveStatus !== "idle" && (
+            <span style={{ fontSize: 11, color: saveStatus === "saving" ? "#d29922" : saveStatus === "error" ? "#f85149" : "#3fb950" }}>
+              {saveStatus === "saving" ? "☁️ 保存中…" : saveStatus === "error" ? "⚠️ 保存失败" : "☁️ 已保存"}
+            </span>
+          )}
+          <button onClick={exportMatrix} style={{ background: "#21262d", color: "#e6edf3", border: "1px solid #30363d", padding: "6px 14px", borderRadius: 6, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>导出 Excel</button>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
@@ -317,7 +431,13 @@ export function EquipmentMatrixView() {
                       {col.label}
                     </th>
                   ))}
-                  {displayVehicles.map((v) => (
+                  {displayVehicles.map((v) => {
+                    const allCompIndices = filteredComponents.map((c) => c._idx);
+                    const allMarked = allCompIndices.length > 0 && allCompIndices.every((ci) => {
+                      const val = compData.components[ci]?.vehicleApplicability?.[v.key];
+                      return val === "S" || val === "s";
+                    });
+                    return (
                     <th key={v.key} style={{
                       position: "sticky", top: 0, zIndex: 5,
                       background: "#21262d", borderBottom: `3px solid ${CEA_COLOR[v.cea] || "#30363d"}`,
@@ -337,9 +457,17 @@ export function EquipmentMatrixView() {
                         </span>
                         <span style={{ fontSize: 10, fontWeight: 700, color: OEM_COLOR[v.oem] }}>{v.oem}</span>
                         <span style={{ fontSize: 9, color: "#6e7681", marginTop: 1 }}>{v.line}</span>
+                        <button
+                          onClick={() => toggleColumn(v.key, allCompIndices)}
+                          title={allMarked ? "全部清除" : "全部标记 ✕"}
+                          style={{ background: allMarked ? "rgba(248,81,73,.2)" : "rgba(31,111,235,.15)", color: allMarked ? "#f85149" : "#58a6ff", border: "none", padding: "1px 6px", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", marginTop: 2 }}
+                        >
+                          {allMarked ? "清空列" : "全选"}
+                        </button>
                       </div>
                     </th>
-                  ))}
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -357,9 +485,19 @@ export function EquipmentMatrixView() {
                     </tr>
                     {comps.map((c) => {
                       const supShort = (c.supplier || "").split("\n")[0].trim();
+                      const rowVehicles = displayVehicles.map((v) => v.key);
+                      const allRowMarked = rowVehicles.length > 0 && rowVehicles.every((k) => {
+                        const val = (c.vehicleApplicability || {})[k];
+                        return val === "S" || val === "s";
+                      });
                       return (
                         <tr key={c._idx} style={{ height: 32 }}>
-                          <td style={{ position: "sticky", left: 0, background: "#0d1117", fontSize: 10, color: "#6e7681", padding: "4px 10px", borderBottom: "1px solid #30363d", borderRight: "1px solid #30363d", zIndex: 3 }}>{c.loadType || ""}</td>
+                          <td style={{ position: "sticky", left: 0, background: "#0d1117", fontSize: 10, color: "#6e7681", padding: "4px 10px", borderBottom: "1px solid #30363d", borderRight: "1px solid #30363d", zIndex: 3 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              {c.loadType || ""}
+                              <button onClick={() => toggleRow(c._idx, rowVehicles)} title={allRowMarked ? "清空行" : "全选行"} style={{ background: "none", border: "none", color: allRowMarked ? "#f85149" : "#484f58", cursor: "pointer", fontSize: 10, padding: 0, fontWeight: 700 }}>{allRowMarked ? "✕" : "□"}</button>
+                            </div>
+                          </td>
                           <td style={{ position: "sticky", left: 130, background: "#0d1117", fontWeight: 700, color: "#58a6ff", padding: "4px 8px", borderBottom: "1px solid #30363d", borderRight: "1px solid #30363d", fontSize: 12, zIndex: 3 }}>{c.abbreviation || ""}</td>
                           <td style={{ position: "sticky", left: 210, background: "#0d1117", padding: "4px 8px", borderBottom: "1px solid #30363d", borderRight: "1px solid #30363d", zIndex: 3 }}>
                             <div style={{ fontSize: 12, color: "#e6edf3", whiteSpace: "normal", wordBreak: "break-word" }}>{c.fullName || ""}</div>
