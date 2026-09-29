@@ -780,7 +780,14 @@ function DeliverablesTab({ deliverables, deletedNos, spData, vehicles, versionLa
 
       {(() => {
         const allItems = deliverables.flatMap((p) => p.items);
-        const statuses = allItems.map((item) => vd.statuses[item.no] || "");
+        const resolveStatus = (item: { no: string }) => {
+          const raw = vd.statuses[item.no] || "";
+          const tailoring = vd.tailoring?.[item.no] || getTailoringPreset(item, activeVehicleInfo?.cls || "newvar");
+          if (tailoring === "Carry-over") return "done";
+          if (tailoring === "N/A") return "na";
+          return raw;
+        };
+        const statuses = allItems.map((item) => resolveStatus(item));
         const done = statuses.filter((s) => s === "done").length;
         const progress = statuses.filter((s) => s === "progress").length;
         const planned = statuses.filter((s) => s === "planned").length;
