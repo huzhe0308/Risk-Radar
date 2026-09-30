@@ -287,7 +287,6 @@ export function buildCea2Context(ceaVersion: string, cloudData: Record<string, u
     lines.push(`- 组件管理数据：${cm.components?.length || 0} 个组件，${cm.vehicles?.length || 0} 个车型，${cm.domains?.length || 0} 个域，${cm.suppliers?.length || 0} 个供应商`);
     const comps = cm.components as Array<{ abbreviation?: string; fullName?: string; domain?: string; asil?: string; supplier?: string; vehicleApplicability?: Record<string, string> }> | undefined;
     if (comps && ceaVersion) {
-      const versionVehicles = (cm.vehicles as string[] || []).filter(() => true);
       lines.push(`- 组件列表（前 15 个）：`);
       comps.slice(0, 15).forEach((c) => {
         const va = c.vehicleApplicability || {};
