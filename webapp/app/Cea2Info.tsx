@@ -507,7 +507,7 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
         {tab === "deliverables" && (
           <DeliverablesTab deliverables={cea2Deliverables} deletedNos={data.cea2DeletedDeliverables || []} spData={versionSpData} vehicles={vehicles} versionLabel={versionConfig.label} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} onAddDeliverable={addDeliverable} onDeleteDeliverable={deleteDeliverable} onRestoreDeliverable={restoreDeliverable} />
         )}
-        {tab === "timeline" && <TimelineTab milestones={cea2Milestones} pepCeaMilestones={data.pepCeaMilestones} mapping={data.safetyPepMapping} versionLabel={versionConfig.label} sopDate={vehicles[0]?.sopDate || "2027-06-18"} />}
+        {tab === "timeline" && <TimelineTab milestones={cea2Milestones} pepCeaMilestones={data.pepCeaMilestones || []} mapping={data.safetyPepMapping || []} versionLabel={versionConfig.label} sopDate={vehicles[0]?.sopDate || "2027-06-18"} />}
       </div>
     </div>
   );
@@ -1073,7 +1073,8 @@ function monthLabel(week: number) {
 function FullTimeline({ pepMilestones, ceaMilestones, sopDate }: {
   pepMilestones: DataJson["pepCeaMilestones"]; ceaMilestones: DataJson["ceaKeyMilestones"]; sopDate: string;
 }) {
-  const all = [...pepMilestones.map((m) => m.week), ...ceaMilestones.map((m) => m.week)];
+  const all = [...(pepMilestones || []).map((m) => m.week), ...(ceaMilestones || []).map((m) => m.week)];
+  if (all.length === 0) return null;
   const minW = Math.min(...all);
   const maxW = Math.max(...all);
   const range = maxW - minW || 1;
@@ -1098,8 +1099,8 @@ function FullTimeline({ pepMilestones, ceaMilestones, sopDate }: {
     return { left: `${Math.max(2, Math.min(96, pct))}%`, top: 10 + rowIndex * rowHeight };
   };
 
-  const pepWithPos = pepMilestones.map((m, i) => ({ ...m, ...placeItem(m.week, 0), idx: i }));
-  const ceaWithPos = ceaMilestones.map((m, i) => ({ ...m, ...placeItem(m.week, 1), idx: i, color: m.isFreeze ? "#d29922" : m.isHomoFreeze ? "#da3633" : m.name === "IPD 6.0 (Homo)" ? "#3fb950" : "#8957e5" }));
+  const pepWithPos = (pepMilestones || []).map((m, i) => ({ ...m, ...placeItem(m.week, 0), idx: i }));
+  const ceaWithPos = (ceaMilestones || []).map((m, i) => ({ ...m, ...placeItem(m.week, 1), idx: i, color: m.isFreeze ? "#d29922" : m.isHomoFreeze ? "#da3633" : m.name === "IPD 6.0 (Homo)" ? "#3fb950" : "#8957e5" }));
 
   return (
     <div style={{ position: "relative", margin: "12px 0 4px", minHeight: containerHeight, background: "#0d1117", border: "1px solid #30363d", borderRadius: 8, padding: "36px 20px 16px" }}>
@@ -1180,8 +1181,8 @@ function MilestoneCard({ ms, isLast, isSOP, sopDate }: { ms: { name: string; wee
   );
 }
 
-function GanttRow({ activity, mapping, minW, range, phaseColor, pepMilestone }: {
-  activity: string; mapping: DataJson["safetyPepMapping"]; minW: number; range: number; phaseColor: string; pepMilestone: string;
+function GanttRow({ activity, mapping, minW, range, phaseColor, pepMilestone, sopDate }: {
+  activity: string; mapping: DataJson["safetyPepMapping"]; minW: number; range: number; phaseColor: string; pepMilestone: string; sopDate: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const items = mapping.filter((m) => m.safetyActivity === activity);
@@ -1218,7 +1219,14 @@ function TimelineTab({ milestones, pepCeaMilestones, mapping, versionLabel, sopD
   milestones: DataJson["ceaKeyMilestones"]; pepCeaMilestones: DataJson["pepCeaMilestones"]; mapping: DataJson["safetyPepMapping"]; versionLabel: string; sopDate: string;
 }) {
   const SOP = new Date(sopDate);
-  const allWeeks = [...pepCeaMilestones.map((m) => m.week), ...milestones.map((m) => m.week), ...mapping.flatMap((m) => [m.startWeek, m.endWeek])];
+  const allWeeks = [...(pepCeaMilestones || []).map((m) => m.week), ...(milestones || []).map((m) => m.week), ...(mapping || []).flatMap((m) => [m.startWeek, m.endWeek])];
+  if (allWeeks.length === 0) {
+    return (
+      <Card title={`${versionLabel} 时间线`} accent="#484f58">
+        <p style={{ color: "#8b949e", fontSize: 14 }}>暂无时间线数据。</p>
+      </Card>
+    );
+  }
   const minW = Math.min(...allWeeks);
   const maxW = Math.max(...allWeeks);
   const range = maxW - minW || 1;
@@ -1232,8 +1240,8 @@ function TimelineTab({ milestones, pepCeaMilestones, mapping, versionLabel, sopD
     "Phase 6: Safety Case": "#238636",
   };
 
-  const safetyPhases = Array.from(new Set(mapping.map((m) => m.safetyPhase)));
-  const allActivities = Array.from(new Set(mapping.map((m) => m.safetyActivity)));
+  const safetyPhases = Array.from(new Set((mapping || []).map((m) => m.safetyPhase)));
+  const allActivities = Array.from(new Set((mapping || []).map((m) => m.safetyActivity)));
 
   return (
     <div>
@@ -1280,7 +1288,7 @@ function TimelineTab({ milestones, pepCeaMilestones, mapping, versionLabel, sopD
                 <span style={{ fontSize: 12, fontWeight: 700, color: phaseColor }}>{phase}</span>
               </div>
               {phaseActivities.map((act) => (
-                <GanttRow key={act} activity={act} mapping={mapping} minW={minW} range={range} phaseColor={phaseColor} pepMilestone="" />
+                <GanttRow key={act} activity={act} mapping={mapping} minW={minW} range={range} phaseColor={phaseColor} pepMilestone="" sopDate={sopDate} />
               ))}
             </div>
           );
