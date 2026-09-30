@@ -1,4 +1,4 @@
-﻿"use client";
+﻿﻿﻿"use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
@@ -104,6 +104,7 @@ export default function Home() {
   const cloudSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cloudStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cloudSavingRef = useRef(false);
+  const cloudPendingRef = useRef(false);
   const cloudAbortRef = useRef<AbortController | null>(null);
   const [cloudSaveStatus, setCloudSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<string>("");
@@ -230,7 +231,11 @@ export default function Home() {
     setCloudSaveStatus("saving");
     cloudSaveTimer.current = setTimeout(async () => {
       const current = dataRef.current;
-      if (!current || changePreviewRef.current || cloudSavingRef.current) return;
+      if (!current || changePreviewRef.current) return;
+      if (cloudSavingRef.current) {
+        cloudPendingRef.current = true;
+        return;
+      }
       cloudSavingRef.current = true;
       if (cloudAbortRef.current) cloudAbortRef.current.abort();
       const ac = new AbortController();
@@ -262,6 +267,10 @@ export default function Home() {
         cloudStatusTimer.current = setTimeout(() => setCloudSaveStatus("idle"), 2000);
       } finally {
         cloudSavingRef.current = false;
+        if (cloudPendingRef.current) {
+          cloudPendingRef.current = false;
+          saveToCloud();
+        }
       }
     }, 1000);
   }, []);
@@ -407,18 +416,18 @@ export default function Home() {
   };
 
   const updateViewDate = (key: "startDate" | "endDate", value: string) => {
-    setData(updateActiveView(data, (view) => ({ ...view, [key]: value })));
+    setData((prev) => updateActiveView(prev, (view) => ({ ...view, [key]: value })));
   };
 
   const updateColumnWidth = (change: number) => {
-    setData(updateActiveView(data, (view) => ({
+    setData((prev) => updateActiveView(prev,(view) => ({
       ...view,
       columnWidth: Math.max(6, Math.min(300, (view.columnWidth || 20) + change)),
     })));
   };
 
   const updateMilestone = (projectId: string, milestoneId: string, updater: (milestone: Milestone) => Milestone) => {
-    setData(updateActiveView(data, (view) => ({
+    setData((prev) => updateActiveView(prev,(view) => ({
       ...view,
       projects: view.projects.map((project) => {
         if (project.uuid !== projectId) return project;
@@ -441,7 +450,7 @@ export default function Home() {
       textColor: "#1a1a1a",
       shape: "diamond",
     };
-    setData(updateProject(data, projectId, (project) => ({ ...project, milestones: [...project.milestones, milestone] })));
+    setData((prev) => updateProject(prev, projectId, (project) => ({ ...project, milestones: [...project.milestones, milestone] })));
     setSelectedProjectId("");
     setSelectedMilestone({ projectId, milestoneId: milestone.id });
   };
@@ -454,7 +463,7 @@ export default function Home() {
   const deleteMilestone = () => {
     if (!selectedMilestone || !activeMilestoneProject || !activeMilestone) return;
     if (!window.confirm(`确认删除里程碑“${activeMilestone.iteration}”？`)) return;
-    setData(updateActiveView(data, (view) => ({
+    setData((prev) => updateActiveView(prev,(view) => ({
       ...view,
       projects: view.projects.map((project) => {
         if (project.uuid !== (activeMilestoneProject?.uuid || selectedMilestone.projectId)) return project;
@@ -489,30 +498,30 @@ export default function Home() {
       milestones: [],
       viewId: activeView.id,
     };
-    setData(updateActiveView(data, (view) => ({ ...view, projects: [...view.projects, row] })));
+    setData((prev) => updateActiveView(prev,(view) => ({ ...view, projects: [...view.projects, row] })));
     setSelectedProjectId(row.uuid);
   };
 
   const saveProject = (projectId: string, patch: Partial<Project>) => {
     const current = activeView.projects.find((project) => project.uuid === projectId);
     const nextName = patch.name?.trim() || current?.name;
-    setData(updateActiveView(data, (view) => ({
+    setData((prev) => updateActiveView(prev,(view) => ({
       ...view,
       projects: view.projects.map((project) => project.uuid === projectId ? { ...project, ...patch, name: nextName || project.name } : project),
       connections: current && nextName && nextName !== current.name
         ? view.connections.map((connection) => ({ ...connection, fromProject: connection.fromProject === current.name ? nextName : connection.fromProject, toProject: connection.toProject === current.name ? nextName : connection.toProject }))
         : view.connections,
-    })));
+    })))
   };
 
   const deleteProject = (projectId: string) => {
     const target = activeView.projects.find((project) => project.uuid === projectId);
     if (!target || !window.confirm(`确定删除行“${target.name}”及其全部里程碑吗？`)) return;
-    setData(updateActiveView(data, (view) => ({
+    setData((prev) => updateActiveView(prev,(view) => ({
       ...view,
       projects: view.projects.filter((project) => project.uuid !== projectId),
       connections: view.connections.filter((connection) => connection.fromProject !== target.name && connection.toProject !== target.name),
-    })));
+    })))
     setSelectedProjectId("");
   };
 
@@ -529,7 +538,7 @@ export default function Home() {
       color: "#d8ff3e",
       fontSize: 13,
     };
-    setData(updateActiveView(data, (view) => ({ ...view, planItems: [...(view.planItems || []), item] })));
+    setData((prev) => updateActiveView(prev,(view) => ({ ...view, planItems: [...(view.planItems || []), item] })))
     setSelectedPlanItemId(item.id);
   };
 
@@ -627,7 +636,7 @@ export default function Home() {
           }),
           ...newProjects,
         ],
-      })));
+      })))
 
       setWorkspaceMode("timeline");
       setShowFeishuImport(false);
@@ -647,15 +656,15 @@ export default function Home() {
       ? activeView.planItems?.filter((item) => item.parentFrameId === selectedPlanItemId).length || 0
       : 0;
     if (boundCount && !window.confirm(`该虚线框绑定了 ${boundCount} 个文本框，删除后这些文本框也会一起删除。是否继续？`)) return;
-    setData(updateActiveView(data, (view) => ({
+    setData((prev) => updateActiveView(prev,(view) => ({
       ...view,
       planItems: (view.planItems || []).filter((item) => item.id !== selectedPlanItemId && item.parentFrameId !== selectedPlanItemId),
-    })));
+    })))
     setSelectedPlanItemId(null);
   };
 
   const updateConnection = (connectionId: string, patch: Partial<Connection>) => {
-    setData(updateActiveView(data, (view) => ({ ...view, connections: view.connections.map((conn) => conn.id === connectionId ? { ...conn, ...patch } : conn) })));
+    setData((prev) => updateActiveView(prev,(view) => ({ ...view, connections: view.connections.map((conn) => conn.id === connectionId ? { ...conn, ...patch } : conn) })))
   };
 
   const deleteSelectedConnection = () => {
@@ -682,7 +691,7 @@ export default function Home() {
     const fromProject = activeView.projects.find((project) => project.uuid === arrowStart.projectId);
     const toProject = activeView.projects.find((project) => project.uuid === projectId);
     if (!fromProject || !toProject) return;
-    setData(updateActiveView(data, (view) => ({
+    setData((prev) => updateActiveView(prev,(view) => ({
       ...view,
       connections: [...view.connections, {
         id: `connection_${Date.now()}`,
@@ -694,7 +703,7 @@ export default function Home() {
         lineType: arrowDashed ? "thin-dashed" : "thin-solid",
         color: arrowColor,
       }],
-    })));
+    })))
     setArrowStart(null);
     setArrowMode(false);
   };
@@ -1246,10 +1255,10 @@ export default function Home() {
 
       <AiChatPanel
         view={activeView}
-        onApplyView={(nextView) => setData((prevData) => ({
+        onApplyView={(nextView) => setData((prevData) => prevData ? ({
           ...prevData,
           views: prevData.views.map((view) => view.id === nextView.id ? nextView : view),
-        }))}
+        }) : prevData)}
         workspaceMode={workspaceMode}
         visibleProjects={visibleProjects}
         searchQuery={query}
