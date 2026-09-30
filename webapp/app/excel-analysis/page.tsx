@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { savePlanChangePreview } from "../change-preview";
 import { parseWorkbook, loadBaselineAppData, buildWorkbook } from "../data";
@@ -240,11 +240,11 @@ export default function ExcelAnalysisPage() {
     }
   };
 
-  const isHiddenChange = (change: ExcelChange) => {
+  const isHiddenChange = useCallback((change: ExcelChange) => {
     if (showNonMilestone) return false;
     if (change.entityType !== "milestone") return true;
     return false;
-  };
+  }, [showNonMilestone]);
 
   const filteredChanges = useMemo(() => {
     if (!result) return [];
@@ -255,7 +255,7 @@ export default function ExcelAnalysisPage() {
       if (!needle) return true;
       return [change.summary, change.item, change.project, change.view, change.field, change.oldValue, change.newValue].some((value) => value?.toLowerCase().includes(needle));
     });
-  }, [filter, query, result]);
+  }, [filter, query, result, isHiddenChange]);
 
   const visibleStats = useMemo(() => {
     if (!result) return null;
@@ -273,7 +273,7 @@ export default function ExcelAnalysisPage() {
       affectedProjects: affectedProjects.size,
       affectedViews: affectedViews.size,
     };
-  }, [result]);
+  }, [result, isHiddenChange]);
 
   useEffect(() => {
     if (baseline?.workbook && newFile && engineReady) void runComparison();
