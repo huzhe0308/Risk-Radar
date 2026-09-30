@@ -824,11 +824,13 @@ function DeliverablesTab({ deliverables, deletedNos, spData, vehicles, versionLa
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: 11, color: "#6e7681", marginBottom: 4 }}>交付物总数：{allItems.length} 项</div>
                 <div style={{ height: 8, borderRadius: 4, overflow: "hidden", display: "flex", background: "#21262d" }}>
-                  <div style={{ width: `${done / allItems.length * 100}%`, background: "#3fb950" }} />
-                  <div style={{ width: `${progress / allItems.length * 100}%`, background: "#58a6ff" }} />
-                  <div style={{ width: `${planned / allItems.length * 100}%`, background: "#d29922" }} />
-                  <div style={{ width: `${na / allItems.length * 100}%`, background: "#8b949e" }} />
-                  <div style={{ width: `${notStarted / allItems.length * 100}%`, background: "#f85149" }} />
+                  {allItems.length > 0 && (<>
+                    <div style={{ width: `${done / allItems.length * 100}%`, background: "#3fb950" }} />
+                    <div style={{ width: `${progress / allItems.length * 100}%`, background: "#58a6ff" }} />
+                    <div style={{ width: `${planned / allItems.length * 100}%`, background: "#d29922" }} />
+                    <div style={{ width: `${na / allItems.length * 100}%`, background: "#8b949e" }} />
+                    <div style={{ width: `${notStarted / allItems.length * 100}%`, background: "#f85149" }} />
+                  </>)}
                 </div>
               </div>
             </div>
@@ -1241,7 +1243,6 @@ function TimelineTab({ milestones, pepCeaMilestones, mapping, versionLabel, sopD
   };
 
   const safetyPhases = Array.from(new Set((mapping || []).map((m) => m.safetyPhase)));
-  const allActivities = Array.from(new Set((mapping || []).map((m) => m.safetyActivity)));
 
   return (
     <div>
