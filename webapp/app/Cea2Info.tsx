@@ -291,6 +291,12 @@ const PLATFORMS = [
   { code: "CSP31", label: "CSP31", desc: "China Small Platform", color: "#8957e5" },
 ];
 
+function isHardwareRelated(item: Cea2Deliverable): boolean {
+  if (item.isoRef?.includes("ISO 26262-5")) return true;
+  const text = `${item.deliverable} ${item.activity} ${item.level}`.toLowerCase();
+  return ["hw", "hardware", "fmeda", "fmea", "fta", "dfa", "hardware/software"].some((kw) => text.includes(kw));
+}
+
 function getPlatformOfVehicle(name: string): string | null {
   for (const p of PLATFORMS) {
     if (name.startsWith(p.code)) return p.code;
@@ -325,6 +331,7 @@ export function Cea2Info({ ceaVersion = "2.0", platformFilter }: { ceaVersion?: 
   const [data, setData] = useState<DataJson | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState<"huts" | "deliverables" | "timeline">("huts");
+  const [hwOnly, setHwOnly] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -461,7 +468,7 @@ export function Cea2Info({ ceaVersion = "2.0", platformFilter }: { ceaVersion?: 
   const cea2Deliverables = useMemo<Cea2Phase[]>(() => {
     const deleted = new Set(data?.cea2DeletedDeliverables || []);
     const customs = data?.cea2CustomDeliverables || [];
-    const phases: Cea2Phase[] = DEFAULT_DELIVERABLES.map((p) => ({ ...p, items: p.items.filter((i) => !deleted.has(i.no)) }));
+    let phases: Cea2Phase[] = DEFAULT_DELIVERABLES.map((p) => ({ ...p, items: p.items.filter((i) => !deleted.has(i.no)) }));
     if (customs.length > 0) {
       const customPhase = phases.find((p) => p.name === "Custom Deliverables");
       if (customPhase) {
@@ -470,8 +477,13 @@ export function Cea2Info({ ceaVersion = "2.0", platformFilter }: { ceaVersion?: 
         phases.push({ name: "Custom Deliverables (自定义交付物)", items: customs });
       }
     }
+    if (hwOnly) {
+      phases = phases
+        .map((p) => ({ ...p, items: p.items.filter((i) => isHardwareRelated(i)) }))
+        .filter((p) => p.items.length > 0);
+    }
     return phases;
-  }, [data?.cea2CustomDeliverables, data?.cea2DeletedDeliverables]);
+  }, [data?.cea2CustomDeliverables, data?.cea2DeletedDeliverables, hwOnly]);
 
   const addDeliverable = useCallback((item: Cea2Deliverable) => {
     setData((prev) => {
@@ -554,6 +566,9 @@ export function Cea2Info({ ceaVersion = "2.0", platformFilter }: { ceaVersion?: 
             <span style={{ marginRight: 6 }}>{t.icon}</span>{t.label}
           </button>
         ))}
+        <button onClick={() => setHwOnly(!hwOnly)} style={{ marginLeft: 8, background: hwOnly ? "rgba(31,111,235,.15)" : "none", border: `1px solid ${hwOnly ? "#1f6feb" : "#30363d"}`, color: hwOnly ? "#58a6ff" : "#6e7681", padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }} title="筛选出与硬件安全相关的交付物（ISO 26262-5 / HW / FMEDA / FMEA / FTA / DFA）">
+          {hwOnly ? "▣" : "▢"} 仅看硬件相关
+        </button>
         <div style={{ marginLeft: "auto", fontSize: 12, color: saveStatus === "saving" ? "#d29922" : saveStatus === "saved" ? "#3fb950" : "#484f58" }}>
           {saveStatus === "saving" ? "☁️ 保存中…" : saveStatus === "saved" ? "☁️ 已保存" : saveStatus === "error" ? "⚠️ 保存失败" : ""}
         </div>
