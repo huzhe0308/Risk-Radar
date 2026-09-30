@@ -1,4 +1,4 @@
-﻿﻿﻿"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
@@ -97,6 +97,8 @@ export default function Home() {
   const [ceaExpanded, setCeaExpanded] = useState(false);
   const [cea2Expanded, setCea2Expanded] = useState(false);
   const [cea2Version, setCea2Version] = useState("2.0");
+  const [cea2GroupMode, setCea2GroupMode] = useState<"version" | "platform">("version");
+  const [cea2Platform, setCea2Platform] = useState("CMP21");
   const inputRef = useRef<HTMLInputElement>(null);
   const changePreviewRef = useRef(false);
   const cloudDataRef = useRef<Record<string, unknown> | null>(null);
@@ -862,11 +864,28 @@ export default function Home() {
               <span className="view-copy"><strong>CEA Safety Plan</strong></span>
               {workspaceMode === "cea2-info" && <span className="active-dot" />}
             </button>
-            {cea2Expanded && ["2.0", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6"].map((ver) => (
-              <button key={ver} className={`view-item view-sub-item ${workspaceMode === "cea2-info" && cea2Version === ver ? "active" : ""}`} onClick={() => { setWorkspaceMode("cea2-info"); setCea2Version(ver); setSelectedProjectId(""); setSelectedMilestone(null); }}>
+            {cea2Expanded && (
+              <button className="view-item view-sub-item" onClick={() => setCea2GroupMode(cea2GroupMode === "version" ? "platform" : "version")} style={{ fontSize: 11, color: "#6e7681", fontStyle: "italic" }}>
+                <span className="view-icon">{cea2GroupMode === "version" ? "▦" : "⊟"}</span>
+                <span className="view-copy"><strong>按{cea2GroupMode === "version" ? "平台" : "版本"}分组</strong></span>
+              </button>
+            )}
+            {cea2Expanded && cea2GroupMode === "version" && ["2.0", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6"].map((ver) => (
+              <button key={ver} className={`view-item view-sub-item ${workspaceMode === "cea2-info" && cea2GroupMode === "version" && cea2Version === ver ? "active" : ""}`} onClick={() => { setWorkspaceMode("cea2-info"); setCea2GroupMode("version"); setCea2Version(ver); setSelectedProjectId(""); setSelectedMilestone(null); }}>
                 <span className="view-icon">◈</span>
                 <span className="view-copy"><strong>CEA {ver}</strong></span>
-                {workspaceMode === "cea2-info" && cea2Version === ver && <span className="active-dot" />}
+                {workspaceMode === "cea2-info" && cea2GroupMode === "version" && cea2Version === ver && <span className="active-dot" />}
+              </button>
+            ))}
+            {cea2Expanded && cea2GroupMode === "platform" && [
+              { code: "CMP21", label: "CMP21", color: "#1f6feb" },
+              { code: "MEB31", label: "MEB31", color: "#238636" },
+              { code: "CSP31", label: "CSP31", color: "#8957e5" },
+            ].map((p) => (
+              <button key={p.code} className={`view-item view-sub-item ${workspaceMode === "cea2-info" && cea2GroupMode === "platform" && cea2Platform === p.code ? "active" : ""}`} onClick={() => { setWorkspaceMode("cea2-info"); setCea2GroupMode("platform"); setCea2Platform(p.code); setSelectedProjectId(""); setSelectedMilestone(null); }}>
+                <span className="view-icon" style={{ color: p.color }}>▣</span>
+                <span className="view-copy"><strong>{p.label}</strong></span>
+                {workspaceMode === "cea2-info" && cea2GroupMode === "platform" && cea2Platform === p.code && <span className="active-dot" />}
               </button>
             ))}
           </div>
@@ -935,7 +954,7 @@ export default function Home() {
           ) : workspaceMode === "safety-components" ? (
             <><div className="page-heading" style={{ marginBottom: 0 }}><div><div className="breadcrumb">功能区 / Equipment Matrix</div><h1>Equipment Matrix</h1></div></div><EquipmentMatrixView /></>
           ) : workspaceMode === "cea2-info" ? (
-            <><div className="page-heading" style={{ marginBottom: 0 }}><div><div className="breadcrumb">功能区 / CEA Safety Plan / CEA {cea2Version}</div><h1>CEA {cea2Version} Safety Plan</h1></div></div><Cea2Info ceaVersion={cea2Version} /></>
+            <><div className="page-heading" style={{ marginBottom: 0 }}><div><div className="breadcrumb">功能区 / CEA Safety Plan / {cea2GroupMode === "platform" ? cea2Platform : `CEA ${cea2Version}`}</div><h1>{cea2GroupMode === "platform" ? `${cea2Platform} Safety Plan` : `CEA ${cea2Version} Safety Plan`}</h1></div></div><Cea2Info ceaVersion={cea2Version} platformFilter={cea2GroupMode === "platform" ? cea2Platform : undefined} /></>
           ) : <>
           <div className="toolbar">
             <div className="search-field"><Icon>⌕</Icon><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目、里程碑或备注…" /><kbd>⌘ K</kbd></div>
