@@ -285,10 +285,43 @@ type DataJson = {
   cea2DeletedDeliverables?: string[];
 };
 
-export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
+const PLATFORMS = [
+  { code: "CMP21", label: "CMP21", desc: "China Modular Platform", color: "#1f6feb" },
+  { code: "MEB31", label: "MEB31", desc: "Modularer E-Antriebs-Baukasten", color: "#238636" },
+  { code: "CSP31", label: "CSP31", desc: "China Small Platform", color: "#8957e5" },
+];
+
+function getPlatformOfVehicle(name: string): string | null {
+  for (const p of PLATFORMS) {
+    if (name.startsWith(p.code)) return p.code;
+  }
+  return null;
+}
+
+export function Cea2Info({ ceaVersion = "2.0", platformFilter }: { ceaVersion?: string; platformFilter?: string }) {
+  const isPlatformMode = !!platformFilter;
   const versionConfig = CEA_VERSIONS.find((v) => v.version === ceaVersion) || CEA_VERSIONS[0];
-  const vehicles = versionConfig.vehicles;
-  const versionKey = `cea${ceaVersion}_`;
+
+  const vehicles = useMemo(() => {
+    if (isPlatformMode) {
+      const result: Array<CeaVehicle & { ceaVersion: string }> = [];
+      for (const cv of CEA_VERSIONS) {
+        for (const v of cv.vehicles) {
+          const plat = getPlatformOfVehicle(v.name);
+          if (plat === platformFilter) {
+            result.push({ ...v, ceaVersion: cv.version });
+          }
+        }
+      }
+      return result;
+    }
+    return versionConfig.vehicles;
+  }, [isPlatformMode, platformFilter, versionConfig]);
+
+  const versionKey = isPlatformMode ? "" : `cea${ceaVersion}_`;
+  const displayLabel = isPlatformMode
+    ? (PLATFORMS.find((p) => p.code === platformFilter)?.label || platformFilter || "")
+    : versionConfig.label;
   const [data, setData] = useState<DataJson | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState<"huts" | "deliverables" | "timeline">("huts");
@@ -374,8 +407,17 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
     }, 800);
   }, []);
 
+  const getVehicleKey = useCallback((vehicleCode: string): string => {
+    if (isPlatformMode) {
+      const v = (vehicles as Array<CeaVehicle & { ceaVersion: string }>).find((vv) => vv.shortCode === vehicleCode);
+      const ver = v?.ceaVersion || ceaVersion;
+      return `cea${ver}_${vehicleCode}`;
+    }
+    return versionKey + vehicleCode;
+  }, [isPlatformMode, vehicles, versionKey, ceaVersion]);
+
   const mutateEntry = useCallback((vehicleCode: string, fn: (e: SpEntry) => SpEntry) => {
-    const nsKey = versionKey + vehicleCode;
+    const nsKey = getVehicleKey(vehicleCode);
     setData((prev) => {
       if (!prev) return prev;
       const spp = { ...(prev.safetyPlanPerProject || {}) };
@@ -384,7 +426,7 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
       return { ...prev, safetyPlanPerProject: spp };
     });
     autoSave();
-  }, [autoSave, versionKey]);
+  }, [autoSave, getVehicleKey]);
 
   const updateStatus = useCallback((vc: string, key: string, val: string) => mutateEntry(vc, (e) => { e.statuses[key] = val; return e; }), [mutateEntry]);
   const updateRemark = useCallback((vc: string, key: string, val: string) => mutateEntry(vc, (e) => { e.remarks[key] = val; return e; }), [mutateEntry]);
@@ -406,8 +448,14 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
     return e;
   }), [mutateEntry]);
 
-  const cea2Impact = useMemo(() => (data?.impactAnalysis || []).filter((ia) => versionConfig.productGroups.includes(ia.pg)), [data, versionConfig]);
-  const cea2PGs = useMemo(() => (data?.productGroups || []).filter((pg) => versionConfig.productGroups.includes(pg.name)), [data, versionConfig]);
+  const cea2Impact = useMemo(() => (data?.impactAnalysis || []).filter((ia) => {
+    if (isPlatformMode) return ia.pg.startsWith(platformFilter || "");
+    return versionConfig.productGroups.includes(ia.pg);
+  }), [data, versionConfig, isPlatformMode, platformFilter]);
+  const cea2PGs = useMemo(() => (data?.productGroups || []).filter((pg) => {
+    if (isPlatformMode) return pg.name.startsWith(platformFilter || "");
+    return versionConfig.productGroups.includes(pg.name);
+  }), [data, versionConfig, isPlatformMode, platformFilter]);
   const cea2Milestones = useMemo(() => (data?.ceaKeyMilestones || []).filter((m) => m.week <= -22 || m.name === "SOP"), [data]);
 
   const cea2Deliverables = useMemo<Cea2Phase[]>(() => {
@@ -472,13 +520,22 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
     </div>
   );
 
-  if (!data) return <div style={{ padding: 40, color: "#8b949e" }}>Loading {versionConfig.label} data…</div>;
+  if (!data) return <div style={{ padding: 40, color: "#8b949e" }}>Loading {displayLabel} data…</div>;
 
   const versionSpData: Record<string, SpEntry> = {};
   if (data.safetyPlanPerProject) {
-    for (const [k, v] of Object.entries(data.safetyPlanPerProject)) {
-      if (k.startsWith(versionKey)) {
-        versionSpData[k.slice(versionKey.length)] = v;
+    if (isPlatformMode) {
+      for (const v of (vehicles as Array<CeaVehicle & { ceaVersion: string }>)) {
+        const prefix = `cea${v.ceaVersion}_`;
+        const fullKey = prefix + v.shortCode;
+        const entry = data.safetyPlanPerProject[fullKey];
+        if (entry) versionSpData[v.shortCode] = entry;
+      }
+    } else {
+      for (const [k, v] of Object.entries(data.safetyPlanPerProject)) {
+        if (k.startsWith(versionKey)) {
+          versionSpData[k.slice(versionKey.length)] = v;
+        }
       }
     }
   }
@@ -503,11 +560,11 @@ export function Cea2Info({ ceaVersion = "2.0" }: { ceaVersion?: string }) {
       </div>
 
       <div style={{ flex: 1, overflow: "auto", padding: "16px 24px" }}>
-        {tab === "huts" && <HutTab vehicles={vehicles} versionLabel={versionConfig.label} pgs={cea2PGs} impacts={cea2Impact} pepComparison={data.pepComparison} />}
+        {tab === "huts" && <HutTab vehicles={vehicles} versionLabel={displayLabel} pgs={cea2PGs} impacts={cea2Impact} pepComparison={data.pepComparison} />}
         {tab === "deliverables" && (
-          <DeliverablesTab deliverables={cea2Deliverables} deletedNos={data.cea2DeletedDeliverables || []} spData={versionSpData} vehicles={vehicles} versionLabel={versionConfig.label} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} onAddDeliverable={addDeliverable} onDeleteDeliverable={deleteDeliverable} onRestoreDeliverable={restoreDeliverable} />
+          <DeliverablesTab deliverables={cea2Deliverables} deletedNos={data.cea2DeletedDeliverables || []} spData={versionSpData} vehicles={vehicles} versionLabel={displayLabel} onStatusChange={updateStatus} onRemarkChange={updateRemark} onLinkChange={updateLink} onDateChange={updateDate} onTailoringChange={updateTailoring} onAddDeliverable={addDeliverable} onDeleteDeliverable={deleteDeliverable} onRestoreDeliverable={restoreDeliverable} />
         )}
-        {tab === "timeline" && <TimelineTab milestones={cea2Milestones} pepCeaMilestones={data.pepCeaMilestones || []} mapping={data.safetyPepMapping || []} versionLabel={versionConfig.label} sopDate={vehicles[0]?.sopDate || "2027-06-18"} />}
+        {tab === "timeline" && <TimelineTab milestones={cea2Milestones} pepCeaMilestones={data.pepCeaMilestones || []} mapping={data.safetyPepMapping || []} versionLabel={displayLabel} sopDate={(isPlatformMode ? (vehicles as Array<CeaVehicle>)[0]?.sopDate : vehicles[0]?.sopDate) || "2027-06-18"} />}
       </div>
     </div>
   );
